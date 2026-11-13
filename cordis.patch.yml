@@ -4,6 +4,10 @@
 #
 # 本文件是 bundle 的聚合点：新增插件时在这里加一行，并在需要的 preset 中引用它。
 - insert:
+    # 独立组件：Host 作用域，对所有会话生效，可在 Plugin Manager 单独启用/禁用。
+    # 与模式无关——模式（preset）只是另一个组件。
+    - id: hyper-teams
+      name: '@chrock-studio/dsh-hyper-mode/hyper-teams'
     - id: preset-hyper-creator
       name: '@deepseek-ai/dsh-agent-preset'
       config:
@@ -131,9 +135,6 @@
             config:
               maxSubCallsPerMinute: 1024
               maxParallelSubCalls: 10
-          # 空壳插件：验证一个 bundle 能挂载多个子路径插件，验收后可删。
-          - id: hyper-teams
-            name: '@chrock-studio/dsh-hyper-mode/hyper-teams'
           - id: tool-cordis
             name: '@deepseek-ai/dsh-tool-cordis'
           - id: skill-filesystem

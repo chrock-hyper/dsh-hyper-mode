@@ -8,7 +8,7 @@
 |---|---|---|
 | **hyper-creator**（增强创造模式） | `@chrock-studio/dsh-hyper-mode/hyper-creator` | Creator 能力 + 混合工具执行：既可直呼工具，也可把同一批工具当作 `run_code` 程序里的 SDK 绑定调用 |
 | `shared` | — | 跨插件共享纯代码，不挂载 |
-| **hyper-teams**（空壳） | `@chrock-studio/dsh-hyper-mode/hyper-teams` | 仅用于验证「一个 bundle 挂多个子路径插件」；只往提示词塞标记，验收后可删 |
+| **hyper-teams**（空壳） | `@chrock-studio/dsh-hyper-mode/hyper-teams` | **独立组件**（顶层行，Host 作用域）：对所有会话生效，可在 Plugin Manager 单独启用/禁用。仅塞一个提示词标记，验收后可删 |
 
 ## 结构
 
