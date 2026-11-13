@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Hybrid tool execution",
+    "description": "Lets one agent call tools directly and reach the same tools as program bindings through run_code.",
+    "detail": "docs/DETAIL.md"
+  }
+}

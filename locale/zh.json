@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "混合工具执行",
+    "description": "让同一个 agent 既能直呼工具，也能在 run_code 程序里以绑定方式调用同一批工具。",
+    "detail": "docs/DETAIL.md"
+  }
+}

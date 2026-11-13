@@ -1,0 +1,39 @@
+{
+  "name": "dsh-tool-executor-hybrid",
+  "version": "0.2.1",
+  "private": true,
+  "type": "module",
+  "description": "Hybrid tool execution: direct tool calls and programmatic run_code in one agent.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "skills",
+    "icon.svg",
+    "test"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "bundle",
+    "plugin",
+    "tool-executor",
+    "ptc"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/<your-user>/dsh-tool-executor-hybrid.git"
+  }
+}
