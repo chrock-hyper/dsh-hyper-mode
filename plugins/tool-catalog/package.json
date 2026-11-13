@@ -1,0 +1,8 @@
+{
+  "name": "@chrock-studio/dsh-tool-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Host 检视 provider：报告模型真正收到的工具编目，补上 Tool/listTools 看不到的 run_code 传输。",
+  "license": "MIT"
+}

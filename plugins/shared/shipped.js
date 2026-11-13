@@ -17,7 +17,7 @@
  * a rejected plugin import into a bare `never started` row with the cause only in
  * the Host log, so this module must not depend on anything at import time.
  *
- * @module @chrock-studio/dsh-hyper-creator/shipped
+ * @module @chrock-studio/dsh-hyper-mode/shared/shipped
  */
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'

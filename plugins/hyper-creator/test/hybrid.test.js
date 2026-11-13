@@ -48,7 +48,7 @@ const fakes = {
 /** Specifier to fail on, so the visibility guarantee can be tested. */
 let failSpec = null
 
-mock.module('../lib/shipped.js', () => ({
+mock.module('../../shared/shipped.js', () => ({
   loadShipped: (spec) => {
     if (spec === failSpec) throw new Error(`simulated resolution failure for ${spec}`)
     const fake = fakes[spec]
@@ -59,6 +59,7 @@ mock.module('../lib/shipped.js', () => ({
 
 const mod = await import('../index.js')
 const { HybridToolExecutor } = mod
+const { HYBRID_INSTRUCTION, RUN_CODE_PREFERENCE } = await import('../lib/policy.js')
 
 const TOOLS = [
   { name: 'bash', description: 'run shell', output: { schema: { type: 'object' } } },
@@ -87,6 +88,24 @@ describe('HybridToolExecutor', () => {
     const executor = new HybridToolExecutor(makeCtx())
     expect(executor.sections.map((s) => s.name)).toEqual(['tools:hybrid-surface', 'tools:hybrid-sdk'])
     expect(executor.sections[1].text(TOOLS)).toContain('TS SDK for 2 tools')
+  })
+
+  test('the surface section carries the routing policy', () => {
+    const executor = new HybridToolExecutor(makeCtx())
+    expect(executor.sections[0].text).toBe(HYBRID_INSTRUCTION)
+    expect(executor.sections[0].order).toBe(800)
+  })
+
+  test('states the routing preference beside the transport only', () => {
+    const executor = new HybridToolExecutor(makeCtx())
+    const described = executor.describe(TOOLS)
+    expect(described.schemas[0].description).toBe(`transport ${RUN_CODE_PREFERENCE}`)
+    expect(described.schemas.slice(1).map((s) => s.description)).toEqual(['run shell', 'read file'])
+  })
+
+  test('describes an identical catalog on every step, for request-cache stability', () => {
+    const executor = new HybridToolExecutor(makeCtx())
+    expect(executor.describe(TOOLS)).toEqual(executor.describe(TOOLS))
   })
 
   test('routes a pure direct batch to the native executor', async () => {

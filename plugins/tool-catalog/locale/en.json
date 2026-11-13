@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Tool catalog inspection",
+    "description": "Adds a Host inspect provider that reports the tool schemas the model actually receives, including the run_code transport that Tool/listTools omits."
+  }
+}

@@ -12,7 +12,7 @@ DSH 的 bundle 加载链有三处反直觉的失败点，且**失败是静默的
 1. **安装 ≠ 加载**。`applied` 只说明包进了 profile，不说明模块能 import、插件能激活。
 2. **本地目录是 `link:` 安装**。profile 里是符号链接；Node 会把链接解析成真实路径，从你的工作区**看不到** `app.asar` 里的 `@deepseek-ai/*`。
 3. **加载器吞掉导入错误**。`cordis-plugin-loader/lib/index.js` 的 `_init()` 里 `catch (error) { logger.error(error); return }` —— 不建 fiber，审计只报 `never started`，原因只在 Host 日志（桌面版无落盘日志）。
-4. **没有热更新**。Node 按 URL 缓存 ES 模块；`reload_plugin` 也只做 dispose → re-apply。**改 `.js` 必须重启 DSH**。`package.json` 的 `version` 不是活性信号。
+4. **重载 ≠ 重启**。Node 按 URL 缓存 ES 模块，但 `plugin_manager` 开关 bundle 会走 `hmr.reconcileProfile()`：比对已加载模块与磁盘（含 `link:` 包的真实目标）→ 淘汰缓存 → 重新求值并重放条目。**所以重载 bundle 就能生效**；只有进程级绑定（原生插件、进程单例、`ResolutionRestartRequired` 的映射变更）才需要重启。`package.json` 的 `version` 不是活性信号。
 
 ## 1. 清单
 
@@ -55,10 +55,10 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" -e "
 
 | 症状 | 病因 | 处理 |
 |---|---|---|
-| `never started` | 模块导入失败（被吞） | 按清单 1、2 改；让失败变可见后重启再看 |
+| `never started` | 模块导入失败（被吞） | 按清单 1、2 改；让失败变可见后重新启用 bundle 再看 |
 | `failed: cannot resolve … (tried: …)` | 锚点不对 | 看 `tried:` 列表，补 `profileContext.installAnchor` |
 | `failed: <INVALID…>` | 行配置不合 schema | 对齐插件导出的 `Config` |
-| 改了代码没变化 | 进程模块缓存 | 重启 DSH；升级 `version` 只作核对用 |
+| 改了代码没变化 | 改动不在链接目标的真实路径下，或根本没发生重载 | 确认文件在 `link:` 指向的目录内，再禁用→启用 bundle |
 | `waiting for <service>` | 依赖服务未供上 | 检查 `inject` 与所在作用域 |
 
 ## 4. 反例（别这么做）

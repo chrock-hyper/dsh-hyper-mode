@@ -11,14 +11,18 @@
   },
   "exports": {
     ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
     "./hyper-creator": "./plugins/hyper-creator/index.js",
     "./hyper-creator/locale/*.json": "./plugins/hyper-creator/locale/*.json",
     "./hyper-creator/icon": "./plugins/hyper-creator/icon.svg",
-    "./hyper-teams": "./plugins/hyper-teams/index.js"
+    "./hyper-teams": "./plugins/hyper-teams/index.js",
+    "./tool-catalog": "./plugins/tool-catalog/index.js",
+    "./tool-catalog/locale/*.json": "./plugins/tool-catalog/locale/*.json"
   },
   "files": [
     "index.js",
     "cordis.patch.yml",
+    "locale",
     "plugins",
     "docs",
     "skills",

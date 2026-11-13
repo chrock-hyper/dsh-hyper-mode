@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "工具编目检视",
+    "description": "新增一个 Host 检视 provider，报告模型真正收到的工具 schema，包括 Tool/listTools 看不到的 run_code 传输。"
+  }
+}

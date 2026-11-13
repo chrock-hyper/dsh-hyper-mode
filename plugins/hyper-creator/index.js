@@ -17,10 +17,9 @@
  *
  * @module @chrock-studio/dsh-hyper-creator
  */
+import { HYBRID_INSTRUCTION, withRunCodePreference } from './lib/policy.js'
 import { groupConsecutive, mergeBatch } from './lib/split.js'
-import { loadShipped } from './lib/shipped.js'
-
-const HYBRID_INSTRUCTION = `Tools are reachable two ways. Call one directly for a single step. Write a program for \`run_code\` when you need to chain calls, loop over results, run independent reads together, or keep intermediate values out of the conversation. Direct calls and programs may appear in the same response.`
+import { loadShipped } from '../shared/shipped.js'
 
 /** Reworded for the dual surface; the PTC preset's "only run_code" rule does not apply here. */
 const SDK_HEADER = 'The declarations below are program-only SDK bindings for run_code. They do not make a name directly callable; call a name that also appears as a separate tool schema directly.'
@@ -102,8 +101,10 @@ export class HybridToolExecutor {
     const nativeSchemas = tools.map((definition) => this.shipped.projectToolSchema(definition, false))
     const nativeNames = tools.map((definition) => definition.name)
     if (!this.ptcAvailable()) return { schemas: nativeSchemas, knownNames: nativeNames }
+    const programSchemas = this.ptc.describe(tools).schemas
+      .map((schema) => withRunCodePreference(schema, this.shipped.RUN_CODE_NAME))
     return {
-      schemas: [...this.ptc.describe(tools).schemas, ...nativeSchemas],
+      schemas: [...programSchemas, ...nativeSchemas],
       knownNames: [...nativeNames, this.shipped.RUN_CODE_NAME],
     }
   }

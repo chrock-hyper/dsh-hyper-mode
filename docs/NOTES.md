@@ -104,9 +104,23 @@ const INSTALL_ANCHOR = fileURLToPath(new URL("../package.json", import.meta.url)
 
 ## 4. 怎么验证「改的代码真的在跑」
 
-软链接 ≠ 热更新。profile 里只是符号链接（与源目录同一 inode，无副本），改文件立刻反映在磁盘上；但 **Node 的 ES 模块按 URL 缓存，同一进程只求值一次**，`reload_plugin` 也不会重新导入磁盘代码。
+软链接不是问题：profile 里只是符号链接（与源目录同一 inode，无副本），改文件立刻反映在磁盘上。真正的障碍是 **Node 的 ES 模块按 URL 缓存**——但这**不等于**必须重启进程。
 
-所以：**改 `.js` 必须重启 DSH**。`package.json` 的 `version` 不是活性信号（它只是元数据）；可靠的活性信号是**行为差异**——例如诊断文字从 `never started` 变成 `failed: <详情>`。
+`plugin_manager` 开关 bundle 时会调用 `hmr.reconcileProfile()`，它按顺序做四件事：
+
+1. `profileRoots(profile.dir)` 收集比对根：profile 目录**加上所有符号链接包的真实目标**（`lstatSync(...).isSymbolicLink()`）——所以 `link:` 安装的 bundle 也在比对范围内；
+2. `files.compare(profileModules(roots))` 拿已加载模块与磁盘比对，得出 `stale`；
+3. `planReplacement` → `stopPlanned` 停掉这些模块的插件，`evict()` 把条目从 ESM 与 CJS 缓存里删掉（失败则回滚并重放旧插件）；
+4. `recomposeProfile()` 重算并重放条目，下一次 import 重新求值磁盘上的新代码。
+
+所以：**重载 bundle 就能让改动完全生效**。`package.json` 的 `version` 依然不是活性信号（只是元数据）；可靠的活性信号是**行为差异**——诊断文字从 `never started` 变成 `failed: <详情>`，或第 8 节的路由策略段落换成了新文案。
+
+需要重启的只剩与进程实例强绑定的情况：
+
+- `ResolutionRestartRequired`：保留中的 profile 映射**真实目录或作用域变了**（例如把 `link:` 从主 checkout 改指到 worktree）、安装版本/声明方变化、映射被移除；
+- 原生 addon、进程级单例等 Cordis 生命周期管不到的状态。
+
+这条也解释了反直觉现象：源码改了却没生效时，先查**改的文件是否在链接目标的真实路径下**，而不是先重启。
 
 ## 5. 验收怎么设计才可信
 
@@ -137,3 +151,26 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" …  # 模�
 ```
 
 最后一条尤其重要：**永远用「没有 shell 变量」的环境验证 Host 侧行为**。
+
+## 8. 路由策略：为什么是阈值而不是「一律用 run_code」
+
+混合执行器最初的策略只有一句话：「单步直呼，要串联/循环/并行读才写程序」。这等于只是**允许**，没有在模型做决策的地方给出判据；而 `run_code` 自带的工具描述是纯机械的（「执行一个程序，两个参数」），一个字也没说什么时候该用它。
+
+于是把策略收成一条**可判定的阈值**，落在两处：
+
+| 位置 | 作用 |
+|---|---|
+| `lib/policy.js` 的 `HYBRID_INSTRUCTION` | 挂在 `PTC_ONLY` 段（order 800），在各工具专属段落之前，统领全局 |
+| 同文件的 `RUN_CODE_PREFERENCE` | `describe()` 时追加到 `run_code` 的 schema 描述上，离决策点最近 |
+
+**判据**：动手前就能列出 ≥2 个调用、且中间值只被程序消费 → 写程序；单步、结果要先看/先批、或还在探索 → 直呼。
+
+不做成「一律编程」，是因为代价不对称：
+
+- `run_code` 省的是**往返次数**和大结果占的**上下文**；
+- 它不省的是**代码本身的 token**和单次调用的**额外延迟**——两个小结果写成程序反而更贵；
+- 嵌套子调用 settle 时没有 `meta`（见 `dsh-client-ui-tool` 的 `image-card-model.ts`），需要看渲染结果（图片、diff）的工作仍应直呼。
+
+所以策略里同时写了两条「反例豁免」和三条**批处理卫生**：逐项 `try/catch` 并回报失败项（程序内子调用失败是 rejection，不捕获就整体失败）、只打印整理后的结果、破坏性/对外可见动作保持直呼；大批量要分块，因为 `run_code` 有 10 分钟硬上限。
+
+策略文本抽成纯常量而不是内联在 `index.js`，是为了让 `bun test` 能断言「阈值、反例、卫生规则都还在」，改文案不动执行器逻辑。

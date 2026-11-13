@@ -8,6 +8,11 @@
     # 与模式无关——模式（preset）只是另一个组件。
     - id: hyper-teams
       name: '@chrock-studio/dsh-hyper-mode/hyper-teams'
+    # 检视修复：Tool/listTools 只读 ctx.tools.schemas()（注册表），执行器的 run_code
+    # 传输不在其中（run_code 是保留名，register 会直接抛错）。本行注册 ToolCatalog
+    # provider，用 systemPrompt.assemble().tools 报告模型真正收到的编目。
+    - id: tool-catalog
+      name: '@chrock-studio/dsh-hyper-mode/tool-catalog'
     - id: preset-hyper-creator
       name: '@deepseek-ai/dsh-agent-preset'
       config:
