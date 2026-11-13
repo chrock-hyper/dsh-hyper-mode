@@ -118,7 +118,10 @@ const INSTALL_ANCHOR = fileURLToPath(new URL("../package.json", import.meta.url)
 需要重启的只剩与进程实例强绑定的情况：
 
 - `ResolutionRestartRequired`：保留中的 profile 映射**真实目录或作用域变了**（例如把 `link:` 从主 checkout 改指到 worktree）、安装版本/声明方变化、映射被移除；
+- **`unmanaged-plugin`：改动被一个「不在 Loader 条目里」的插件 import**——即 agent preset 挂载的行。`hmr` 的原话是「A plugin registered outside a Loader entry has no owner that can start its replacement」（`src/index.ts:844`），所以它不会淘汰这些模块，只记一条待重启项；
 - 原生 addon、进程级单例等 Cordis 生命周期管不到的状态。
+
+实测数据（`dsh-hyper-mode`，含一个 preset 行）：`plugin_manager set_bundle` 禁用再启用后返回 `application: restart-required`、`restartReason: unmanaged-plugin`；但**同一个 bundle 里的 Host 行照样热生效**（本包新增的 `ToolCatalog` provider 当即出现在 `cordis_inspect_list` 里）。也就是说：改 Host 行的代码可以靠重载生效，改 preset 里的行必须重启。
 
 这条也解释了反直觉现象：源码改了却没生效时，先查**改的文件是否在链接目标的真实路径下**，而不是先重启。
 

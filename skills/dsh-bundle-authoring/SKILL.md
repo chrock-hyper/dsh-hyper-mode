@@ -59,6 +59,7 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" -e "
 | `failed: cannot resolve … (tried: …)` | 锚点不对 | 看 `tried:` 列表，补 `profileContext.installAnchor` |
 | `failed: <INVALID…>` | 行配置不合 schema | 对齐插件导出的 `Config` |
 | 改了代码没变化 | 改动不在链接目标的真实路径下，或根本没发生重载 | 确认文件在 `link:` 指向的目录内，再禁用→启用 bundle |
+| 重载后 Host 行生效、preset 内仍旧 | 该行由 preset 挂在 Loader 条目之外（`unmanaged-plugin`） | 改 preset 内插件的代码只能重启 DSH；Host 行会热生效 |
 | `waiting for <service>` | 依赖服务未供上 | 检查 `inject` 与所在作用域 |
 
 ## 4. 反例（别这么做）
