@@ -1,39 +1,40 @@
 {
-  "name": "dsh-tool-executor-hybrid",
-  "version": "0.2.1",
+  "name": "@chrock-studio/dsh-hyper-mode",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Hybrid tool execution: direct tool calls and programmatic run_code in one agent.",
+  "description": "DeepSeek Harness 的模式集 bundle：聚合多个即插即用插件，当前包含增强创造模式（hyper-creator）。",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrock-studio/dsh-hyper-mode.git"
+  },
   "exports": {
     ".": "./index.js",
-    "./locale/*.json": "./locale/*.json",
-    "./icon": "./icon.svg"
+    "./hyper-creator": "./plugins/hyper-creator/index.js",
+    "./hyper-creator/locale/*.json": "./plugins/hyper-creator/locale/*.json",
+    "./hyper-creator/icon": "./plugins/hyper-creator/icon.svg",
+    "./hyper-teams": "./plugins/hyper-teams/index.js"
   },
   "files": [
     "index.js",
-    "lib",
     "cordis.patch.yml",
-    "locale/*.json",
+    "plugins",
     "docs",
     "skills",
-    "icon.svg",
-    "test"
+    "LICENSE"
   ],
-  "dsh": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    }
-  },
   "keywords": [
     "dsh",
     "deepseek-harness",
     "bundle",
     "plugin",
-    "tool-executor",
-    "ptc"
+    "agent-preset",
+    "tool-executor"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/<your-user>/dsh-tool-executor-hybrid.git"
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }

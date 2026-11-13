@@ -1,6 +1,6 @@
 # 建造笔记：一个能真正加载的 DSH 混合执行器 bundle
 
-这份笔记记录 `dsh-tool-executor-hybrid` 从「想合并两种执行器」到「在真实会话里验收通过」的全过程，重点是**踩过的坑**——它们几乎都不是业务逻辑问题，而是 bundle 的加载与解析机制问题。如果你想给 DSH 写插件，这些坑大概率也会遇到。
+这份笔记记录 `dsh-hyper-mode` 从「想合并两种执行器」到「在真实会话里验收通过」的全过程，重点是**踩过的坑**——它们几乎都不是业务逻辑问题，而是 bundle 的加载与解析机制问题。如果你想给 DSH 写插件，这些坑大概率也会遇到。
 
 > 可复用的检查清单见仓库里的 `skills/dsh-bundle-authoring/SKILL.md`。
 
@@ -39,7 +39,7 @@ interface ToolExecutor {
 
 ```
 ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-tools'
-  imported from /Users/…/bundles/dsh-tool-executor-hybrid/index.js
+  imported from /Users/…/bundles/dsh-hyper-mode/index.js
 ```
 
 `install_bundle` 对本地目录用 `link:` 安装，Node 会把符号链接解析成**真实路径**，从工作区向上找不到 `app.asar` 里的包。
@@ -49,7 +49,7 @@ ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-tools'
 ### 坑 2：加载器把导入失败吞成 `never started`
 
 ```
-tool-executor-hybrid (dsh-tool-executor-hybrid): never started
+tool-executor-hybrid (dsh-hyper-mode): never started
 ```
 
 `cordis-plugin-loader` 的 `_init()`：

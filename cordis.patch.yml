@@ -1,13 +1,15 @@
-# Agent preset creator-hybrid：Creator（创造模式）能力 + 混合工具执行。
-# 由 dsh-web-app/presets/cordis.patch.yml 派生；新增 tool-executor-hybrid，
+# Agent preset hyper-creator：「增强创造模式」——Creator 能力 + 混合工具执行。
+# 由 dsh-web-app/presets/cordis.patch.yml 派生；新增 hyper-creator 插件行，
 # 直呼工具与 run_code 程序调用并存，Creator 的检查/插件管理/workflow 全部保留。
+#
+# 本文件是 bundle 的聚合点：新增插件时在这里加一行，并在需要的 preset 中引用它。
 - insert:
-    - id: preset-creator-hybrid
+    - id: preset-hyper-creator
       name: '@deepseek-ai/dsh-agent-preset'
       config:
-        id: creator-hybrid
-        name: 强化创造模式（混合执行）
-        description: 创造模式能力 + 混合工具执行：既可直呼工具，也可在 run_code 程序里调用同一批工具
+        id: hyper-creator
+        name: 增强创造模式
+        description: Creator 能力 + 混合工具执行：既可直呼工具，也可在 run_code 程序里调用同一批工具
         order: 6
         plugins:
           # The dsh-doc skill owns plugin implementation and authorization guidance.
@@ -124,11 +126,14 @@
               fetch: true
               searchTimeoutMs: 60000
           # 混合执行器：直呼与 run_code 并存（本 bundle 自身即该插件）。
-          - id: tool-executor-hybrid
-            name: dsh-tool-executor-hybrid
+          - id: hyper-creator
+            name: '@chrock-studio/dsh-hyper-mode/hyper-creator'
             config:
               maxSubCallsPerMinute: 1024
               maxParallelSubCalls: 10
+          # 空壳插件：验证一个 bundle 能挂载多个子路径插件，验收后可删。
+          - id: hyper-teams
+            name: '@chrock-studio/dsh-hyper-mode/hyper-teams'
           - id: tool-cordis
             name: '@deepseek-ai/dsh-tool-cordis'
           - id: skill-filesystem
