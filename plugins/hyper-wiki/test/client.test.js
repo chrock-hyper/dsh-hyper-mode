@@ -202,7 +202,10 @@ describe('client module', () => {
     expect(tree.props.className).toBe('dw-root')
     const classes = []
     walk(tree, node => classes.push(String(node.props.className || '')))
-    expect(classes.some(name => name.includes('dw-header'))).toBe(true)
+    // The tab owns no banner header: scope controls live in the tree column's
+    // head, so the panel starts straight at the three-column body.
+    expect(classes.some(name => name.includes('dw-header'))).toBe(false)
+    expect(classes.some(name => name.includes('dw-treehead'))).toBe(true)
     expect(classes.some(name => name.includes('dw-tree'))).toBe(true)
     expect(classes.some(name => name.includes('dw-rail'))).toBe(true)
     // A style element ships with the panel so unmounting removes the CSS.

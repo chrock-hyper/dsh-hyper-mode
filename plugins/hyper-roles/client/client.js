@@ -451,129 +451,166 @@ window.__ModuleLoader__.load({
         onClick: () => { setScope(value); setSelected(null); setDoc(null); setForm(null) },
       }, value === 'project' ? t('scopeProject') : t('scopeGlobal'))
 
+      const builtinRows = state === null ? [] : state.builtins || []
       const editor = doc === null || form === null
         ? h('p', { className: 'hr-muted' }, t('emptyBody'))
         : h('div', { className: 'hr-editor' },
-          h('div', { className: 'hr-ed-head' },
-            h('div', { className: 'hr-ed-title-wrap' },
-              h('input', { className: 'hr-title', value: form.title, disabled: doc.scope === 'global' && doc.builtin === true, onChange: setField('title') }),
-              h('div', { className: 'hr-meta' },
-                h('span', null, doc.fields.id),
-                h('span', null, '·'),
-                h('span', null, doc.scope === 'project' ? t('scopeProject') : t('scopeGlobal')),
-                h('span', null, '·'),
-                h('span', null, `${t('version')}${doc.revision}`),
-                h('span', null, '·'),
-                h('span', { className: err(dirty) ? 'hr-dirty' : 'hr-faint' }, dirty ? t('dirty') : t('saved'))),
+            h('div', { className: 'hr-ed-head' },
+              h('div', { className: 'hr-ed-title-wrap' },
+                h('input', { className: 'hr-title', value: form.title, onChange: setField('title') }),
+                h('div', { className: 'hr-meta' },
+                  h('span', null, doc.fields.id),
+                  h('span', null, '·'),
+                  h('span', null, doc.scope === 'project' ? t('scopeProject') : t('scopeGlobal')),
+                  h('span', null, '·'),
+                  h('span', null, `${t('version')}${doc.revision}`),
+                  h('span', null, '·'),
+                  h('span', { className: dirty ? 'hr-dirty' : 'hr-faint' }, dirty ? t('dirty') : t('saved')),
+                ),
+              ),
+              h('div', { className: 'hr-actions' },
+                button(t('copyPrompt'), copyPrompt, { ghost: true }),
+                button(t('reload'), reload),
+                button(busy ? t('saving') : t('save'), save, { primary: true, disabled: busy || !dirty }),
+                archiving ? button(t('archiveConfirm'), archive, { danger: true }) : button(t('archive'), archive, { danger: true }),
+              ),
             ),
-            h('div', { className: 'hr-actions' },
-              button(t('copyPrompt'), copyPrompt, { ghost: true }),
-              button(t('reload'), reload),
-              button(busy ? t('saving') : t('save'), save, { primary: true, disabled: busy || !dirty }),
-              archiving
-                ? button(t('archiveConfirm'), archive, { danger: true })
-                : button(t('archive'), archive, { danger: true })),
+            conflict === null ? null : h('div', { className: 'hr-banner hr-warn' },
+              h('span', null, `${t('conflict')}（v${doc.revision} → v${conflict}）`),
+              button(t('cancel'), () => setConflict(null), { ghost: true }),
+            ),
+            h('div', { className: 'hr-grid' },
+              h(Field, { label: t('capabilities'), value: form.capabilities, onChange: setField('capabilities') }),
+              h(Field, { label: t('skills'), value: form.skills, onChange: setField('skills') }),
+              h(Field, { label: t('handoffs'), value: form.handoffs, onChange: setField('handoffs') }),
+              h(Field, { label: t('can'), value: form.can, onChange: setField('can') }),
+            ),
+            h('textarea', { className: 'hr-textarea hr-body', value: form.body, onChange: setField('body') }),
+            h('details', { className: 'hr-guide', open: guide.trim() !== '' },
+              h('summary', null, t('guide')),
+              h('textarea', { className: 'hr-textarea hr-guide-text', value: guide, onChange: (event) => setGuide(event.target.value) }),
+              h('div', { className: 'hr-guide-actions' }, button(t('guideSave'), saveGuide, { disabled: busy })),
+            ),
+            h('p', { className: 'hr-hint' }, t('promptHint')),
+          )
+
+      const listHead = h('div', { className: 'hr-list-head' },
+        h('div', { className: 'hr-seg' }, scopeButton('project'), scopeButton('global')),
+        h('input', {
+          className: 'hr-input hr-filter',
+          placeholder: t('filter'),
+          value: filter,
+          onChange: (event) => setFilter(event.target.value),
+        }),
+        h('button', {
+          type: 'button',
+          className: 'hr-new',
+          onClick: () => setCreating((open) => !open),
+          disabled: scope === 'project' && (state === null || state.projectDir === null),
+        }, `＋ ${t('newRole')}`),
+      )
+
+      const listColumn = h('aside', { className: 'hr-col hr-list-col' },
+        listHead,
+        creating === false ? null : h('div', { className: 'hr-create' },
+          h('input', { className: 'hr-input', placeholder: t('idField'), value: newId, onChange: (event) => setNewId(event.target.value) }),
+          h('input', { className: 'hr-input', placeholder: t('titleField'), value: newTitle, onChange: (event) => setNewTitle(event.target.value) }),
+          h('div', { className: 'hr-create-actions' },
+            button(t('cancel'), () => setCreating(false), { ghost: true }),
+            button(t('create'), create, { primary: true, disabled: busy }),
           ),
-          conflict === null ? null : h('div', { className: 'hr-banner hr-warn' },
-            h('span', null, `${t('conflict')}（v${doc.revision} → v${conflict}）`),
-            button(t('cancel'), () => setConflict(null), { ghost: true })),
-          h('div', { className: 'hr-grid' },
-            h(Field, { label: t('capabilities'), value: form.capabilities, onChange: setField('capabilities') }),
-            h(Field, { label: t('skills'), value: form.skills, onChange: setField('skills') }),
-            h(Field, { label: t('handoffs'), value: form.handoffs, onChange: setField('handoffs') }),
-            h(Field, { label: t('can'), value: form.can, onChange: setField('can') })),
-          h('textarea', { className: 'hr-textarea hr-body', value: form.body, onChange: setField('body') }),
-          h('details', { className: 'hr-guide', open: guide.trim() !== '' },
-            h('summary', null, t('guide')),
-            h('textarea', { className: 'hr-textarea hr-guide-text', value: guide, onChange: (event) => setGuide(event.target.value) }),
-            h('div', { className: 'hr-guide-actions' }, button(t('guideSave'), saveGuide, { disabled: busy }))),
-          h('p', { className: 'hr-hint' }, t('promptHint')))
+        ),
+        rows.length === 0
+          ? h('p', { className: 'hr-muted hr-pad' }, state === null ? t('loading') : t('emptyList'))
+          : h('ul', { className: 'hr-rows' }, rows.map((row) => h('li', {
+              key: `${row.scope}:${row.id}`,
+              className: `hr-row${selected !== null && selected.id === row.id && selected.scope === row.scope ? ' hr-row-on' : ''}`,
+              onClick: () => openRole({ scope: row.scope, id: row.id }),
+            },
+              h('span', { className: 'hr-row-title' }, row.title),
+              h('span', { className: 'hr-row-meta' },
+                `${row.id} · ${t('version')}${row.version}`,
+                row.shadowed === true ? h('em', { className: 'hr-badge' }, t('shadowed')) : null,
+              ),
+            ))),
+        builtinRows.length === 0 ? null : h('div', { className: 'hr-builtins' },
+          h('p', { className: 'hr-muted hr-pad' }, t('readonly')),
+          h('ul', { className: 'hr-rows' }, builtinRows.map((row) => h('li', { key: row.id, className: 'hr-row hr-row-builtin' },
+            h('span', { className: 'hr-row-title' }, row.title),
+            h('span', { className: 'hr-row-meta' }, row.id,
+              h('button', {
+                type: 'button',
+                className: 'hr-link',
+                onClick: () => copyBuiltin(row.id),
+                disabled: busy || (scope === 'project' && state.projectDir === null),
+              }, t('copyIn')),
+            ),
+          ))),
+        ),
+      )
+
+      const sideColumn = h('aside', { className: 'hr-col hr-side-col' },
+        h('h3', { className: 'hr-side-title' }, `${t('notes')} ${doc === null ? '' : `(${doc.notes.length})`}`),
+        doc === null ? null : h('div', null,
+          doc.notes.length === 0
+            ? h('p', { className: 'hr-muted' }, t('noteEmpty'))
+            : h('ul', { className: 'hr-note-list' }, doc.notes.slice().reverse().map((entry, index) => h('li', { key: `${entry.at}-${index}` },
+                h('span', { className: 'hr-note-meta' }, `${String(entry.at).slice(0, 16).replace('T', ' ')} · ${entry.source}`),
+                h('p', null, entry.text),
+              ))),
+          h('textarea', {
+            className: 'hr-textarea hr-note-input',
+            placeholder: t('notePlaceholder'),
+            value: note,
+            onChange: (event) => setNote(event.target.value),
+          }),
+          h('div', { className: 'hr-note-actions' },
+            button(t('noteAdd'), addNote, { primary: true, disabled: busy || note.trim() === '' }),
+          ),
+        ),
+        h('h3', { className: 'hr-side-title' }, t('dataAt')),
+        h('p', { className: 'hr-muted' },
+          state === null ? '' : `本项目 ${state.projectDir === null ? '—' : '.dsh/roles/'}`,
+          h('br'),
+          state === null ? '' : `全局 ${state.globalDir}`,
+        ),
+      )
+
+      const banners = error === '' && notice === ''
+        ? null
+        : h('div', { className: 'hr-banners' },
+            error === '' ? null : h('span', { className: 'hr-banner hr-error' }, error),
+            notice === '' ? null : h('span', { className: 'hr-banner hr-ok' }, notice),
+          )
 
       return h('div', { className: 'hr-tab' },
         h('style', null, STYLES),
-        h('header', { className: 'hr-head' },
-          h('div', { className: 'hr-seg' }, scopeButton('project'), scopeButton('global')),
-          h('input', {
-            className: 'hr-input hr-filter',
-            placeholder: t('filter'),
-            value: filter,
-            onChange: (event) => setFilter(event.target.value),
-          }),
-          button(t('newRole'), () => setCreating((open) => !open), { primary: true, disabled: scope === 'project' && (state === null || state.projectDir === null) }),
-          h('span', { className: 'hr-grow' }),
-          error === '' ? null : h('span', { className: 'hr-banner hr-error' }, error),
-          notice === '' ? null : h('span', { className: 'hr-banner hr-ok' }, notice)),
+        banners,
         h('div', { className: 'hr-body-cols' },
-          h('aside', { className: 'hr-col hr-list-col' },
-            creating
-              ? h('div', { className: 'hr-create' },
-                h('input', { className: 'hr-input', placeholder: t('idField'), value: newId, onChange: (event) => setNewId(event.target.value) }),
-                h('input', { className: 'hr-input', placeholder: t('titleField'), value: newTitle, onChange: (event) => setNewTitle(event.target.value) }),
-                h('div', { className: 'hr-create-actions' },
-                  button(t('cancel'), () => setCreating(false), { ghost: true }),
-                  button(t('create'), create, { primary: true, disabled: busy })))
-              : null,
-            rows.length === 0
-              ? h('p', { className: 'hr-muted hr-pad' }, state === null ? t('loading') : t('emptyList'))
-              : h('ul', { className: 'hr-rows' }, rows.map((row) => h('li', {
-                key: `${row.scope}:${row.id}`,
-                className: `hr-row${selected !== null && selected.id === row.id && selected.scope === row.scope ? ' hr-row-on' : ''}`,
-                onClick: () => openRole({ scope: row.scope, id: row.id }),
-              },
-                h('span', { className: 'hr-row-title' }, row.title),
-                h('span', { className: 'hr-row-meta' },
-                  `${row.id} · ${t('version')}${row.version}`,
-                  row.shadowed === true ? h('em', { className: 'hr-badge' }, t('shadowed')) : null)))),
-            (state === null ? [] : state.builtins || []).length === 0 ? null : h('div', { className: 'hr-builtins' },
-              h('p', { className: 'hr-muted hr-pad' }, t('readonly')),
-              h('ul', { className: 'hr-rows' }, state.builtins.map((row) => h('li', { key: row.id, className: 'hr-row hr-row-builtin' },
-                h('span', { className: 'hr-row-title' }, row.title),
-                h('span', { className: 'hr-row-meta' }, row.id, h('button', {
-                  type: 'button',
-                  className: 'hr-link',
-                  onClick: () => copyBuiltin(row.id),
-                  disabled: busy || (scope === 'project' && state.projectDir === null),
-                }, t('copyIn'))))))),
+          listColumn,
           h('section', { className: 'hr-col hr-editor-col' }, editor),
-          h('aside', { className: 'hr-col hr-side-col' },
-            h('h3', { className: 'hr-side-title' }, `${t('notes')} ${doc === null ? '' : `(${doc.notes.length})`}`),
-            doc === null
-              ? null
-              : h('div', null,
-                doc.notes.length === 0
-                  ? h('p', { className: 'hr-muted' }, t('noteEmpty'))
-                  : h('ul', { className: 'hr-note-list' }, doc.notes.slice().reverse().map((entry, index) => h('li', { key: `${entry.at}-${index}` },
-                    h('span', { className: 'hr-note-meta' }, `${String(entry.at).slice(0, 16).replace('T', ' ')} · ${entry.source}`),
-                    h('p', null, entry.text)))),
-                h('textarea', {
-                  className: 'hr-textarea hr-note-input',
-                  placeholder: t('notePlaceholder'),
-                  value: note,
-                  onChange: (event) => setNote(event.target.value),
-                }),
-                h('div', { className: 'hr-note-actions' },
-                  button(t('noteAdd'), addNote, { primary: true, disabled: busy || note.trim() === '' }))),
-            h('h3', { className: 'hr-side-title' }, t('dataAt')),
-            h('p', { className: 'hr-muted' },
-              state === null ? '' : `本项目 ${state.projectDir === null ? '—' : '.dsh/roles/'}`,
-              h('br'),
-              state === null ? '' : `全局 ${state.globalDir}`)))),
+          sideColumn,
+        ),
       )
     }
 
-    /** @param {boolean} value - whether the card has unsaved edits. @returns {string} class. */
-    function err(value) { return value ? 'hr-dirty' : 'hr-faint' }
-
     const STYLES = `
-.hr-tab { display:flex; flex-direction:column; height:100%; min-height:0; color:var(--dsw-alias-label-primary,#1f2328);
-  background:var(--dsw-alias-bg-base,transparent); font-size:13px; }
-.hr-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); flex-wrap:wrap; }
+.hr-tab { display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0;
+  color:var(--dsw-alias-label-primary,#1f2328); background:var(--dsw-alias-bg-base,transparent);
+  font-size:13px; line-height:1.55; overflow:hidden; }
+.hr-banners { display:flex; gap:8px; flex-wrap:wrap; padding:7px 14px; border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  background:var(--dsw-alias-bg-layer-1,#fff); flex:none; }
+.hr-list-head { position:sticky; top:0; z-index:2; display:flex; flex-direction:column; gap:6px;
+  padding:2px 0 10px; background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-new { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); text-align:left;
+  font-size:12px; padding:2px 4px; cursor:pointer; }
+.hr-new:disabled { opacity:.45; cursor:default; }
 .hr-grow { flex:1; }
 .hr-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
 .hr-seg-btn { border:none; background:none; padding:3px 9px; border-radius:6px; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
 .hr-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827); box-shadow:0 1px 2px rgba(0,0,0,.06); }
 .hr-filter { width:180px; }
-.hr-input, .hr-textarea { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; padding:5px 8px;
+.hr-input, .hr-textarea { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; padding:6px 8px;
   background:var(--dsw-alias-bg-layer-2,#f8f9fb); color:inherit; outline:none; font:inherit; }
 .hr-input:focus, .hr-textarea:focus { border-color:var(--dsw-alias-brand-primary,#2563eb); background:var(--dsw-alias-bg-layer-1,#fff); }
 .hr-btn { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); color:inherit;
@@ -583,15 +620,17 @@ window.__ModuleLoader__.load({
 .hr-primary { background:var(--dsw-alias-brand-primary,#2563eb); border-color:var(--dsw-alias-brand-primary,#2563eb); color:#fff; }
 .hr-danger { color:var(--dsw-alias-state-error-primary,#dc2626); }
 .hr-ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary,#6b7280); }
-.hr-body-cols { flex:1; min-height:0; display:grid; grid-template-columns:232px minmax(0,1fr) 244px; }
+.hr-body-cols { flex:1 1 auto; min-height:0; display:grid; grid-template-columns:250px minmax(0,1fr) 268px;
+  background:var(--dsw-alias-bg-layer-1,#fff); }
 .hr-col { min-height:0; overflow:auto; }
-.hr-list-col { border-right:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:8px; }
-.hr-editor-col { padding:12px 16px 32px; }
+.hr-list-col { border-right:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:0 8px 8px; }
+.hr-editor-col { padding:14px 16px 40px; }
 .hr-side-col { border-left:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:12px; }
 .hr-rows { list-style:none; margin:0; padding:0; }
-.hr-row { display:flex; flex-direction:column; gap:1px; padding:6px 8px; border-radius:7px; cursor:pointer; }
+.hr-row { display:flex; flex-direction:column; gap:2px; padding:8px 9px; border-radius:8px; cursor:pointer; }
 .hr-row:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
-.hr-row-on { background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 12%, transparent); }
+.hr-row-on { background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 14%, var(--dsw-alias-bg-layer-1,#fff));
+  box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary,#2563eb); }
 .hr-row-title { font-weight:550; }
 .hr-row-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); display:flex; gap:6px; align-items:center; }
 .hr-row-builtin { cursor:default; }
@@ -602,7 +641,7 @@ window.__ModuleLoader__.load({
 .hr-create-actions { display:flex; justify-content:flex-end; gap:6px; }
 .hr-ed-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
 .hr-ed-title-wrap { flex:1; min-width:0; }
-.hr-title { width:min(420px,100%); font-size:16px; font-weight:600; border:1px solid transparent; border-radius:6px;
+.hr-title { width:min(430px,100%); font-size:16px; font-weight:600; border:1px solid transparent; border-radius:6px;
   padding:2px 4px; background:transparent; color:inherit; outline:none; }
 .hr-title:hover, .hr-title:focus { border-color:var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
 .hr-meta { display:flex; gap:6px; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); margin-top:2px; flex-wrap:wrap; }
@@ -613,7 +652,7 @@ window.__ModuleLoader__.load({
 .hr-field { display:flex; flex-direction:column; gap:3px; }
 .hr-label { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
 .hr-textarea { width:100%; resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; }
-.hr-body { min-height:230px; margin-top:10px; }
+.hr-body { min-height:248px; margin-top:10px; }
 .hr-guide { margin-top:10px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; padding:0 10px 8px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
 .hr-guide summary { padding:7px 0; cursor:pointer; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); }
 .hr-guide-text { min-height:70px; background:var(--dsw-alias-bg-layer-1,#fff); }
@@ -633,7 +672,10 @@ window.__ModuleLoader__.load({
 .hr-ok { border-color:var(--dsw-alias-state-success-primary,#16a34a); color:var(--dsw-alias-state-success-primary,#16a34a); }
 .hr-muted { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; }
 .hr-pad { padding:8px; }
-@media (max-width: 1080px) { .hr-body-cols { grid-template-columns:200px minmax(0,1fr); } .hr-side-col { display:none; } }
+@media (max-width: 1239px) {
+  .hr-body-cols { grid-template-columns:250px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 240px; }
+  .hr-side-col { grid-column:1 / -1; border-left:0; border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb); }
+}
 `
 
     return {

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head><meta charset="utf-8"><title>preview · roles</title>
+<style>
+  :root { --dsw-alias-bg-base:#f4f5f7; --dsw-alias-bg-layer-1:#ffffff; --dsw-alias-bg-layer-2:#f8f9fb;
+    --dsw-alias-border-l1:#e5e7eb; --dsw-alias-border-l2:#d6dae1; --dsw-alias-label-primary:#1f2328;
+    --dsw-alias-label-secondary:#6b7280; --dsw-alias-brand-primary:#2563eb; --dsw-alias-state-error-primary:#dc2626;
+    --dsw-alias-state-warn-primary:#b45309; --dsw-alias-state-success-primary:#16a34a; }
+  html[data-theme="dark"] { --dsw-alias-bg-base:#15171b; --dsw-alias-bg-layer-1:#1c1f24; --dsw-alias-bg-layer-2:#22262c;
+    --dsw-alias-border-l1:#2b3037; --dsw-alias-border-l2:#3a4048; --dsw-alias-label-primary:#e6e8eb;
+    --dsw-alias-label-secondary:#9aa1ab; --dsw-alias-brand-primary:#6d9bff; --dsw-alias-state-error-primary:#f87171;
+    --dsw-alias-state-warn-primary:#fbbf24; --dsw-alias-state-success-primary:#4ade80; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--dsw-alias-bg-base); color:var(--dsw-alias-label-primary);
+    font:13px/1.55 -apple-system,"PingFang SC","Segoe UI",system-ui,sans-serif; height:100vh; overflow:hidden; }
+  .shell { display:grid; grid-template-columns:54px 232px minmax(0,1fr); height:100vh; }
+  .rail { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); }
+  .side { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); padding:12px 10px; }
+  .side div { height:28px; margin:4px 0; border-radius:6px; background:var(--dsw-alias-bg-layer-1); opacity:.6; }
+  .main { display:flex; flex-direction:column; min-width:0; }
+  .sesshead { background:var(--dsw-alias-bg-layer-1); border-bottom:1px solid var(--dsw-alias-border-l1); padding:14px 20px 0; }
+  .sesstop { display:flex; justify-content:space-between; color:var(--dsw-alias-label-secondary); font-size:11.5px; }
+  .sesstop b { color:var(--dsw-alias-label-primary); font-size:14px; font-weight:600; }
+  .tabs { display:flex; gap:4px; margin-top:10px; color:var(--dsw-alias-label-secondary); font-size:12.5px; }
+  .tabs span { padding:8px 10px 9px; border-bottom:2px solid transparent; }
+  .tabs .on { color:var(--dsw-alias-label-primary); border-bottom-color:var(--dsw-alias-brand-primary); font-weight:550; }
+  .viewArea { display:flex; flex:1; flex-direction:column; min-height:0; }
+</style>
+<style>
+.hr-tab { display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0;
+  color:var(--dsw-alias-label-primary,#1f2328); background:var(--dsw-alias-bg-base,transparent);
+  font-size:13px; line-height:1.55; overflow:hidden; }
+.hr-banners { display:flex; gap:8px; flex-wrap:wrap; padding:7px 14px; border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  background:var(--dsw-alias-bg-layer-1,#fff); flex:none; }
+.hr-list-head { position:sticky; top:0; z-index:2; display:flex; flex-direction:column; gap:6px;
+  padding:2px 0 10px; background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-new { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); text-align:left;
+  font-size:12px; padding:2px 4px; cursor:pointer; }
+.hr-new:disabled { opacity:.45; cursor:default; }
+.hr-grow { flex:1; }
+.hr-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.hr-seg-btn { border:none; background:none; padding:3px 9px; border-radius:6px; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
+.hr-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.hr-filter { width:180px; }
+.hr-input, .hr-textarea { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; padding:6px 8px;
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); color:inherit; outline:none; font:inherit; }
+.hr-input:focus, .hr-textarea:focus { border-color:var(--dsw-alias-brand-primary,#2563eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-btn { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); color:inherit;
+  padding:4px 10px; border-radius:7px; font-size:12px; cursor:pointer; white-space:nowrap; }
+.hr-btn:hover { border-color:var(--dsw-alias-border-l2,#d1d5db); }
+.hr-btn:disabled { opacity:.45; cursor:default; }
+.hr-primary { background:var(--dsw-alias-brand-primary,#2563eb); border-color:var(--dsw-alias-brand-primary,#2563eb); color:#fff; }
+.hr-danger { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.hr-ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-body-cols { flex:1 1 auto; min-height:0; display:grid; grid-template-columns:250px minmax(0,1fr) 268px;
+  background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-col { min-height:0; overflow:auto; }
+.hr-list-col { border-right:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:0 8px 8px; }
+.hr-editor-col { padding:14px 16px 40px; }
+.hr-side-col { border-left:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:12px; }
+.hr-rows { list-style:none; margin:0; padding:0; }
+.hr-row { display:flex; flex-direction:column; gap:2px; padding:8px 9px; border-radius:8px; cursor:pointer; }
+.hr-row:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.hr-row-on { background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 14%, var(--dsw-alias-bg-layer-1,#fff));
+  box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary,#2563eb); }
+.hr-row-title { font-weight:550; }
+.hr-row-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); display:flex; gap:6px; align-items:center; }
+.hr-row-builtin { cursor:default; }
+.hr-badge { font-style:normal; font-size:10px; padding:0 4px; border-radius:999px; border:1px solid var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
+.hr-builtins { margin-top:14px; border-top:1px dashed var(--dsw-alias-border-l1,#e5e7eb); padding-top:8px; }
+.hr-link { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); cursor:pointer; padding:0 2px; font-size:11px; }
+.hr-create { display:flex; flex-direction:column; gap:6px; padding:8px; border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:8px; margin-bottom:8px; }
+.hr-create-actions { display:flex; justify-content:flex-end; gap:6px; }
+.hr-ed-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.hr-ed-title-wrap { flex:1; min-width:0; }
+.hr-title { width:min(430px,100%); font-size:16px; font-weight:600; border:1px solid transparent; border-radius:6px;
+  padding:2px 4px; background:transparent; color:inherit; outline:none; }
+.hr-title:hover, .hr-title:focus { border-color:var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.hr-meta { display:flex; gap:6px; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); margin-top:2px; flex-wrap:wrap; }
+.hr-faint { color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.hr-dirty { color:var(--dsw-alias-state-warn-primary,#d97706); }
+.hr-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.hr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:8px 12px; margin-top:12px; }
+.hr-field { display:flex; flex-direction:column; gap:3px; }
+.hr-label { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-textarea { width:100%; resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; }
+.hr-body { min-height:248px; margin-top:10px; }
+.hr-guide { margin-top:10px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; padding:0 10px 8px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.hr-guide summary { padding:7px 0; cursor:pointer; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-guide-text { min-height:70px; background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-guide-actions { display:flex; justify-content:flex-end; margin-top:6px; }
+.hr-hint { font-size:11px; color:var(--dsw-alias-label-secondary,#9aa1ab); margin:10px 0 0; }
+.hr-side-title { font-size:12px; font-weight:600; margin:0 0 8px; }
+.hr-note-list { list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px; }
+.hr-note-list li { border-left:2px solid var(--dsw-alias-border-l2,#d1d5db); padding-left:7px; }
+.hr-note-meta { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-note-list p { margin:2px 0 0; white-space:pre-wrap; word-break:break-word; }
+.hr-note-input { min-height:64px; margin-bottom:6px; background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-note-actions { display:flex; justify-content:flex-end; }
+.hr-banner { display:inline-flex; align-items:center; gap:8px; padding:4px 9px; border-radius:7px; font-size:11.5px;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); max-width:46ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hr-warn { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); margin-bottom:8px; display:flex; justify-content:space-between; }
+.hr-error { border-color:var(--dsw-alias-state-error-primary,#dc2626); color:var(--dsw-alias-state-error-primary,#dc2626); }
+.hr-ok { border-color:var(--dsw-alias-state-success-primary,#16a34a); color:var(--dsw-alias-state-success-primary,#16a34a); }
+.hr-muted { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; }
+.hr-pad { padding:8px; }
+@media (max-width: 1239px) {
+  .hr-body-cols { grid-template-columns:250px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 240px; }
+  .hr-side-col { grid-column:1 / -1; border-left:0; border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb); }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail"></aside>
+  <aside class="side"><div></div><div></div><div></div><div></div><div></div><div></div></aside>
+  <main class="main">
+    <header class="sesshead">
+      <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
+      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="on">岗位</span><span>Wiki</span></nav>
+    </header>
+    <div class="viewArea" id="mount"><div class="hr-tab"><div class="hr-body-cols"><aside class="hr-col hr-list-col"><div class="hr-list-head"><div class="hr-seg"><button class="hr-seg-btn hr-seg-on">scopeProject</button><button class="hr-seg-btn">scopeGlobal</button></div><input class="hr-input hr-filter" value="" placeholder="filter"><button class="hr-new">＋ newRole</button></div><ul class="hr-rows"><li class="hr-row"><span class="hr-row-title">代码评审员</span><span class="hr-row-meta">reviewer · version3</span></li><li class="hr-row"><span class="hr-row-title">实现者</span><span class="hr-row-meta">implementer · version2</span></li></ul><div class="hr-builtins"><p class="hr-muted hr-pad">readonly</p><ul class="hr-rows"><li class="hr-row hr-row-builtin"><span class="hr-row-title">培训员</span><span class="hr-row-meta">trainer<button class="hr-link">copyIn</button></span></li></ul></div></aside><section class="hr-col hr-editor-col"><div class="hr-editor"><div class="hr-ed-head"><div class="hr-ed-title-wrap"><input class="hr-title" value="代码评审员"><div class="hr-meta"><span>reviewer</span><span>·</span><span>scopeProject</span><span>·</span><span>version3</span><span>·</span><span class="hr-faint">saved</span></div></div><div class="hr-actions"><button class="hr-btn hr-ghost">copyPrompt</button><button class="hr-btn">reload</button><button class="hr-btn hr-primary" disabled>save</button><button class="hr-btn hr-danger">archive</button></div></div><div class="hr-grid"><label class="hr-field"><span class="hr-label">capabilities</span><input class="hr-input" value="静态分析, 风险识别, 回归验证"></label><label class="hr-field"><span class="hr-label">skills</span><input class="hr-input" value="dsh-bundle-authoring"></label><label class="hr-field"><span class="hr-label">handoffs</span><input class="hr-input" value="implementer, architect"></label><label class="hr-field"><span class="hr-label">can</span><input class="hr-input" value="edit-roles"></label></div><textarea class="hr-textarea hr-body" value="## 职责
+对变更做风险分级，给出可执行的修复清单；不替作者改代码，只指出「哪里会坏、为什么、怎么验证」。
+
+## 工作方式
+先看测试再看实现；diff 超过 400 行先要求拆 PR；每个结论都要能指到具体行。
+
+## 交互对象
+向上：architect（设计约束）；向下：implementer（修复清单）。
+
+## 完成标准
+每条风险都有触发条件、后果与验证方式。"></textarea><details class="hr-guide" open><summary>guide</summary><textarea class="hr-textarea hr-guide-text" value="阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。
+- guide/error-codes.md
+- adr/0007-role-orchestration.md"></textarea><div class="hr-guide-actions"><button class="hr-btn">guideSave</button></div></details><p class="hr-hint">promptHint</p></div></section><aside class="hr-col hr-side-col"><h3 class="hr-side-title">notes (3)</h3><div><ul class="hr-note-list"><li><span class="hr-note-meta">2026-11-13 18:03 · trainer</span><p>跨岗位经验：架构师的「爆炸半径」可以直接用作评审第一条判据。</p></li><li><span class="hr-note-meta">2026-11-14 21:12 · reviewer</span><p>先看测试再看实现：测试表达了作者的意图，实现只是手段。</p></li><li><span class="hr-note-meta">2026-11-15 02:40 · lead</span><p>diff 超过 400 行才要求拆 PR，否则是噪声。</p></li></ul><textarea class="hr-textarea hr-note-input" value="" placeholder="notePlaceholder"></textarea><div class="hr-note-actions"><button class="hr-btn hr-primary" disabled>noteAdd</button></div></div><h3 class="hr-side-title">dataAt</h3><p class="hr-muted">本项目 .dsh/roles/<br></br>全局 /Users/you/.dsh/roles</p></aside></div></div></div>
+  </main>
+</div>
+<script>globalThis.__previewReady = true</script>
+</body>
+</html>

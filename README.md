@@ -162,6 +162,8 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-roles.mjs   # 岗位
 ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki：真实 Host 装配
 ```
 
+界面自查（不改 app、不点按钮）：`bun scripts/preview.mjs roles` / `bun scripts/preview.mjs wiki` 会把**真实组件**渲染成 `docs/demo/preview-*.html`，用无头 Chrome 截图即可看到 1200/1440 下的实际样子。它复刻了 `conversation.view` 的 flex 容器，所以布局塌缩这类问题会在这里暴露。
+
 端到端验收用例见 `plugins/hyper-creator/VERIFY.md`、`plugins/hyper-roles/VERIFY.md`、`plugins/hyper-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
 
 ## 随包发布的技能

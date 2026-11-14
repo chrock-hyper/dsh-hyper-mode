@@ -388,6 +388,17 @@ window.__ModuleLoader__.load({
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [selected, scope, session])
 
+      // A fresh tab should show a page, not an empty placeholder: the first
+      // listed page is the natural entry point, and its draft tab wins when
+      // there is something to review.
+      useEffect(() => {
+        if (selected !== '' || pages.length === 0) return
+        const first = pages[0]
+        setSelected(first.path)
+        setTab(drafts.some(row => row.path === first.path) ? 'draft' : 'source')
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [pages, drafts, selected])
+
       /**
        * Reload state, the page list, drafts, and the selected page.
        * @param {string|undefined} nextPath - selection to keep or move to;
@@ -486,31 +497,6 @@ window.__ModuleLoader__.load({
         'div',
         { className: 'dw-root' },
         h('style', null, STYLES),
-        h(
-          'header',
-          { className: 'dw-header' },
-          h('div', { className: 'dw-heading' },
-            h('h1', null, t('title')),
-            h('span', { className: 'dw-subtitle' }, t('subtitle'))),
-          h(
-            'div',
-            { className: 'dw-controls' },
-            h(
-              'div',
-              { className: 'dw-segmented', role: 'group', 'aria-label': t('panel') },
-              scopeButton('global', t('scopeGlobal')),
-              scopeButton('project', t('scopeProject'), projectScope === undefined || projectScope === null),
-            ),
-            scope === 'project' && (projectScope === undefined || projectScope === null)
-              ? h('span', { className: 'dw-chip dw-chip-quiet' }, t('noProject'))
-              : null,
-            h('span', { className: 'dw-chip' }, t('pendingCount', { count: queued.length })),
-            scopeRow
-              ? h('span', { className: 'dw-chip dw-chip-quiet' }, t(scopeRow.git ? 'gitOn' : 'gitOff'))
-              : null,
-            h('button', { type: 'button', className: 'dw-button', onClick: () => refresh(), disabled: busy }, t('refresh')),
-          ),
-        ),
         error !== '' ? h('div', { className: 'dw-banner dw-banner-error' }, error, button('dw-banner-close', '×', () => setError(''))) : null,
         notice !== '' ? h('div', { className: 'dw-banner dw-banner-ok' }, notice, button('dw-banner-close', '×', () => setNotice(''))) : null,
         h(
@@ -519,6 +505,26 @@ window.__ModuleLoader__.load({
           h(
             'aside',
             { className: 'dw-tree' },
+            h('div', { className: 'dw-treehead' },
+    h(
+                  'div',
+                  { className: 'dw-controls' },
+                  h(
+                    'div',
+                    { className: 'dw-segmented', role: 'group', 'aria-label': t('panel') },
+                    scopeButton('global', t('scopeGlobal')),
+                    scopeButton('project', t('scopeProject'), projectScope === undefined || projectScope === null),
+                  ),
+                  scope === 'project' && (projectScope === undefined || projectScope === null)
+                    ? h('span', { className: 'dw-chip dw-chip-quiet' }, t('noProject'))
+                    : null,
+                  h('span', { className: 'dw-chip' }, t('pendingCount', { count: queued.length })),
+                  scopeRow
+                    ? h('span', { className: 'dw-chip dw-chip-quiet' }, t(scopeRow.git ? 'gitOn' : 'gitOff'))
+                    : null,
+                  h('button', { type: 'button', className: 'dw-button', onClick: () => refresh(), disabled: busy }, t('refresh')),
+                ),
+              ),
             h('input', {
               className: 'dw-input dw-search',
               type: 'search',
@@ -970,11 +976,11 @@ window.__ModuleLoader__.load({
 
     // -------------------------------------------------------------------- style
     const STYLES = `
-.dw-root { position: relative; width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-bg-base, transparent); font-size: 14px; line-height: 1.6; overflow: hidden; }
+.dw-root { position: relative; flex: 1 1 auto; width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-bg-base, transparent); font-size: 13px; line-height: 1.55; overflow: hidden; }
 .dw-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px clamp(16px, 3vw, 28px) 12px; border-bottom: 1px solid var(--dsw-alias-border-l1, #e5e7eb); }
 [data-platform="darwin"] .dw-header { padding-top: calc(18px + var(--dsh-frame-top-clearance, 0px)); }
 .dw-heading { display: flex; align-items: baseline; gap: 12px; min-width: 0; flex-wrap: wrap; }
-.dw-heading h1 { margin: 0; font-size: 20px; font-weight: 500; line-height: 28px; }
+.dw-heading h1 { margin: 0; font-size: 17px; font-weight: 600; line-height: 24px; }
 .dw-subtitle { font-size: 12.5px; color: var(--dsw-alias-label-secondary, #6b7280); }
 .dw-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .dw-segmented { display: inline-flex; padding: 2px; gap: 2px; border-radius: 999px; background: var(--dsw-alias-bg-layer-2, #f3f4f6); border: 1px solid var(--dsw-alias-border-l1, #e5e7eb); }
@@ -995,10 +1001,11 @@ window.__ModuleLoader__.load({
 .dw-banner-error { background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #dc2626) 12%, transparent); color: var(--dsw-alias-state-error-primary, #dc2626); }
 .dw-banner-ok { background: color-mix(in srgb, var(--dsw-alias-state-success-primary, #059669) 12%, transparent); color: var(--dsw-alias-state-success-primary, #059669); }
 .dw-banner-close { margin-left: auto; border: 0; background: none; color: inherit; cursor: pointer; font-size: 15px; line-height: 1; }
-.dw-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(200px, 250px) minmax(0, 1fr) minmax(240px, 320px); }
-.dw-tree { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-right: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; }
+.dw-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 310px; background: var(--dsw-alias-bg-layer-1, #fff); }
+.dw-tree { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-right: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
+.dw-treehead { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2px; }
 .dw-main { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow: hidden; }
-.dw-rail { min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 12px; border-left: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; }
+.dw-rail { min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 12px; border-left: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-input { font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 6px 9px; border-radius: 8px; border: 1px solid var(--dsw-alias-border-l2, #d1d5db); background: var(--dsw-alias-bg-layer-1, #fff); color: inherit; }
 .dw-search { flex: none; }
 .dw-tree-meta { font-size: 11.5px; color: var(--dsw-alias-label-secondary, #6b7280); }
@@ -1064,7 +1071,7 @@ textarea.dw-dialog-input { min-height: 84px; resize: vertical; }
 @media (max-width: 1080px) {
   /* The review rail keeps its actions reachable: it drops below the editor
      instead of disappearing. */
-  .dw-body { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 40vh); }
+  .dw-body { grid-template-columns: 250px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 240px); }
   .dw-rail { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--dsw-alias-border-l1, #e5e7eb); flex-direction: row; flex-wrap: wrap; align-content: flex-start; gap: 16px; }
   .dw-rail .dw-section { min-width: 240px; flex: 1; }
 }

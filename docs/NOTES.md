@@ -264,3 +264,11 @@ client-modules: package @chrock-studio/dsh-hyper-mode resolves from multiple act
 **Electron 没有 `window.prompt`。** 旧面板用 `prompt()` 收集新建岗位的 id 与目录，点击即抛异常并被 `onClick` 吞掉。现在新建是就地表单；归档是第二次点击确认（按钮文案变「确认归档？」）。同时补上真正的 dirty 计算：每个输入框都参与比较，保存按钮的禁用状态永远能解释。
 
 **收进同一个 bundle 时，客户端仍要独立清单。** `dsh-client-modules` 对同一个包出现多个活跃来源会直接抛错，而本 bundle 有六行来自同一个包。所以 `hyper-roles` 与 `hyper-wiki` 各自把自己的浏览器半边放进嵌套的 `package.json`：`locatePkgJson → nearestPackage` 会从行模块向上取最近的清单，一行认领一个客户端包。wiki 因此从独立 bundle 收回为 `plugins/hyper-wiki/` 的一行，profile 里只剩一个安装项。
+
+## 14. 「像素级复刻」不是把颜色抄过来：两个让面板塌掉的细节
+
+**`conversation.view` 的容器是 flex 列，不是块级盒子。** 它给的是 `<div class="viewArea" { display:flex; flex:1; flex-direction:column; min-height:0 }>`；子元素只写 `height:100%` 时百分比没有可解析的确定高度，面板会按内容塌成一条。补 `flex:1 1 auto; min-height:0` 之后，三栏才真正占满会话区。以前只在 1440 的静态 demo 里看，所以没暴露。
+
+**括号层级错了，CSS 再好也没用。** 岗位面板的左栏 `h('aside', …)` 少闭一个 `)`，编辑器 `<section>` 被当成左栏的第四个子元素，三栏网格直接失效——表现就是“所有东西挤在左上角”。这种错误 `bun test` 看不出来（注册断言全过），只有把**真实组件**渲染出来才看得见。
+
+于是加了 `scripts/preview.mjs`：用 React 垫片加载真实的 `client.js`，喂固定 API 数据，把组件树序列化成 HTML，外套一个与 `viewArea` 相同的 flex 容器，再用无头 Chrome 截图。它不是设计稿，是组件本身；`roles`/`wiki` 各一张，1200 与 1440 都看。凡是“明明测试全绿、界面却不对”的改动，先跑它。
