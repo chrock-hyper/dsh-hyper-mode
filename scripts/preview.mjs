@@ -73,7 +73,9 @@ function createHooks() {
 }
 
 const hooks = createHooks()
+const Fragment = Symbol('Fragment')
 const React = {
+  Fragment,
   createElement(type, props, ...children) {
     return { type, props: props ?? {}, children: children.flat(Infinity).filter((child) => child !== null && child !== false) }
   },
@@ -248,6 +250,7 @@ function toHtml(node) {
   if (Array.isArray(node)) return node.map(toHtml).join('')
   if (typeof node === 'string' || typeof node === 'number') return escape(node)
   const { type, props: elementProps, children } = node
+  if (type === Fragment) return children.map(toHtml).join('')
   if (typeof type === 'function') {
     return toHtml(type({ ...elementProps, children: children.length === 1 ? children[0] : children }))
   }
@@ -261,7 +264,7 @@ function toHtml(node) {
   if (elementProps.rows) attrs.push(`rows="${elementProps.rows}"`)
   const body = children.map(toHtml).join('')
   if (type === 'input') return `<input ${attrs.join(' ')}>`
-  if (type === 'textarea') return `<textarea ${attrs.join(' ')}>${body}</textarea>`
+  if (type === 'textarea') return `<textarea ${attrs.join(' ')}>${elementProps.value === undefined ? body : escape(elementProps.value)}</textarea>`
   if (type === 'style') return ''
   return `<${type}${attrs.length === 0 ? '' : ` ${attrs.join(' ')}`}>${body}</${type}>`
 }

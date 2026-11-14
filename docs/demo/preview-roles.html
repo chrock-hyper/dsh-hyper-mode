@@ -129,9 +129,21 @@
 向上：architect（设计约束）；向下：implementer（修复清单）。
 
 ## 完成标准
-每条风险都有触发条件、后果与验证方式。"></textarea><details class="hr-guide" open><summary>guide</summary><textarea class="hr-textarea hr-guide-text" value="阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。
+每条风险都有触发条件、后果与验证方式。">## 职责
+对变更做风险分级，给出可执行的修复清单；不替作者改代码，只指出「哪里会坏、为什么、怎么验证」。
+
+## 工作方式
+先看测试再看实现；diff 超过 400 行先要求拆 PR；每个结论都要能指到具体行。
+
+## 交互对象
+向上：architect（设计约束）；向下：implementer（修复清单）。
+
+## 完成标准
+每条风险都有触发条件、后果与验证方式。</textarea><details class="hr-guide" open><summary>guide</summary><textarea class="hr-textarea hr-guide-text" value="阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。
 - guide/error-codes.md
-- adr/0007-role-orchestration.md"></textarea><div class="hr-guide-actions"><button class="hr-btn">guideSave</button></div></details><p class="hr-hint">promptHint</p></div></section><aside class="hr-col hr-side-col"><h3 class="hr-side-title">notes (3)</h3><div><ul class="hr-note-list"><li><span class="hr-note-meta">2026-11-13 18:03 · trainer</span><p>跨岗位经验：架构师的「爆炸半径」可以直接用作评审第一条判据。</p></li><li><span class="hr-note-meta">2026-11-14 21:12 · reviewer</span><p>先看测试再看实现：测试表达了作者的意图，实现只是手段。</p></li><li><span class="hr-note-meta">2026-11-15 02:40 · lead</span><p>diff 超过 400 行才要求拆 PR，否则是噪声。</p></li></ul><textarea class="hr-textarea hr-note-input" value="" placeholder="notePlaceholder"></textarea><div class="hr-note-actions"><button class="hr-btn hr-primary" disabled>noteAdd</button></div></div><h3 class="hr-side-title">dataAt</h3><p class="hr-muted">本项目 .dsh/roles/<br></br>全局 /Users/you/.dsh/roles</p></aside></div></div></div>
+- adr/0007-role-orchestration.md">阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。
+- guide/error-codes.md
+- adr/0007-role-orchestration.md</textarea><div class="hr-guide-actions"><button class="hr-btn">guideSave</button></div></details><p class="hr-hint">promptHint</p></div></section><aside class="hr-col hr-side-col"><h3 class="hr-side-title">notes (3)</h3><div><ul class="hr-note-list"><li><span class="hr-note-meta">2026-11-13 18:03 · trainer</span><p>跨岗位经验：架构师的「爆炸半径」可以直接用作评审第一条判据。</p></li><li><span class="hr-note-meta">2026-11-14 21:12 · reviewer</span><p>先看测试再看实现：测试表达了作者的意图，实现只是手段。</p></li><li><span class="hr-note-meta">2026-11-15 02:40 · lead</span><p>diff 超过 400 行才要求拆 PR，否则是噪声。</p></li></ul><textarea class="hr-textarea hr-note-input" value="" placeholder="notePlaceholder"></textarea><div class="hr-note-actions"><button class="hr-btn hr-primary" disabled>noteAdd</button></div></div><h3 class="hr-side-title">dataAt</h3><p class="hr-muted">本项目 .dsh/roles/<br></br>全局 /Users/you/.dsh/roles</p></aside></div></div></div>
   </main>
 </div>
 <script>globalThis.__previewReady = true</script>
