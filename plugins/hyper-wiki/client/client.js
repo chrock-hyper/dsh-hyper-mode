@@ -1059,7 +1059,7 @@ window.__ModuleLoader__.load({
 .dw-banner-ok { background: color-mix(in srgb, var(--dsw-alias-state-success-primary, #059669) 12%, transparent); color: var(--dsw-alias-state-success-primary, #059669); }
 .dw-banner-close { margin-left: auto; border: 0; background: none; color: inherit; cursor: pointer; font-size: 15px; line-height: 1; }
 .dw-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 310px; background: var(--dsw-alias-bg-layer-1, #fff); }
-.dw-tree { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-right: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
+.dw-tree { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-right: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow-y: auto; overflow-x: hidden; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-treehead { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2px; }
 .dw-newpage { display: flex; align-items: center; justify-content: center; width: 100%; padding: 5px 8px;
   border: 1px dashed var(--dsw-alias-border-l2, #d6dae1); border-radius: 7px; background: var(--dsw-alias-bg-layer-2, #f8f9fb);
@@ -1068,8 +1068,8 @@ window.__ModuleLoader__.load({
 .dw-newpage:disabled { opacity: .45; cursor: default; }
 .dw-create { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px dashed var(--dsw-alias-border-l2, #d6dae1); border-radius: 8px; }
 .dw-create-actions { display: flex; justify-content: flex-end; gap: 6px; }
-.dw-main { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow: hidden; }
-.dw-rail { min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 12px; border-left: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
+.dw-main { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow-y: auto; overflow-x: hidden; }
+.dw-rail { min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 12px; border-left: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow-y: auto; overflow-x: hidden; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-input { font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 6px 9px; border-radius: 8px; border: 1px solid var(--dsw-alias-border-l2, #d1d5db); background: var(--dsw-alias-bg-layer-1, #fff); color: inherit; }
 .dw-search { flex: none; }
 .dw-tree-meta { font-size: 11.5px; color: var(--dsw-alias-label-secondary, #6b7280); }
