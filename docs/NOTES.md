@@ -272,3 +272,7 @@ client-modules: package @chrock-studio/dsh-hyper-mode resolves from multiple act
 **括号层级错了，CSS 再好也没用。** 岗位面板的左栏 `h('aside', …)` 少闭一个 `)`，编辑器 `<section>` 被当成左栏的第四个子元素，三栏网格直接失效——表现就是“所有东西挤在左上角”。这种错误 `bun test` 看不出来（注册断言全过），只有把**真实组件**渲染出来才看得见。
 
 于是加了 `scripts/preview.mjs`：用 React 垫片加载真实的 `client.js`，喂固定 API 数据，把组件树序列化成 HTML，外套一个与 `viewArea` 相同的 flex 容器，再用无头 Chrome 截图。它不是设计稿，是组件本身；`roles`/`wiki` 各一张，1200 与 1440 都看。凡是“明明测试全绿、界面却不对”的改动，先跑它。
+
+## 15. 预览器的一个全局样式，差点把溢出 bug 盖过去
+
+第一版 `scripts/preview.mjs` 在外壳里写了 `* { box-sizing:border-box }`，于是 `textarea { width:100%; padding:6px 8px }` 看起来正常；真实应用没有这条全局规则，content-box 下每个输入框都比列宽多出左右 padding，中栏与右栏同时出现横向滚动条、右边距被推出视口。**预览器不能比宿主更宽容**：那条全局规则已删掉，`box-sizing` 由面板自己带（`.hr-tab *` / `.dw-root *`），这样预览暴露的就是应用里的问题。

@@ -161,17 +161,20 @@ window.__ModuleLoader__.load({
     /** @param {string[]|undefined} value - list. @returns {string} comma text. */
     const listText = (value) => (Array.isArray(value) ? value.join(', ') : '')
 
-    /** Render a form object from card fields. */
+    /** Render a form object from card fields; list fields stay arrays. */
     function formOf(fields, body) {
       return {
         title: fields.title || '',
-        capabilities: listText(fields.capabilities),
-        skills: listText(fields.skills),
-        handoffs: listText(fields.handoffs),
-        can: listText(fields.can),
+        capabilities: Array.isArray(fields.capabilities) ? [...fields.capabilities] : [],
+        skills: Array.isArray(fields.skills) ? [...fields.skills] : [],
+        handoffs: Array.isArray(fields.handoffs) ? [...fields.handoffs] : [],
+        can: Array.isArray(fields.can) ? [...fields.can] : [],
         body: body || '',
       }
     }
+
+    /** @returns whether two token lists hold the same values in the same order. */
+    const sameList = (left, right) => left.length === right.length && left.every((value, index) => value === right[index])
 
     /** Focused small button. */
     function button(label, onClick, options = {}) {
@@ -188,6 +191,65 @@ window.__ModuleLoader__.load({
       return h('label', { className: 'hr-field' },
         h('span', { className: 'hr-label' }, label),
         h('input', { className: 'hr-input', value, onChange, disabled: disabled === true }))
+    }
+
+    /**
+     * A token field: values are chips, typing adds one, and a short suggestion
+     * list offers the values that already exist (grants, role ids).
+     */
+    function TokenField({ label, value, onChange, suggestions, placeholder }) {
+      const [text, setText] = useState('')
+      const [focused, setFocused] = useState(false)
+      const add = (raw) => {
+        const next = [...value]
+        for (const token of String(raw).split(/[,，]/).map((entry) => entry.trim()).filter(Boolean)) {
+          if (!next.includes(token)) next.push(token)
+        }
+        onChange(next)
+        setText('')
+      }
+      const needle = text.trim().toLowerCase()
+      const options = (suggestions || [])
+        .filter((option) => !value.includes(option) && (needle === '' || option.toLowerCase().includes(needle)))
+        .slice(0, 6)
+      return h('div', { className: 'hr-field' },
+        h('span', { className: 'hr-label' }, label),
+        h('div', { className: 'hr-tokens' },
+          value.map((token) => h('span', { key: token, className: 'hr-chip' },
+            token,
+            h('button', {
+              type: 'button',
+              className: 'hr-chip-x',
+              'aria-label': `移除 ${token}`,
+              onClick: () => onChange(value.filter((entry) => entry !== token)),
+            }, '×'),
+          )),
+          h('input', {
+            className: 'hr-token-input',
+            value: text,
+            placeholder: value.length === 0 ? placeholder : '',
+            onChange: (event) => setText(event.target.value),
+            onFocus: () => setFocused(true),
+            onBlur: () => setFocused(false),
+            onKeyDown: (event) => {
+              if (event.key === 'Enter' || event.key === ',' || event.key === '，') {
+                event.preventDefault()
+                add(text)
+              } else if (event.key === 'Backspace' && text === '' && value.length > 0) {
+                onChange(value.slice(0, -1))
+              }
+            },
+          }),
+        ),
+        focused && options.length > 0
+          ? h('div', { className: 'hr-suggest' }, options.map((option) => h('button', {
+              key: option,
+              type: 'button',
+              className: 'hr-suggest-item',
+              onMouseDown: (event) => { event.preventDefault(); add(option) },
+            }, option)))
+          : null,
+      )
     }
 
     /** The tab component. */
@@ -274,14 +336,15 @@ window.__ModuleLoader__.load({
         if (doc === null || form === null) return false
         const original = formOf(doc.fields, doc.body)
         return form.title !== original.title
-          || form.capabilities !== original.capabilities
-          || form.skills !== original.skills
-          || form.handoffs !== original.handoffs
-          || form.can !== original.can
+          || !sameList(form.capabilities, original.capabilities)
+          || !sameList(form.skills, original.skills)
+          || !sameList(form.handoffs, original.handoffs)
+          || !sameList(form.can, original.can)
           || form.body !== original.body
       }, [doc, form])
 
       const setField = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
+      const setList = (key) => (values) => setForm((current) => ({ ...current, [key]: values }))
 
       const save = useCallback(async () => {
         if (doc === null || form === null || selected === null) return
@@ -294,10 +357,10 @@ window.__ModuleLoader__.load({
             body: JSON.stringify({
               fields: {
                 title: form.title.trim(),
-                capabilities: parseList(form.capabilities),
-                skills: parseList(form.skills),
-                handoffs: parseList(form.handoffs),
-                can: parseList(form.can),
+                capabilities: form.capabilities,
+                skills: form.skills,
+                handoffs: form.handoffs,
+                can: form.can,
               },
               body: form.body,
               expectedVersion: doc.revision,
@@ -451,6 +514,10 @@ window.__ModuleLoader__.load({
         onClick: () => { setScope(value); setSelected(null); setDoc(null); setForm(null) },
       }, value === 'project' ? t('scopeProject') : t('scopeGlobal'))
 
+      const roleIds = state === null ? [] : [...new Set([
+        ...(state.roles.project || []).map((row) => row.id),
+        ...(state.roles.global || []).map((row) => row.id),
+      ])].filter((id) => doc === null || id !== doc.fields.id)
       const builtinRows = state === null ? [] : state.builtins || []
       const editor = doc === null || form === null
         ? h('p', { className: 'hr-muted' }, t('emptyBody'))
@@ -480,10 +547,32 @@ window.__ModuleLoader__.load({
               button(t('cancel'), () => setConflict(null), { ghost: true }),
             ),
             h('div', { className: 'hr-grid' },
-              h(Field, { label: t('capabilities'), value: form.capabilities, onChange: setField('capabilities') }),
-              h(Field, { label: t('skills'), value: form.skills, onChange: setField('skills') }),
-              h(Field, { label: t('handoffs'), value: form.handoffs, onChange: setField('handoffs') }),
-              h(Field, { label: t('can'), value: form.can, onChange: setField('can') }),
+              h(TokenField, {
+                label: t('capabilities'),
+                value: form.capabilities,
+                onChange: setList('capabilities'),
+                placeholder: 'Enter 添加，可自由输入',
+              }),
+              h(TokenField, {
+                label: t('skills'),
+                value: form.skills,
+                onChange: setList('skills'),
+                placeholder: 'Enter 添加技能名',
+              }),
+              h(TokenField, {
+                label: t('handoffs'),
+                value: form.handoffs,
+                onChange: setList('handoffs'),
+                suggestions: roleIds,
+                placeholder: 'Enter 添加岗位 id',
+              }),
+              h(TokenField, {
+                label: t('can'),
+                value: form.can,
+                onChange: setList('can'),
+                suggestions: ['edit-roles', 'train'],
+                placeholder: 'edit-roles / train',
+              }),
             ),
             h('textarea', { className: 'hr-textarea hr-body', value: form.body, onChange: setField('body') }),
             h('details', { className: 'hr-guide', open: guide.trim() !== '' },
@@ -507,7 +596,7 @@ window.__ModuleLoader__.load({
           className: 'hr-new',
           onClick: () => setCreating((open) => !open),
           disabled: scope === 'project' && (state === null || state.projectDir === null),
-        }, `＋ ${t('newRole')}`),
+        }, creating ? t('cancel') : `＋ ${t('newRole')}`),
       )
 
       const listColumn = h('aside', { className: 'hr-col hr-list-col' },
@@ -595,6 +684,7 @@ window.__ModuleLoader__.load({
     }
 
     const STYLES = `
+.hr-tab, .hr-tab *, .hr-tab *::before, .hr-tab *::after { box-sizing:border-box; }
 .hr-tab { display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0;
   color:var(--dsw-alias-label-primary,#1f2328); background:var(--dsw-alias-bg-base,transparent);
   font-size:13px; line-height:1.55; overflow:hidden; }
@@ -602,14 +692,29 @@ window.__ModuleLoader__.load({
   background:var(--dsw-alias-bg-layer-1,#fff); flex:none; }
 .hr-list-head { position:sticky; top:0; z-index:2; display:flex; flex-direction:column; gap:6px;
   padding:2px 0 10px; background:var(--dsw-alias-bg-layer-1,#fff); }
-.hr-new { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); text-align:left;
-  font-size:12px; padding:2px 4px; cursor:pointer; }
+.hr-new { display:flex; align-items:center; justify-content:center; width:100%; padding:5px 8px;
+  border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb);
+  color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; cursor:pointer; }
+.hr-new:hover:not(:disabled) { border-color:var(--dsw-alias-brand-primary,#2563eb); color:var(--dsw-alias-brand-primary,#2563eb); }
 .hr-new:disabled { opacity:.45; cursor:default; }
 .hr-grow { flex:1; }
 .hr-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
 .hr-seg-btn { border:none; background:none; padding:3px 9px; border-radius:6px; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
 .hr-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827); box-shadow:0 1px 2px rgba(0,0,0,.06); }
 .hr-filter { width:180px; }
+.hr-tokens { display:flex; flex-wrap:wrap; align-items:center; gap:4px; min-height:32px; padding:3px 6px;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.hr-tokens:focus-within { border-color:var(--dsw-alias-brand-primary,#2563eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-chip { display:inline-flex; align-items:center; gap:2px; padding:1px 3px 1px 7px; border-radius:6px; font-size:11.5px;
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 10%, var(--dsw-alias-bg-layer-1,#fff));
+  color:var(--dsw-alias-label-primary,#1f2328); }
+.hr-chip-x { border:none; background:none; color:inherit; opacity:.5; cursor:pointer; padding:0 2px; font-size:12px; line-height:1; }
+.hr-chip-x:hover { opacity:1; }
+.hr-token-input { flex:1; min-width:90px; border:none; outline:none; background:transparent; font:inherit; padding:2px 0; color:inherit; }
+.hr-suggest { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+.hr-suggest-item { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff);
+  border-radius:6px; padding:1px 6px; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
+.hr-suggest-item:hover { border-color:var(--dsw-alias-brand-primary,#2563eb); color:var(--dsw-alias-brand-primary,#2563eb); }
 .hr-input, .hr-textarea { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; padding:6px 8px;
   background:var(--dsw-alias-bg-layer-2,#f8f9fb); color:inherit; outline:none; font:inherit; }
 .hr-input:focus, .hr-textarea:focus { border-color:var(--dsw-alias-brand-primary,#2563eb); background:var(--dsw-alias-bg-layer-1,#fff); }

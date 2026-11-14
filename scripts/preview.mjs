@@ -283,7 +283,7 @@ const shell = `<!doctype html>
     --dsw-alias-border-l1:#2b3037; --dsw-alias-border-l2:#3a4048; --dsw-alias-label-primary:#e6e8eb;
     --dsw-alias-label-secondary:#9aa1ab; --dsw-alias-brand-primary:#6d9bff; --dsw-alias-state-error-primary:#f87171;
     --dsw-alias-state-warn-primary:#fbbf24; --dsw-alias-state-success-primary:#4ade80; }
-  * { box-sizing:border-box; }
+  /* no global box-sizing: the panel must carry its own, as it does in the app. */
   body { margin:0; background:var(--dsw-alias-bg-base); color:var(--dsw-alias-label-primary);
     font:13px/1.55 -apple-system,"PingFang SC","Segoe UI",system-ui,sans-serif; height:100vh; overflow:hidden; }
   .shell { display:grid; grid-template-columns:54px 232px minmax(0,1fr); height:100vh; }

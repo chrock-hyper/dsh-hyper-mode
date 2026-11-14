@@ -89,6 +89,13 @@ window.__ModuleLoader__.load({
       pagesCount: '{count} 页',
       draftsCount: '{count} 份草稿',
       pendingCount: '待审 {count}',
+      newPage: '新建页面',
+      pagePathPlaceholder: '路径，例如 guide/error-codes.md',
+      pageTitlePlaceholder: '标题',
+      create: '创建',
+      cancel: '取消',
+      needPath: '路径不能为空',
+      pageCreated: '页面已创建',
       rejectedHint: '被打回：',
       errors: '解析提示',
     }
@@ -158,6 +165,13 @@ window.__ModuleLoader__.load({
       pagesCount: '{count} page(s)',
       draftsCount: '{count} draft(s)',
       pendingCount: '{count} pending',
+      newPage: 'New page',
+      pagePathPlaceholder: 'path, e.g. guide/error-codes.md',
+      pageTitlePlaceholder: 'title',
+      create: 'Create',
+      cancel: 'Cancel',
+      needPath: 'A path is required',
+      pageCreated: 'Page created',
       rejectedHint: 'Rejected: ',
       errors: 'Parse notes',
     }
@@ -325,6 +339,9 @@ window.__ModuleLoader__.load({
       const [notice, setNotice] = useState('')
       const [error, setError] = useState('')
       const [dialog, setDialog] = useState(null)
+      const [creatingPage, setCreatingPage] = useState(false)
+      const [newPath, setNewPath] = useState('')
+      const [newTitle, setNewTitle] = useState('')
       const selectedRef = useRef('')
       selectedRef.current = selected
 
@@ -493,6 +510,21 @@ window.__ModuleLoader__.load({
         setEditing(false)
       }
 
+      /**
+       * Create a page from the tree form. A page needs frontmatter, so the
+       * title is written there and the body starts as a single heading.
+       */
+      const createPage = async () => {
+        const path = newPath.trim().replace(/^\.?\/?/, '')
+        if (path === '') { setError(t('needPath')); return }
+        const title = newTitle.trim() === '' ? path.replace(/\.md$/, '').split('/').pop() : newTitle.trim()
+        const content = `---\ntitle: ${title}\nstatus: wip\n---\n\n# ${title}\n`
+        await mutate('/page', { path, content }, 'pageCreated', path.endsWith('.md') ? path : `${path}.md`)
+        setCreatingPage(false)
+        setNewPath('')
+        setNewTitle('')
+      }
+
       return h(
         'div',
         { className: 'dw-root' },
@@ -532,6 +564,30 @@ window.__ModuleLoader__.load({
               placeholder: t('searchPlaceholder'),
               onChange: event => setFilter(event.target.value),
             }),
+            h('button', {
+              type: 'button',
+              className: 'dw-newpage',
+              onClick: () => setCreatingPage(open => !open),
+              disabled: busy,
+            }, creatingPage ? t('cancel') : `＋ ${t('newPage')}`),
+            creatingPage
+              ? h('div', { className: 'dw-create' },
+                  h('input', {
+                    className: 'dw-input',
+                    placeholder: t('pagePathPlaceholder'),
+                    value: newPath,
+                    onChange: event => setNewPath(event.target.value),
+                  }),
+                  h('input', {
+                    className: 'dw-input',
+                    placeholder: t('pageTitlePlaceholder'),
+                    value: newTitle,
+                    onChange: event => setNewTitle(event.target.value),
+                  }),
+                  h('div', { className: 'dw-create-actions' },
+                    h('button', { type: 'button', className: 'dw-button', onClick: () => setCreatingPage(false) }, t('cancel')),
+                    h('button', { type: 'button', className: 'dw-button dw-primary', onClick: createPage, disabled: busy }, t('create'))))
+              : null,
             h('div', { className: 'dw-tree-meta' },
               t('pagesCount', { count: pages.length }),
               ' · ',
@@ -976,6 +1032,7 @@ window.__ModuleLoader__.load({
 
     // -------------------------------------------------------------------- style
     const STYLES = `
+.dw-root, .dw-root *, .dw-root *::before, .dw-root *::after { box-sizing: border-box; }
 .dw-root { position: relative; flex: 1 1 auto; width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-bg-base, transparent); font-size: 13px; line-height: 1.55; overflow: hidden; }
 .dw-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px clamp(16px, 3vw, 28px) 12px; border-bottom: 1px solid var(--dsw-alias-border-l1, #e5e7eb); }
 [data-platform="darwin"] .dw-header { padding-top: calc(18px + var(--dsh-frame-top-clearance, 0px)); }
@@ -1004,6 +1061,13 @@ window.__ModuleLoader__.load({
 .dw-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 310px; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-tree { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-right: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-treehead { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2px; }
+.dw-newpage { display: flex; align-items: center; justify-content: center; width: 100%; padding: 5px 8px;
+  border: 1px dashed var(--dsw-alias-border-l2, #d6dae1); border-radius: 7px; background: var(--dsw-alias-bg-layer-2, #f8f9fb);
+  color: var(--dsw-alias-label-secondary, #6b7280); font-size: 12px; cursor: pointer; }
+.dw-newpage:hover:not(:disabled) { border-color: var(--dsw-alias-brand-primary, #2563eb); color: var(--dsw-alias-brand-primary, #2563eb); }
+.dw-newpage:disabled { opacity: .45; cursor: default; }
+.dw-create { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px dashed var(--dsw-alias-border-l2, #d6dae1); border-radius: 8px; }
+.dw-create-actions { display: flex; justify-content: flex-end; gap: 6px; }
 .dw-main { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow: hidden; }
 .dw-rail { min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 12px; border-left: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-input { font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 6px 9px; border-radius: 8px; border: 1px solid var(--dsw-alias-border-l2, #d1d5db); background: var(--dsw-alias-bg-layer-1, #fff); color: inherit; }

@@ -10,7 +10,7 @@
     --dsw-alias-border-l1:#2b3037; --dsw-alias-border-l2:#3a4048; --dsw-alias-label-primary:#e6e8eb;
     --dsw-alias-label-secondary:#9aa1ab; --dsw-alias-brand-primary:#6d9bff; --dsw-alias-state-error-primary:#f87171;
     --dsw-alias-state-warn-primary:#fbbf24; --dsw-alias-state-success-primary:#4ade80; }
-  * { box-sizing:border-box; }
+  /* no global box-sizing: the panel must carry its own, as it does in the app. */
   body { margin:0; background:var(--dsw-alias-bg-base); color:var(--dsw-alias-label-primary);
     font:13px/1.55 -apple-system,"PingFang SC","Segoe UI",system-ui,sans-serif; height:100vh; overflow:hidden; }
   .shell { display:grid; grid-template-columns:54px 232px minmax(0,1fr); height:100vh; }
@@ -27,6 +27,7 @@
   .viewArea { display:flex; flex:1; flex-direction:column; min-height:0; }
 </style>
 <style>
+.dw-root, .dw-root *, .dw-root *::before, .dw-root *::after { box-sizing: border-box; }
 .dw-root { position: relative; flex: 1 1 auto; width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; color: var(--dsw-alias-label-primary, #1f2328); background: var(--dsw-alias-bg-base, transparent); font-size: 13px; line-height: 1.55; overflow: hidden; }
 .dw-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px clamp(16px, 3vw, 28px) 12px; border-bottom: 1px solid var(--dsw-alias-border-l1, #e5e7eb); }
 [data-platform="darwin"] .dw-header { padding-top: calc(18px + var(--dsh-frame-top-clearance, 0px)); }
@@ -55,6 +56,13 @@
 .dw-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr) 310px; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-tree { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-right: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-treehead { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2px; }
+.dw-newpage { display: flex; align-items: center; justify-content: center; width: 100%; padding: 5px 8px;
+  border: 1px dashed var(--dsw-alias-border-l2, #d6dae1); border-radius: 7px; background: var(--dsw-alias-bg-layer-2, #f8f9fb);
+  color: var(--dsw-alias-label-secondary, #6b7280); font-size: 12px; cursor: pointer; }
+.dw-newpage:hover:not(:disabled) { border-color: var(--dsw-alias-brand-primary, #2563eb); color: var(--dsw-alias-brand-primary, #2563eb); }
+.dw-newpage:disabled { opacity: .45; cursor: default; }
+.dw-create { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px dashed var(--dsw-alias-border-l2, #d6dae1); border-radius: 8px; }
+.dw-create-actions { display: flex; justify-content: flex-end; gap: 6px; }
 .dw-main { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; overflow: hidden; }
 .dw-rail { min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 12px; border-left: 1px solid var(--dsw-alias-border-l1, #e5e7eb); overflow: auto; background: var(--dsw-alias-bg-layer-1, #fff); }
 .dw-input { font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 6px 9px; border-radius: 8px; border: 1px solid var(--dsw-alias-border-l2, #d1d5db); background: var(--dsw-alias-bg-layer-1, #fff); color: inherit; }
@@ -137,7 +145,7 @@ textarea.dw-dialog-input { min-height: 84px; resize: vertical; }
       <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
       <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="on">Wiki</span><span>岗位</span></nav>
     </header>
-    <div class="viewArea" id="mount"><div class="dw-root"><div class="dw-body"><aside class="dw-tree"><div class="dw-treehead"><div class="dw-controls"><div class="dw-segmented"><button class="dw-segment dw-segment-active">scopeGlobal</button><button class="dw-segment">scopeProject</button></div><span class="dw-chip">pendingCount</span><span class="dw-chip dw-chip-quiet">gitOn</span><button class="dw-button">refresh</button></div></div><input class="dw-input dw-search" value="" placeholder="searchPlaceholder"><div class="dw-tree-meta">pagesCount · draftsCount</div><ul class="dw-page-list"><li><button class="dw-page-row dw-page-row-active"><span class="dw-page-title">错误码规范</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>guide/error-codes.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">新人上手</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>guide/onboarding.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">ADR-0007 岗位制编排</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>adr/0007-role-orchestration.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">术语表</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>domain/glossary.md</span></button></li></ul></aside><main class="dw-main"><div class="dw-page-head"><div><h2>错误码规范</h2><div class="dw-page-meta"><span class="dw-mono">guide/error-codes.md</span><span class="dw-dot dw-dot-stable"></span><span>stable</span><span class="dw-muted">updated 2026-11-12</span></div></div><div class="dw-tabs"><button class="dw-tab dw-tab-active">tabSource</button><button class="dw-tab">tabPreview</button><button class="dw-tab">tabDraft</button><span class="dw-spacer"></span><button class="dw-button">edit</button></div></div><textarea class="dw-input dw-editor" value="---
+    <div class="viewArea" id="mount"><div class="dw-root"><div class="dw-body"><aside class="dw-tree"><div class="dw-treehead"><div class="dw-controls"><div class="dw-segmented"><button class="dw-segment dw-segment-active">scopeGlobal</button><button class="dw-segment">scopeProject</button></div><span class="dw-chip">pendingCount</span><span class="dw-chip dw-chip-quiet">gitOn</span><button class="dw-button">refresh</button></div></div><input class="dw-input dw-search" value="" placeholder="searchPlaceholder"><button class="dw-newpage">＋ newPage</button><div class="dw-tree-meta">pagesCount · draftsCount</div><ul class="dw-page-list"><li><button class="dw-page-row dw-page-row-active"><span class="dw-page-title">错误码规范</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>guide/error-codes.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">新人上手</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>guide/onboarding.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">ADR-0007 岗位制编排</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>adr/0007-role-orchestration.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">术语表</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>domain/glossary.md</span></button></li></ul></aside><main class="dw-main"><div class="dw-page-head"><div><h2>错误码规范</h2><div class="dw-page-meta"><span class="dw-mono">guide/error-codes.md</span><span class="dw-dot dw-dot-stable"></span><span>stable</span><span class="dw-muted">updated 2026-11-12</span></div></div><div class="dw-tabs"><button class="dw-tab dw-tab-active">tabSource</button><button class="dw-tab">tabPreview</button><button class="dw-tab">tabDraft</button><span class="dw-spacer"></span><button class="dw-button">edit</button></div></div><textarea class="dw-input dw-editor" value="---
 title: 错误码规范
 tags: [约定, api]
 status: stable

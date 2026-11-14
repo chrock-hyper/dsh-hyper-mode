@@ -10,7 +10,7 @@
     --dsw-alias-border-l1:#2b3037; --dsw-alias-border-l2:#3a4048; --dsw-alias-label-primary:#e6e8eb;
     --dsw-alias-label-secondary:#9aa1ab; --dsw-alias-brand-primary:#6d9bff; --dsw-alias-state-error-primary:#f87171;
     --dsw-alias-state-warn-primary:#fbbf24; --dsw-alias-state-success-primary:#4ade80; }
-  * { box-sizing:border-box; }
+  /* no global box-sizing: the panel must carry its own, as it does in the app. */
   body { margin:0; background:var(--dsw-alias-bg-base); color:var(--dsw-alias-label-primary);
     font:13px/1.55 -apple-system,"PingFang SC","Segoe UI",system-ui,sans-serif; height:100vh; overflow:hidden; }
   .shell { display:grid; grid-template-columns:54px 232px minmax(0,1fr); height:100vh; }
@@ -27,6 +27,7 @@
   .viewArea { display:flex; flex:1; flex-direction:column; min-height:0; }
 </style>
 <style>
+.hr-tab, .hr-tab *, .hr-tab *::before, .hr-tab *::after { box-sizing:border-box; }
 .hr-tab { display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0;
   color:var(--dsw-alias-label-primary,#1f2328); background:var(--dsw-alias-bg-base,transparent);
   font-size:13px; line-height:1.55; overflow:hidden; }
@@ -34,14 +35,29 @@
   background:var(--dsw-alias-bg-layer-1,#fff); flex:none; }
 .hr-list-head { position:sticky; top:0; z-index:2; display:flex; flex-direction:column; gap:6px;
   padding:2px 0 10px; background:var(--dsw-alias-bg-layer-1,#fff); }
-.hr-new { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); text-align:left;
-  font-size:12px; padding:2px 4px; cursor:pointer; }
+.hr-new { display:flex; align-items:center; justify-content:center; width:100%; padding:5px 8px;
+  border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb);
+  color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; cursor:pointer; }
+.hr-new:hover:not(:disabled) { border-color:var(--dsw-alias-brand-primary,#2563eb); color:var(--dsw-alias-brand-primary,#2563eb); }
 .hr-new:disabled { opacity:.45; cursor:default; }
 .hr-grow { flex:1; }
 .hr-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
 .hr-seg-btn { border:none; background:none; padding:3px 9px; border-radius:6px; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
 .hr-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827); box-shadow:0 1px 2px rgba(0,0,0,.06); }
 .hr-filter { width:180px; }
+.hr-tokens { display:flex; flex-wrap:wrap; align-items:center; gap:4px; min-height:32px; padding:3px 6px;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.hr-tokens:focus-within { border-color:var(--dsw-alias-brand-primary,#2563eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-chip { display:inline-flex; align-items:center; gap:2px; padding:1px 3px 1px 7px; border-radius:6px; font-size:11.5px;
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 10%, var(--dsw-alias-bg-layer-1,#fff));
+  color:var(--dsw-alias-label-primary,#1f2328); }
+.hr-chip-x { border:none; background:none; color:inherit; opacity:.5; cursor:pointer; padding:0 2px; font-size:12px; line-height:1; }
+.hr-chip-x:hover { opacity:1; }
+.hr-token-input { flex:1; min-width:90px; border:none; outline:none; background:transparent; font:inherit; padding:2px 0; color:inherit; }
+.hr-suggest { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+.hr-suggest-item { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff);
+  border-radius:6px; padding:1px 6px; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
+.hr-suggest-item:hover { border-color:var(--dsw-alias-brand-primary,#2563eb); color:var(--dsw-alias-brand-primary,#2563eb); }
 .hr-input, .hr-textarea { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; padding:6px 8px;
   background:var(--dsw-alias-bg-layer-2,#f8f9fb); color:inherit; outline:none; font:inherit; }
 .hr-input:focus, .hr-textarea:focus { border-color:var(--dsw-alias-brand-primary,#2563eb); background:var(--dsw-alias-bg-layer-1,#fff); }
@@ -119,7 +135,7 @@
       <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
       <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="on">岗位</span><span>Wiki</span></nav>
     </header>
-    <div class="viewArea" id="mount"><div class="hr-tab"><div class="hr-body-cols"><aside class="hr-col hr-list-col"><div class="hr-list-head"><div class="hr-seg"><button class="hr-seg-btn hr-seg-on">scopeProject</button><button class="hr-seg-btn">scopeGlobal</button></div><input class="hr-input hr-filter" value="" placeholder="filter"><button class="hr-new">＋ newRole</button></div><ul class="hr-rows"><li class="hr-row"><span class="hr-row-title">代码评审员</span><span class="hr-row-meta">reviewer · version3</span></li><li class="hr-row"><span class="hr-row-title">实现者</span><span class="hr-row-meta">implementer · version2</span></li></ul><div class="hr-builtins"><p class="hr-muted hr-pad">readonly</p><ul class="hr-rows"><li class="hr-row hr-row-builtin"><span class="hr-row-title">培训员</span><span class="hr-row-meta">trainer<button class="hr-link">copyIn</button></span></li></ul></div></aside><section class="hr-col hr-editor-col"><div class="hr-editor"><div class="hr-ed-head"><div class="hr-ed-title-wrap"><input class="hr-title" value="代码评审员"><div class="hr-meta"><span>reviewer</span><span>·</span><span>scopeProject</span><span>·</span><span>version3</span><span>·</span><span class="hr-faint">saved</span></div></div><div class="hr-actions"><button class="hr-btn hr-ghost">copyPrompt</button><button class="hr-btn">reload</button><button class="hr-btn hr-primary" disabled>save</button><button class="hr-btn hr-danger">archive</button></div></div><div class="hr-grid"><label class="hr-field"><span class="hr-label">capabilities</span><input class="hr-input" value="静态分析, 风险识别, 回归验证"></label><label class="hr-field"><span class="hr-label">skills</span><input class="hr-input" value="dsh-bundle-authoring"></label><label class="hr-field"><span class="hr-label">handoffs</span><input class="hr-input" value="implementer, architect"></label><label class="hr-field"><span class="hr-label">can</span><input class="hr-input" value="edit-roles"></label></div><textarea class="hr-textarea hr-body" value="## 职责
+    <div class="viewArea" id="mount"><div class="hr-tab"><div class="hr-body-cols"><aside class="hr-col hr-list-col"><div class="hr-list-head"><div class="hr-seg"><button class="hr-seg-btn hr-seg-on">scopeProject</button><button class="hr-seg-btn">scopeGlobal</button></div><input class="hr-input hr-filter" value="" placeholder="filter"><button class="hr-new">＋ newRole</button></div><ul class="hr-rows"><li class="hr-row"><span class="hr-row-title">代码评审员</span><span class="hr-row-meta">reviewer · version3</span></li><li class="hr-row"><span class="hr-row-title">实现者</span><span class="hr-row-meta">implementer · version2</span></li></ul><div class="hr-builtins"><p class="hr-muted hr-pad">readonly</p><ul class="hr-rows"><li class="hr-row hr-row-builtin"><span class="hr-row-title">培训员</span><span class="hr-row-meta">trainer<button class="hr-link">copyIn</button></span></li></ul></div></aside><section class="hr-col hr-editor-col"><div class="hr-editor"><div class="hr-ed-head"><div class="hr-ed-title-wrap"><input class="hr-title" value="代码评审员"><div class="hr-meta"><span>reviewer</span><span>·</span><span>scopeProject</span><span>·</span><span>version3</span><span>·</span><span class="hr-faint">saved</span></div></div><div class="hr-actions"><button class="hr-btn hr-ghost">copyPrompt</button><button class="hr-btn">reload</button><button class="hr-btn hr-primary" disabled>save</button><button class="hr-btn hr-danger">archive</button></div></div><div class="hr-grid"><div class="hr-field"><span class="hr-label">capabilities</span><div class="hr-tokens"><span class="hr-chip">静态分析<button class="hr-chip-x">×</button></span><span class="hr-chip">风险识别<button class="hr-chip-x">×</button></span><span class="hr-chip">回归验证<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">skills</span><div class="hr-tokens"><span class="hr-chip">dsh-bundle-authoring<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">handoffs</span><div class="hr-tokens"><span class="hr-chip">implementer<button class="hr-chip-x">×</button></span><span class="hr-chip">architect<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">can</span><div class="hr-tokens"><span class="hr-chip">edit-roles<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div></div><textarea class="hr-textarea hr-body" value="## 职责
 对变更做风险分级，给出可执行的修复清单；不替作者改代码，只指出「哪里会坏、为什么、怎么验证」。
 
 ## 工作方式
