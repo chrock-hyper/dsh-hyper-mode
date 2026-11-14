@@ -1,6 +1,6 @@
 {
   "name": "@chrock-studio/dsh-hyper-mode",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "DeepSeek Harness 的模式集 bundle：聚合多个即插即用插件，当前包含增强创造模式（hyper-creator）。",
@@ -25,7 +25,6 @@
     "locale",
     "plugins",
     "docs",
-    "skills",
     "LICENSE"
   ],
   "keywords": [

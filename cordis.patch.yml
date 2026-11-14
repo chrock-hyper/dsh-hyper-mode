@@ -159,6 +159,24 @@
                       const shipped = process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')
                       return path.join(path.dirname(shipped), 'skills')
                     })()
+                # 本插件自带的 skill：<包根>/plugins/hyper-creator/skills/。
+                # baseUrl 是补丁文件所在目录的 file URL（带尾斜杠），链接安装下同样成立。
+                # 表达式绝不能抛错——一抛，skill-filesystem 整行 never started，这个模式的
+                # 全部 skill（含上面那条 shipped 目录）会一起消失；也不能返回空串，
+                # 空串会被 resolve 成当前工作目录，当成 skill 根去扫描。
+                - !!js >-
+                    (() => {
+                      const path = process.getBuiltinModule('node:path')
+                      const raw = typeof baseUrl === 'object' && baseUrl !== null ? baseUrl.href : String(baseUrl ?? '')
+                      let dir = raw
+                      try {
+                        dir = process.getBuiltinModule('node:url').fileURLToPath(new URL('.', raw))
+                      } catch {
+                        if (/\.ya?ml$/i.test(dir)) dir = path.dirname(dir)
+                      }
+                      if (dir === '') return path.join(path.sep, '.dsh-hyper-creator-skills-absent')
+                      return path.join(dir, 'plugins', 'hyper-creator', 'skills')
+                    })()
           - id: tool-skill
             name: '@deepseek-ai/dsh-tool-skill'
           - id: present

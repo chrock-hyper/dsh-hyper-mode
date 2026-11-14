@@ -7,6 +7,8 @@ description: 给 DeepSeek Harness 写或排查本地 bundle 插件时使用—�
 
 DSH 的 bundle 加载链有三处反直觉的失败点，且**失败是静默的**：`install_bundle` 返回 `application: applied`、预设行显示 `status: schema`，但插件根本起不来。本 skill 是一份检查清单，按顺序排除。
 
+预设声明本身怎么造（id、放置、派生、skill 目录）见 `dsh-preset-authoring`；本 skill 只管「包能不能加载」。
+
 ## 0. 先记住四条事实
 
 1. **安装 ≠ 加载**。`applied` 只说明包进了 profile，不说明模块能 import、插件能激活。
@@ -24,7 +26,7 @@ DSH 的 bundle 加载链有三处反直觉的失败点，且**失败是静默的
   createRequire(join(root, pkg, 'package.json'))(join(root, pkg, 'lib/index.js'))
   ```
   用安装目录的绝对路径还能保证与运行时**同一份模块实例**，避免两份 `HarnessError` 让 `instanceof` 失效。
-- [ ] **预设 / 补丁里的 `!!js` 不要依赖 `baseUrl`**。`baseUrl` 锚定**补丁文件所在目录**；从别的 bundle 抄来的表达式（例如 `createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')`）换到你的 bundle 必然 `MODULE_NOT_FOUND`，那一行随之 `never started`。
+- [ ] **`!!js` 用 `baseUrl` 定位自己包内的资源是对的**（它锚定补丁文件所在目录），但**不要用它解析 shipped 包**：从别的 bundle 抄来的 `createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')` 换到你的 bundle 必然 `MODULE_NOT_FOUND`，那一行随之 `never started`。表达式本身也不能抛错、不能返回空串（空串会被解析成当前工作目录）。
 - [ ] **每类资源 `existsSync` 校验 + 报错列出尝试过的路径**。静默回退是排查噩梦。
 - [ ] **补丁用 `insert` 追加自己的行**；覆盖已存在的行会**整体替换 `config`**，必须重述全部字段。
 - [ ] **display 资源齐全**：`locale/en.json` + 用户语言的 `meta.title/description`、`./icon`、`files` 覆盖所有运行时文件。

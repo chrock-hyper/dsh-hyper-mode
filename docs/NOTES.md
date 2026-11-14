@@ -2,7 +2,7 @@
 
 这份笔记记录 `dsh-hyper-mode` 从「想合并两种执行器」到「在真实会话里验收通过」的全过程，重点是**踩过的坑**——它们几乎都不是业务逻辑问题，而是 bundle 的加载与解析机制问题。如果你想给 DSH 写插件，这些坑大概率也会遇到。
 
-> 可复用的检查清单见仓库里的 `skills/dsh-bundle-authoring/SKILL.md`。
+> 可复用的检查清单见 `plugins/hyper-creator/skills/dsh-bundle-authoring/SKILL.md`（加载与解析），以及 `plugins/hyper-creator/skills/dsh-preset-authoring/SKILL.md`（造预设）。
 
 ## 1. 动机
 
