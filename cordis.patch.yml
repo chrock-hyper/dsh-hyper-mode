@@ -13,6 +13,16 @@
     # provider，用 systemPrompt.assemble().tools 报告模型真正收到的编目。
     - id: tool-catalog
       name: '@chrock-studio/dsh-hyper-mode/tool-catalog'
+    # /hyper-skill 命令：Host 作用域，所有模式可用。随包 skill 的可见性只取决于
+    # 扫描根（项目 .dsh/skills / 用户 ~/.dsh/skills / customSkillDirs），
+    # skill-filesystem 监听这些根，所以装/卸都不用重启；Preset 行挂载 skill 目录
+    # 才需要重启。
+    # 用相对路径而不是子路径导出：Node 对 package.json 的 exports 有进程级缓存，
+    # 新增 `./hyper-skills` 子路径在重载后仍报 ERR_PACKAGE_PATH_NOT_EXPORTED，
+    # 加载器只会记一条 never started。补丁行里的相对路径锚定在本文件旁，新增插件
+    # 也不需要重启（exports 里仍保留该子路径给外部消费者）。
+    - id: hyper-skills
+      name: ./plugins/hyper-skills/index.js
     - id: preset-hyper-creator
       name: '@deepseek-ai/dsh-agent-preset'
       config:

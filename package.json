@@ -16,6 +16,7 @@
     "./hyper-creator/locale/*.json": "./plugins/hyper-creator/locale/*.json",
     "./hyper-creator/icon": "./plugins/hyper-creator/icon.svg",
     "./hyper-teams": "./plugins/hyper-teams/index.js",
+    "./hyper-skills": "./plugins/hyper-skills/index.js",
     "./tool-catalog": "./plugins/tool-catalog/index.js",
     "./tool-catalog/locale/*.json": "./plugins/tool-catalog/locale/*.json"
   },

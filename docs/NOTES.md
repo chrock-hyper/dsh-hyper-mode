@@ -177,3 +177,42 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" …  # 模�
 所以策略里同时写了两条「反例豁免」和三条**批处理卫生**：逐项 `try/catch` 并回报失败项（程序内子调用失败是 rejection，不捕获就整体失败）、只打印整理后的结果、破坏性/对外可见动作保持直呼；大批量要分块，因为 `run_code` 有 10 分钟硬上限。
 
 策略文本抽成纯常量而不是内联在 `index.js`，是为了让 `bun test` 能断言「阈值、反例、卫生规则都还在」，改文案不动执行器逻辑。
+
+## 9. `/hyper-skill`：把随包 skill 做成一条斜杠命令
+
+一开始把它做成 Host 行的系统提示段落（「根指令」），但用户要的是 `/export` 那种**人类命令**：由人决定装什么，不进模型消息、不占 token。最终形态是 `ctx.commands.register`，skill 的发现与「链接进扫描根」保留为纯函数，可直接测。
+
+两个约束决定了形态：
+
+| 约束 | 结论 |
+|---|---|
+| 客户端只把参数文本路由给**声明了 `input`** 的命令 | 必须声明 `input.hint`；不声明时 `/hyper-skill install x` 不会被命令路径接管 |
+| 命令结果走 composer 的 `notify` | 只返回单行短文本；名字超过 6 个折叠成「等 N 个」 |
+
+命令语义：
+
+- 空输入 / `list` → 列清单：可安装、已安装（项目 or 用户）
+- `install <名称>` → 默认链接到 `~/.dsh/skills`；`--project` 改到 `<项目根>/.dsh/skills`
+- `remove <名称>` → 同时试 `<名称>` 与 `<名称>.md`（扁平 skill 的链接名必须带扩展名），只删「解析后位于本 bundle 内」的链接
+
+「安装」为什么不用重启：skill 是否出现只取决于扫描根（项目 `.dsh/skills`(100)、`customSkillDirs`(300)、`~/.dsh/skills`(400)…），而 `skill-filesystem` watch 这些根；命令只做 `mkdir` + `ln -s`。
+
+验证记录（2026-11-14，Desktop profile）：
+
+1. `ln -s <bundle>/plugins/hyper-creator/skills/dsh-preset-authoring ./.dsh/skills/` → 下一步替换编目出现它，`skill` 工具加载成功；删链接后消失，全程未重启；
+2. `bun test` 覆盖命令语法、两种安装位置、幂等、冲突、外部链接保护与命令注册（当前全量 54 例全绿）；
+3. 重载后 `plugin_manager list_plugins` → `include:hyper-skills` 为 `enabled: true`、`fiberPhase: active`。
+
+这也解释了为什么它必须是 Host 行：preset 行的配置冻结在会话组合里，改动走 `unmanaged-plugin` 的重启路径；Host 行重载 bundle 即可生效。
+
+**坑 5：新增子路径导出要重启，相对路径不用。** 第一次实现把这行写成 `@chrock-studio/dsh-hyper-mode/hyper-skills`，`exports` 也加了对应条目，重载后行状态是 `never started`。原因不在加载器：Node 的 ESM 解析器把 `package.json` 的 `exports` 缓存在**进程级**，同一进程里后来添加的子路径仍报 `ERR_PACKAGE_PATH_NOT_EXPORTED`（用一个只改 package.json 的最小复现确认过）。补丁方言支持 `name: ./plugins/<name>/index.js`，插入行的相对路径锚定在补丁文件旁，`loader` 里走的是 `new URL(name, ctx.baseUrl)`——完全绕开 `exports`。所以本 bundle 的新行用相对路径：**新增插件也不用重启**。
+
+**一个待查的现象**：当前进程里「增强创造模式」会话并没有看到 `dsh-preset-authoring`（`skill` 报 unknown），而同一个 skill 链接进项目根后立刻出现。可能是进程启动早于 `b23e5cc`、预设组合还是旧的，也可能是 preset 作用域下 `baseUrl` 的锚点与补丁文件不同。命令不依赖这条 preset 行，所以无论哪种原因它都成立。
+
+## 10. 策略追加：DSH 创造任务先通读 dsh-doc
+
+`HYBRID_INSTRUCTION` 现在多了一段硬前置：写或改 DSH 的 bundle、plugin、preset、tool、skill、MCP 连接之前，先通读 `dsh-doc`，再读它指向的 references。
+
+理由是本仓库的坑几乎都来自「凭记忆写插件契约」：加载器把导入失败吞成 `never started`（坑 2）、`exports` 被进程级缓存（坑 5）、preset 行的配置冻结在会话组合里（坑 3/4）。这些规则随 DSH 版本变化，`dsh-doc` 是随安装发布的那份事实，记忆里的那份不是。
+
+文本落在 `lib/policy.js` 的 `HYBRID_INSTRUCTION`（order 800，在各工具专属段落之前），`policy.test.js` 断言它还在。注意它在 preset 行里，属于 `unmanaged-plugin`：改完重载返回 `restart-required`，要重启 DSH 才进提示词。

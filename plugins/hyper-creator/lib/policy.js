@@ -18,7 +18,9 @@ Write a program when you can name the steps before you start: two or more calls 
 
 Call one tool directly for a single step, when its result must be visible or approved before you choose the next call, when you are still exploring and cannot name the next call, or when a nested card would lose detail the user needs, such as an image or a diff.
 
-Inside a program, catch per-item errors so one failure does not hide the rest, print only the curated result, and keep destructive or externally visible actions as direct calls when the user should review them one by one. Programs are capped at 10 minutes: split large fan-outs and report progress instead of spending the whole budget in one run.`
+Inside a program, catch per-item errors so one failure does not hide the rest, print only the curated result, and keep destructive or externally visible actions as direct calls when the user should review them one by one. Programs are capped at 10 minutes: split large fan-outs and report progress instead of spending the whole budget in one run.
+
+For DeepSeek Harness authoring work — writing or changing a bundle, plugin, preset, tool, skill, or MCP connection — load the \`dsh-doc\` skill first, read it in full, then read the references it names for the surface you are touching. Do not author DSH itself from memory: its loader, composition, and authorization rules are version-specific, and a plausible-looking patch can fail silently.`
 
 /** The same rule restated where the model decides, beside the transport it names. */
 export const RUN_CODE_PREFERENCE = `Prefer this over a direct call when one response needs two or more tool calls whose intermediate values you only consume: independent reads or searches to join, a fan-out over a list, or a pipeline that returns a summary. Call a tool directly for a single step, or when its result must be visible or approved before you choose the next call.`

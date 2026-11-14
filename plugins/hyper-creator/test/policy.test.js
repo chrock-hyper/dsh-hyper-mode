@@ -22,6 +22,13 @@ describe('routing policy text', () => {
     expect(HYBRID_INSTRUCTION).toContain('10 minutes')
   })
 
+  test('requires reading dsh-doc before any DSH authoring work', () => {
+    expect(HYBRID_INSTRUCTION).toContain('`dsh-doc`')
+    expect(HYBRID_INSTRUCTION).toContain('bundle, plugin, preset, tool, skill, or MCP connection')
+    expect(HYBRID_INSTRUCTION).toContain('read it in full')
+    expect(HYBRID_INSTRUCTION).toContain('Do not author DSH itself from memory')
+  })
+
   test('is already trimmed, so sections concatenate without stray blanks', () => {
     expect(HYBRID_INSTRUCTION).toBe(HYBRID_INSTRUCTION.trim())
     expect(RUN_CODE_PREFERENCE).toBe(RUN_CODE_PREFERENCE.trim())
