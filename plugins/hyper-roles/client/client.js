@@ -1,9 +1,14 @@
 /**
- * 岗位面板：一级页面 + 侧栏图标。
+ * 岗位标签页：会话里的「岗位」视图。
  *
- * 纯浏览器模块，不经过任何构建：React 来自宿主的模块表，样式是组件内的
- * <style>，数据全部走 Host 的 `/hyper-roles/api` 路由。面板只做三件事——
- * 把角色卡摆出来、把字段改动提交给同一套 store、把版本冲突如实告诉人。
+ * 挂载在 `conversation.view`（与「对话」「轨迹」「统计」同一排），拿到
+ * `sessionId`，因此项目作用域直接取当前会话的工作目录，不再需要选目录。
+ * 纯浏览器模块：React 来自模块表，数据走 `/hyper-roles/api`。
+ *
+ * 三条硬规则（上一版踩过）：
+ * 1. 不用 window.prompt / window.confirm —— Electron 不支持 prompt，点了会静默抛错；
+ * 2. 每个字段都参与 dirty 计算，按钮的禁用状态要能解释；
+ * 3. 请求失败一定落到可见的错误条上，不允许“点了没反应”。
  */
 window.__ModuleLoader__.load({
   id: '@chrock-studio/dsh-hyper-roles',
@@ -13,28 +18,25 @@ window.__ModuleLoader__.load({
     const { useCallback, useEffect, useMemo, useState } = React
 
     const NS = 'hyperRoles'
-    const PANEL_ID = 'hyper-roles'
+    const TAB_ID = 'roles'
     const API = '/hyper-roles/api'
 
     let t = (key) => key
 
     const zh = {
-      panel: '岗位',
-      title: '岗位',
-      subtitle: '可编辑的团队角色卡：职责、能力、交接对象与经验',
-      refresh: '刷新',
-      project: '项目',
-      global: '全局',
-      builtin: '随包',
+      tab: '岗位',
+      scopeProject: '本项目',
+      scopeGlobal: '全局',
       filter: '筛选岗位',
       newRole: '新建岗位',
       emptyList: '还没有岗位',
       emptyBody: '从左侧选择一个岗位，或新建一个',
-      emptyProject: '还没有选择项目目录',
-      pickProject: '选择项目目录',
-      manualPath: '手动输入路径',
-      idField: '岗位 id',
+      readonly: '随包岗位只读，复制后即可编辑',
+      copyIn: '复制到本项目',
+      idField: '岗位 id（小写字母 / 数字 / 连字符）',
       titleField: '名称',
+      create: '创建',
+      cancel: '取消',
       capabilities: '能力（逗号分隔）',
       skills: '技能（逗号分隔）',
       handoffs: '交接对象（岗位 id，逗号分隔）',
@@ -43,170 +45,153 @@ window.__ModuleLoader__.load({
       guide: '岗位指导：指向 wiki 页面与阅读顺序',
       guideSave: '保存指导',
       notes: '经验',
-      noteEmpty: '这个岗位还没有经验条目',
+      noteEmpty: '还没有经验条目',
       notePlaceholder: '一条一事：什么信号出现时 → 做什么判断 → 为什么',
       noteAdd: '记一条经验',
       save: '保存',
       saving: '保存中…',
       saved: '已保存',
       archive: '归档',
+      archiveConfirm: '确认归档？',
       reload: '重新载入',
       copyPrompt: '复制岗位提示词',
       copied: '已复制到剪贴板',
+      copyFailed: '复制失败，请手动选择',
       version: 'v',
       shadowed: '覆盖全局',
-      conflict: '岗位已被他人修改，先重新载入再保存',
-      dirty: '有未保存的修改',
-      copiedRole: '已复制随包岗位',
-      createdRole: '已创建岗位',
-      archiveConfirm: '归档后这张卡、经验和指导都会移入 .archive，可以吗？',
-      source: '来源',
-      noPermission: '只读：当前页面没有写权限',
-      needProject: '项目岗位需要一个项目目录；选一个后再新建。',
-      newRoleId: '新岗位 id（小写字母/数字/连字符）',
-      newRoleTitle: '新岗位名称',
-      builtinHint: '随包岗位只读；复制到某个作用域后即可编辑。',
-      copyToScope: '复制到当前作用域',
+      builtin: '随包',
+      dirty: '未保存',
+      conflict: '岗位已被他人修改',
+      created: '已创建',
       error: '出错了',
       loading: '读取中…',
+      needTitle: '名称不能为空',
+      needId: 'id 只能用小写字母、数字与连字符',
+      dataAt: '数据位置',
+      promptHint: '复制后粘进新会话，首行即绑定这个岗位',
+      writeFailed: '写入失败',
+      savedGuide: '指导已保存',
+      refreshed: '已重新载入',
     }
 
     const en = {
-      panel: 'Roles',
-      title: 'Roles',
-      subtitle: 'Editable team role cards: duties, capabilities, handoffs and experience',
-      refresh: 'Refresh',
-      project: 'Project',
-      global: 'Global',
-      builtin: 'Shipped',
+      tab: 'Roles',
+      scopeProject: 'Project',
+      scopeGlobal: 'Global',
       filter: 'Filter roles',
       newRole: 'New role',
       emptyList: 'No roles yet',
-      emptyBody: 'Pick a role on the left, or create one',
-      emptyProject: 'No project directory selected',
-      pickProject: 'Pick a project directory',
-      manualPath: 'Type a path',
-      idField: 'Role id',
+      emptyBody: 'Pick a role, or create one',
+      readonly: 'Shipped roles are read-only; copy one to edit',
+      copyIn: 'Copy into project',
+      idField: 'Role id (lowercase, digits, hyphens)',
       titleField: 'Title',
+      create: 'Create',
+      cancel: 'Cancel',
       capabilities: 'Capabilities (comma separated)',
       skills: 'Skills (comma separated)',
-      handoffs: 'Handoffs (role ids, comma separated)',
+      handoffs: 'Handoffs (role ids)',
       can: 'Grants (edit-roles / train)',
       body: 'Body (Markdown)',
-      guide: 'Reading guide: wiki pages and reading order',
+      guide: 'Reading guide: wiki pages and order',
       guideSave: 'Save guide',
       notes: 'Experience',
-      noteEmpty: 'No experience entries yet',
+      noteEmpty: 'No experience yet',
       notePlaceholder: 'One thing: what signal → what judgement → why',
       noteAdd: 'Add entry',
       save: 'Save',
       saving: 'Saving…',
       saved: 'Saved',
       archive: 'Archive',
+      archiveConfirm: 'Archive this role?',
       reload: 'Reload',
       copyPrompt: 'Copy role prompt',
-      copied: 'Copied to clipboard',
+      copied: 'Copied',
+      copyFailed: 'Copy failed; select the text manually',
       version: 'v',
       shadowed: 'overrides global',
-      conflict: 'This role changed elsewhere; reload before saving',
-      dirty: 'Unsaved changes',
-      copiedRole: 'Copied shipped role',
-      createdRole: 'Role created',
-      archiveConfirm: 'Archive moves the card, notes and guide into .archive. Continue?',
-      source: 'source',
-      noPermission: 'Read-only: this page cannot write',
-      needProject: 'Project roles need a project directory; pick one first.',
-      newRoleId: 'New role id (lowercase letters, digits, hyphens)',
-      newRoleTitle: 'New role title',
-      builtinHint: 'Shipped roles are read-only; copy one into a scope to edit it.',
-      copyToScope: 'Copy into current scope',
+      builtin: 'shipped',
+      dirty: 'unsaved',
+      conflict: 'This role changed elsewhere',
+      created: 'Created',
       error: 'Error',
       loading: 'Loading…',
+      needTitle: 'A title is required',
+      needId: 'The id may only use lowercase letters, digits and hyphens',
+      dataAt: 'Data',
+      promptHint: 'Paste it into a new session to bind that role',
+      writeFailed: 'Write failed',
+      savedGuide: 'Guide saved',
+      refreshed: 'Reloaded',
     }
 
-    /**
-     * Call one API route.
-     * @param {string} path - route path.
-     * @param {object} [init] - fetch init.
-     * @returns {Promise<object>} the JSON payload.
-     */
-    async function api(path, init) {
-      const response = await fetch(path, {
-        headers: { 'content-type': 'application/json' },
-        ...init,
-      })
-      let data = {}
-      try {
-        data = await response.json()
-      } catch {
-        data = {}
+    /** @param {object} query - parameters; empty values are skipped. @returns {string} suffix. */
+    function queryString(query) {
+      const params = new URLSearchParams()
+      for (const [key, value] of Object.entries(query || {})) {
+        if (value === undefined || value === null || value === '') continue
+        params.set(key, String(value))
       }
-      if (!response.ok) {
-        const error = new Error(data.error || `HTTP ${response.status}`)
+      const text = params.toString()
+      return text === '' ? '' : `?${text}`
+    }
+
+    /** Call one API route, turning a failure into a thrown Error with its status. */
+    async function call(path, options) {
+      const response = await fetch(path, options)
+      let body = {}
+      try {
+        body = await response.json()
+      } catch {
+        body = {}
+      }
+      if (!response.ok || body.ok === false) {
+        const error = new Error(body.error || `HTTP ${response.status}`)
         error.status = response.status
-        error.data = data
+        error.code = body.code
+        error.currentVersion = body.currentVersion
         throw error
       }
-      return data
+      return body
     }
 
-    /** @param {string} path - route. @param {string|null} cwd - project root. @returns {string} route with cwd. */
-    function withCwd(path, cwd) {
-      if (!cwd) return path
-      return `${path}${path.includes('?') ? '&' : '?'}cwd=${encodeURIComponent(cwd)}`
-    }
+    /** @param {string} value - comma text. @returns {string[]} trimmed list. */
+    const parseList = (value) => String(value || '').split(/[,，]/).map((entry) => entry.trim()).filter(Boolean)
 
     /** @param {string[]|undefined} value - list. @returns {string} comma text. */
     const listText = (value) => (Array.isArray(value) ? value.join(', ') : '')
 
-    /** @param {string} value - comma text. @returns {string[]} list. */
-    const parseList = (value) => String(value || '').split(/[,，]/).map((entry) => entry.trim()).filter(Boolean)
-
-    /** @param {object} fields - parsed card fields. @returns {object} form state. */
-    function formOf(fields) {
+    /** Render a form object from card fields. */
+    function formOf(fields, body) {
       return {
         title: fields.title || '',
         capabilities: listText(fields.capabilities),
         skills: listText(fields.skills),
         handoffs: listText(fields.handoffs),
         can: listText(fields.can),
-        body: '',
+        body: body || '',
       }
     }
 
-    /** 侧栏图标：一个角色剪影，选中时带一个点。 */
-    function RoleIcon({ size = 18, active = false }) {
-      return h('svg', {
-        width: size,
-        height: size,
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        'aria-hidden': true,
-        style: { display: 'block' },
-      },
-        h('circle', { cx: 11, cy: 8, r: 3.1, stroke: 'currentColor', strokeWidth: 1.7 }),
-        h('path', {
-          d: 'M5.2 19c1.1-3 3.3-4.6 5.8-4.6s4.7 1.6 5.8 4.6',
-          stroke: 'currentColor',
-          strokeWidth: 1.7,
-          strokeLinecap: 'round',
-        }),
-        active ? h('circle', { cx: 18.6, cy: 5.4, r: 2.1, fill: 'currentColor' }) : null,
-      )
+    /** Focused small button. */
+    function button(label, onClick, options = {}) {
+      return h('button', {
+        type: 'button',
+        className: `hr-btn${options.primary ? ' hr-primary' : ''}${options.danger ? ' hr-danger' : ''}${options.ghost ? ' hr-ghost' : ''}`,
+        onClick,
+        disabled: options.disabled === true,
+      }, label)
     }
 
-    /** 一个带标签的编辑行。 */
-    function Field({ label, children, hint }) {
+    /** Labeled input row. */
+    function Field({ label, value, onChange, disabled }) {
       return h('label', { className: 'hr-field' },
-        h('span', { className: 'hr-field-label' }, label),
-        children,
-        hint ? h('span', { className: 'hr-field-hint' }, hint) : null,
-      )
+        h('span', { className: 'hr-label' }, label),
+        h('input', { className: 'hr-input', value, onChange, disabled: disabled === true }))
     }
 
-    /** 面板主体。 */
-    function RolePanel() {
-      const [cwd, setCwd] = useState(null)
+    /** The tab component. */
+    function RoleTab({ sessionId }) {
       const [state, setState] = useState(null)
       const [scope, setScope] = useState('project')
       const [selected, setSelected] = useState(null)
@@ -214,69 +199,101 @@ window.__ModuleLoader__.load({
       const [form, setForm] = useState(null)
       const [guide, setGuide] = useState('')
       const [note, setNote] = useState('')
-      const [notice, setNotice] = useState(null)
       const [filter, setFilter] = useState('')
+      const [creating, setCreating] = useState(false)
+      const [newId, setNewId] = useState('')
+      const [newTitle, setNewTitle] = useState('')
       const [busy, setBusy] = useState(false)
+      const [error, setError] = useState('')
+      const [notice, setNotice] = useState('')
+      const [conflict, setConflict] = useState(null)
+      const [archiving, setArchiving] = useState(false)
 
-      const report = useCallback((kind, text) => setNotice({ kind, text }), [])
+      const session = sessionId === undefined || sessionId === null ? '' : String(sessionId)
 
-      const loadState = useCallback(async (nextCwd) => {
+      /** Show a transient success line. */
+      const flash = useCallback((text) => {
+        setNotice(text)
+        setError('')
+      }, [])
+
+      /** Show a failure line and clear the success line. */
+      const fail = useCallback((failure) => {
+        setError(`${t('error')}: ${failure?.message || failure}`)
+        setNotice('')
+      }, [])
+
+      const loadState = useCallback(async () => {
         try {
-          const data = await api(withCwd(`${API}/state`, nextCwd))
-          setState(data)
-          setCwd(nextCwd ?? null)
-          if (nextCwd === null && !data.projectRoot && Array.isArray(data.recentProjects) && data.recentProjects.length > 0) {
-            await loadState(data.recentProjects[0])
+          const body = await call(`${API}/state${queryString({ session })}`)
+          setState(body)
+          if (body.problems && body.problems.length > 0) {
+            setError(`${t('error')}: ${body.problems.length} 个岗位文件无法解析（${body.problems[0].path}）`)
           }
-        } catch (error) {
-          report('error', `${t('error')}: ${error.message}`)
+        } catch (failure) {
+          fail(failure)
         }
-      }, [report])
-
-      useEffect(() => {
-        loadState(null)
-      }, [loadState])
+      }, [session, fail])
 
       const openRole = useCallback(async (target) => {
+        if (target === null) return
         setSelected(target)
+        setArchiving(false)
+        setConflict(null)
         try {
-          const data = await api(withCwd(`${API}/role/${target.scope}/${encodeURIComponent(target.id)}`, cwd), { method: 'GET' })
-          setDoc(data)
-          setForm({ ...formOf(data.fields), body: data.body })
-          setGuide(data.guide || '')
-          setNotice(null)
-        } catch (error) {
-          report('error', error.message)
+          const body = await call(`${API}/role/${target.scope}/${encodeURIComponent(target.id)}${queryString({ session })}`)
+          setDoc(body)
+          setForm(formOf(body.fields, body.body))
+          setGuide(body.guide || '')
+          setError('')
+        } catch (failure) {
+          setDoc(null)
+          setForm(null)
+          fail(failure)
         }
-      }, [cwd, report])
+      }, [session, fail])
+
+      useEffect(() => {
+        loadState()
+      }, [loadState])
+
+      useEffect(() => {
+        if (selected !== null) return
+        const rows = state === null ? [] : state.roles[scope] || []
+        if (rows.length > 0) openRole({ scope, id: rows[0].id })
+      }, [state, scope, selected, openRole])
 
       const rows = useMemo(() => {
-        const list = state?.roles?.[scope] ?? []
+        const list = state === null ? [] : state.roles[scope] || []
         const needle = filter.trim().toLowerCase()
         if (needle === '') return list
         return list.filter((row) => `${row.id} ${row.title}`.toLowerCase().includes(needle))
       }, [state, scope, filter])
 
       const dirty = useMemo(() => {
-        if (!doc || !form) return false
-        const original = formOf(doc.fields)
+        if (doc === null || form === null) return false
+        const original = formOf(doc.fields, doc.body)
         return form.title !== original.title
           || form.capabilities !== original.capabilities
           || form.skills !== original.skills
           || form.handoffs !== original.handoffs
           || form.can !== original.can
-          || form.body !== doc.body
+          || form.body !== original.body
       }, [doc, form])
 
+      const setField = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
+
       const save = useCallback(async () => {
-        if (!doc || !form || !selected) return
+        if (doc === null || form === null || selected === null) return
+        if (form.title.trim() === '') { fail(new Error(t('needTitle'))); return }
         setBusy(true)
         try {
-          await api(withCwd(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}`, cwd), {
+          await call(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}${queryString({ session })}`, {
             method: 'PUT',
+            headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
               fields: {
-                title: form.title,
+                title: form.title.trim(),
                 capabilities: parseList(form.capabilities),
                 skills: parseList(form.skills),
                 handoffs: parseList(form.handoffs),
@@ -286,330 +303,353 @@ window.__ModuleLoader__.load({
               expectedVersion: doc.revision,
             }),
           })
-          report('ok', t('saved'))
-          await loadState(cwd)
+          flash(t('saved'))
+          await loadState()
           await openRole(selected)
-        } catch (error) {
-          if (error.status === 409 && error.data?.code === 'stale') {
-            report('error', `${t('conflict')} （v${doc.revision} → v${error.data.currentVersion}）`)
+        } catch (failure) {
+          if (failure.status === 409 && failure.code === 'stale') {
+            setConflict(failure.currentVersion)
           } else {
-            report('error', error.message)
+            fail(failure)
           }
         } finally {
           setBusy(false)
         }
-      }, [doc, form, selected, cwd, loadState, openRole, report])
+      }, [doc, form, selected, session, loadState, openRole, flash, fail])
 
-      const createRole = useCallback(async () => {
-        if (scope === 'project' && !state?.projectDir) {
-          report('error', t('needProject'))
-          return
-        }
-        const id = window.prompt(t('newRoleId'), '')
-        if (!id) return
-        const title = window.prompt(t('newRoleTitle'), id)
-        if (!title) return
+      const create = useCallback(async () => {
+        const id = newId.trim()
+        if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) { fail(new Error(t('needId'))); return }
+        if (newTitle.trim() === '') { fail(new Error(t('needTitle'))); return }
+        setBusy(true)
         try {
-          await api(withCwd(`${API}/role/${scope}`, cwd), {
+          await call(`${API}/role/${scope}${queryString({ session })}`, {
             method: 'POST',
-            body: JSON.stringify({ id: id.trim(), title, body: '## 职责\n\n## 工作方式\n\n## 交互对象\n\n## 完成标准\n' }),
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              id,
+              title: newTitle.trim(),
+              body: '## 职责\n\n## 工作方式\n\n## 交互对象\n\n## 完成标准\n',
+            }),
           })
-          report('ok', t('createdRole'))
-          await loadState(cwd)
-          await openRole({ scope, id: id.trim() })
-        } catch (error) {
-          report('error', error.message)
+          setCreating(false)
+          setNewId('')
+          setNewTitle('')
+          flash(t('created'))
+          await loadState()
+          await openRole({ scope, id })
+        } catch (failure) {
+          fail(failure)
+        } finally {
+          setBusy(false)
         }
-      }, [scope, state, cwd, loadState, openRole, report])
+      }, [newId, newTitle, scope, session, loadState, openRole, flash, fail])
 
-      const archiveRole = useCallback(async () => {
-        if (!selected) return
-        if (!window.confirm(t('archiveConfirm'))) return
+      const copyBuiltin = useCallback(async (id) => {
+        setBusy(true)
         try {
-          await api(withCwd(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}/archive`, cwd), { method: 'POST', body: '{}' })
+          await call(`${API}/role/${scope}${queryString({ session })}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ fromBuiltin: id }),
+          })
+          flash(t('copied'))
+          await loadState()
+          await openRole({ scope, id })
+        } catch (failure) {
+          fail(failure)
+        } finally {
+          setBusy(false)
+        }
+      }, [scope, session, loadState, openRole, flash, fail])
+
+      const archive = useCallback(async () => {
+        if (selected === null) return
+        if (!archiving) { setArchiving(true); return }
+        setBusy(true)
+        try {
+          await call(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}/archive${queryString({ session })}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: '{}',
+          })
+          setArchiving(false)
           setDoc(null)
           setForm(null)
           setSelected(null)
-          await loadState(cwd)
-        } catch (error) {
-          report('error', error.message)
+          flash(t('saved'))
+          await loadState()
+        } catch (failure) {
+          fail(failure)
+        } finally {
+          setBusy(false)
         }
-      }, [selected, cwd, loadState, report])
+      }, [selected, archiving, session, loadState, flash, fail])
 
       const saveGuide = useCallback(async () => {
-        if (!selected) return
+        if (selected === null) return
+        setBusy(true)
         try {
-          await api(withCwd(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}/guide`, cwd), {
+          await call(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}/guide${queryString({ session })}`, {
             method: 'PUT',
+            headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ text: guide }),
           })
-          report('ok', t('saved'))
-          await openRole(selected)
-        } catch (error) {
-          report('error', error.message)
+          flash(t('savedGuide'))
+        } catch (failure) {
+          fail(failure)
+        } finally {
+          setBusy(false)
         }
-      }, [selected, cwd, guide, openRole, report])
+      }, [selected, guide, session, flash, fail])
 
       const addNote = useCallback(async () => {
-        if (!selected || note.trim() === '') return
+        if (selected === null || note.trim() === '') return
+        setBusy(true)
         try {
-          await api(withCwd(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}/note`, cwd), {
+          await call(`${API}/role/${selected.scope}/${encodeURIComponent(selected.id)}/note${queryString({ session })}`, {
             method: 'POST',
-            body: JSON.stringify({ text: note }),
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ text: note.trim() }),
           })
           setNote('')
+          flash(t('saved'))
           await openRole(selected)
-        } catch (error) {
-          report('error', error.message)
+        } catch (failure) {
+          fail(failure)
+        } finally {
+          setBusy(false)
         }
-      }, [selected, note, cwd, openRole, report])
+      }, [selected, note, session, openRole, flash, fail])
 
       const copyPrompt = useCallback(async () => {
-        if (!doc) return
+        if (doc === null) return
         const text = [
           `<!-- role:${doc.fields.id} -->`,
           `【岗位】${doc.fields.title}（${doc.fields.id} · v${doc.revision}）`,
           '',
           doc.body,
-          doc.guide ? `\n## 岗位指导\n${doc.guide}` : '',
+          guide.trim() === '' ? '' : `\n## 岗位指导\n${guide.trim()}`,
         ].join('\n')
         try {
           await navigator.clipboard.writeText(text)
-          report('ok', t('copied'))
-        } catch (error) {
-          report('error', error.message)
+          flash(t('copied'))
+        } catch {
+          fail(new Error(t('copyFailed')))
         }
-      }, [doc, report])
+      }, [doc, guide, flash, fail])
 
-      const copyBuiltin = useCallback(async (id) => {
-        if (scope === 'project' && !state?.projectDir) {
-          report('error', t('needProject'))
-          return
-        }
-        try {
-          await api(withCwd(`${API}/role/${scope}`, cwd), { method: 'POST', body: JSON.stringify({ fromBuiltin: id }) })
-          report('ok', t('copiedRole'))
-          await loadState(cwd)
-          await openRole({ scope, id })
-        } catch (error) {
-          report('error', error.message)
-        }
-      }, [scope, state, cwd, loadState, openRole, report])
+      const reload = useCallback(async () => {
+        setConflict(null)
+        if (selected !== null) await openRole(selected)
+        flash(t('refreshed'))
+      }, [selected, openRole, flash])
 
-      const pickProject = useCallback(async () => {
-        const path = window.prompt(t('manualPath'), state?.projectRoot || '')
-        if (!path) return
-        await loadState(path.trim())
-      }, [state, loadState])
+      const scopeButton = (value) => h('button', {
+        type: 'button',
+        className: `hr-seg-btn${scope === value ? ' hr-seg-on' : ''}`,
+        onClick: () => { setScope(value); setSelected(null); setDoc(null); setForm(null) },
+      }, value === 'project' ? t('scopeProject') : t('scopeGlobal'))
 
-      const setField = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
+      const editor = doc === null || form === null
+        ? h('p', { className: 'hr-muted' }, t('emptyBody'))
+        : h('div', { className: 'hr-editor' },
+          h('div', { className: 'hr-ed-head' },
+            h('div', { className: 'hr-ed-title-wrap' },
+              h('input', { className: 'hr-title', value: form.title, disabled: doc.scope === 'global' && doc.builtin === true, onChange: setField('title') }),
+              h('div', { className: 'hr-meta' },
+                h('span', null, doc.fields.id),
+                h('span', null, '·'),
+                h('span', null, doc.scope === 'project' ? t('scopeProject') : t('scopeGlobal')),
+                h('span', null, '·'),
+                h('span', null, `${t('version')}${doc.revision}`),
+                h('span', null, '·'),
+                h('span', { className: err(dirty) ? 'hr-dirty' : 'hr-faint' }, dirty ? t('dirty') : t('saved'))),
+            ),
+            h('div', { className: 'hr-actions' },
+              button(t('copyPrompt'), copyPrompt, { ghost: true }),
+              button(t('reload'), reload),
+              button(busy ? t('saving') : t('save'), save, { primary: true, disabled: busy || !dirty }),
+              archiving
+                ? button(t('archiveConfirm'), archive, { danger: true })
+                : button(t('archive'), archive, { danger: true })),
+          ),
+          conflict === null ? null : h('div', { className: 'hr-banner hr-warn' },
+            h('span', null, `${t('conflict')}（v${doc.revision} → v${conflict}）`),
+            button(t('cancel'), () => setConflict(null), { ghost: true })),
+          h('div', { className: 'hr-grid' },
+            h(Field, { label: t('capabilities'), value: form.capabilities, onChange: setField('capabilities') }),
+            h(Field, { label: t('skills'), value: form.skills, onChange: setField('skills') }),
+            h(Field, { label: t('handoffs'), value: form.handoffs, onChange: setField('handoffs') }),
+            h(Field, { label: t('can'), value: form.can, onChange: setField('can') })),
+          h('textarea', { className: 'hr-textarea hr-body', value: form.body, onChange: setField('body') }),
+          h('details', { className: 'hr-guide', open: guide.trim() !== '' },
+            h('summary', null, t('guide')),
+            h('textarea', { className: 'hr-textarea hr-guide-text', value: guide, onChange: (event) => setGuide(event.target.value) }),
+            h('div', { className: 'hr-guide-actions' }, button(t('guideSave'), saveGuide, { disabled: busy }))),
+          h('p', { className: 'hr-hint' }, t('promptHint')))
 
-      const scopeLabel = (value) => (value === 'project' ? t('project') : t('global'))
-
-      return h('div', { className: 'hr-page' },
+      return h('div', { className: 'hr-tab' },
         h('style', null, STYLES),
-        h('header', { className: 'hr-header' },
-          h('div', { className: 'hr-heading' },
-            h('h1', null, t('title')),
-            h('p', null, t('subtitle')),
-          ),
-          h('div', { className: 'hr-header-actions' },
-            h('button', { className: 'hr-button', onClick: () => loadState(cwd) }, t('refresh')),
-            h('button', { className: 'hr-button hr-primary', onClick: createRole }, t('newRole')),
-          ),
-        ),
-        h('div', { className: 'hr-scopebar' },
-          ['project', 'global'].map((value) => h('button', {
-            key: value,
-            className: `hr-tab${scope === value ? ' hr-tab-active' : ''}`,
-            onClick: () => setScope(value),
-          }, scopeLabel(value))),
-          h('span', { className: 'hr-scope-hint' },
-            scope === 'project'
-              ? (state?.projectRoot || t('emptyProject'))
-              : state?.globalDir || ''),
-          scope === 'project'
-            ? h('button', { className: 'hr-link', onClick: pickProject }, t('pickProject'))
-            : null,
-        ),
-        notice !== null
-          ? h('div', { className: `hr-notice hr-notice-${notice.kind}` },
-            h('span', null, notice.text),
-            h('button', { className: 'hr-link', onClick: () => setNotice(null) }, '×'))
-          : null,
-        h('div', { className: 'hr-body' },
-          h('aside', { className: 'hr-list' },
-            h('input', {
-              className: 'hr-input hr-filter',
-              placeholder: t('filter'),
-              value: filter,
-              onChange: (event) => setFilter(event.target.value),
-            }),
+        h('header', { className: 'hr-head' },
+          h('div', { className: 'hr-seg' }, scopeButton('project'), scopeButton('global')),
+          h('input', {
+            className: 'hr-input hr-filter',
+            placeholder: t('filter'),
+            value: filter,
+            onChange: (event) => setFilter(event.target.value),
+          }),
+          button(t('newRole'), () => setCreating((open) => !open), { primary: true, disabled: scope === 'project' && (state === null || state.projectDir === null) }),
+          h('span', { className: 'hr-grow' }),
+          error === '' ? null : h('span', { className: 'hr-banner hr-error' }, error),
+          notice === '' ? null : h('span', { className: 'hr-banner hr-ok' }, notice)),
+        h('div', { className: 'hr-body-cols' },
+          h('aside', { className: 'hr-col hr-list-col' },
+            creating
+              ? h('div', { className: 'hr-create' },
+                h('input', { className: 'hr-input', placeholder: t('idField'), value: newId, onChange: (event) => setNewId(event.target.value) }),
+                h('input', { className: 'hr-input', placeholder: t('titleField'), value: newTitle, onChange: (event) => setNewTitle(event.target.value) }),
+                h('div', { className: 'hr-create-actions' },
+                  button(t('cancel'), () => setCreating(false), { ghost: true }),
+                  button(t('create'), create, { primary: true, disabled: busy })))
+              : null,
             rows.length === 0
-              ? h('p', { className: 'hr-muted' }, t('emptyList'))
-              : h('ul', null, rows.map((row) => h('li', {
+              ? h('p', { className: 'hr-muted hr-pad' }, state === null ? t('loading') : t('emptyList'))
+              : h('ul', { className: 'hr-rows' }, rows.map((row) => h('li', {
                 key: `${row.scope}:${row.id}`,
-                className: `hr-row${selected !== null && selected.id === row.id && selected.scope === row.scope ? ' hr-row-active' : ''}`,
+                className: `hr-row${selected !== null && selected.id === row.id && selected.scope === row.scope ? ' hr-row-on' : ''}`,
                 onClick: () => openRole({ scope: row.scope, id: row.id }),
               },
                 h('span', { className: 'hr-row-title' }, row.title),
                 h('span', { className: 'hr-row-meta' },
-                  `${row.id} · v${row.version}`,
-                  row.shadowed ? h('em', { className: 'hr-badge' }, t('shadowed')) : null,
-                ),
-              ))),
-            scope === 'project' && state?.builtins?.length > 0
-              ? h('div', { className: 'hr-builtins' },
-                h('p', { className: 'hr-muted' }, t('builtinHint')),
-                h('ul', null, state.builtins.map((row) => h('li', { key: row.id, className: 'hr-row hr-row-builtin' },
-                  h('span', { className: 'hr-row-title' }, `${row.title}`),
-                  h('span', { className: 'hr-row-meta' }, row.id),
-                  h('button', { className: 'hr-link', onClick: () => copyBuiltin(row.id) }, t('copyToScope')),
-                ))))
-              : null,
-          ),
-          h('section', { className: 'hr-editor' },
-            doc === null || form === null
-              ? h('p', { className: 'hr-muted' }, t('emptyBody'))
-              : h('div', { className: 'hr-editor-inner' },
-                h('div', { className: 'hr-editor-head' },
-                  h('div', null,
-                    h('h2', null, form.title || doc.fields.id),
-                    h('p', { className: 'hr-muted' }, `${doc.fields.id} · ${scopeLabel(doc.scope)} · v${doc.revision}${dirty ? ` · ${t('dirty')}` : ''}`),
-                  ),
-                  h('div', { className: 'hr-editor-actions' },
-                    h('button', { className: 'hr-button', onClick: copyPrompt }, t('copyPrompt')),
-                    h('button', { className: 'hr-button', onClick: () => openRole(selected) }, t('reload')),
-                    h('button', { className: 'hr-button hr-primary', disabled: busy || !dirty, onClick: save },
-                      busy ? t('saving') : t('save')),
-                    h('button', { className: 'hr-button hr-danger', onClick: archiveRole }, t('archive')),
-                  ),
-                ),
-                h('div', { className: 'hr-grid' },
-                  h(Field, { label: t('titleField') },
-                    h('input', { className: 'hr-input', value: form.title, onChange: setField('title') })),
-                  h(Field, { label: t('capabilities') },
-                    h('input', { className: 'hr-input', value: form.capabilities, onChange: setField('capabilities') })),
-                  h(Field, { label: t('skills') },
-                    h('input', { className: 'hr-input', value: form.skills, onChange: setField('skills') })),
-                  h(Field, { label: t('handoffs') },
-                    h('input', { className: 'hr-input', value: form.handoffs, onChange: setField('handoffs') })),
-                  h(Field, { label: t('can') },
-                    h('input', { className: 'hr-input', value: form.can, onChange: setField('can') })),
-                ),
-                h(Field, { label: t('body') },
-                  h('textarea', { className: 'hr-textarea hr-body', value: form.body, onChange: setField('body') })),
-                h('div', { className: 'hr-guide' },
-                  h(Field, { label: t('guide') },
-                    h('textarea', { className: 'hr-textarea hr-guide-text', value: guide, onChange: (event) => setGuide(event.target.value) })),
-                  h('button', { className: 'hr-button', onClick: saveGuide }, t('guideSave')),
-                ),
-              ),
-          ),
-          h('aside', { className: 'hr-notes' },
-            h('h3', null, t('notes')),
+                  `${row.id} · ${t('version')}${row.version}`,
+                  row.shadowed === true ? h('em', { className: 'hr-badge' }, t('shadowed')) : null)))),
+            (state === null ? [] : state.builtins || []).length === 0 ? null : h('div', { className: 'hr-builtins' },
+              h('p', { className: 'hr-muted hr-pad' }, t('readonly')),
+              h('ul', { className: 'hr-rows' }, state.builtins.map((row) => h('li', { key: row.id, className: 'hr-row hr-row-builtin' },
+                h('span', { className: 'hr-row-title' }, row.title),
+                h('span', { className: 'hr-row-meta' }, row.id, h('button', {
+                  type: 'button',
+                  className: 'hr-link',
+                  onClick: () => copyBuiltin(row.id),
+                  disabled: busy || (scope === 'project' && state.projectDir === null),
+                }, t('copyIn'))))))),
+          h('section', { className: 'hr-col hr-editor-col' }, editor),
+          h('aside', { className: 'hr-col hr-side-col' },
+            h('h3', { className: 'hr-side-title' }, `${t('notes')} ${doc === null ? '' : `(${doc.notes.length})`}`),
             doc === null
               ? null
               : h('div', null,
                 doc.notes.length === 0
                   ? h('p', { className: 'hr-muted' }, t('noteEmpty'))
                   : h('ul', { className: 'hr-note-list' }, doc.notes.slice().reverse().map((entry, index) => h('li', { key: `${entry.at}-${index}` },
-                    h('span', { className: 'hr-note-meta' }, `${entry.at.slice(0, 16).replace('T', ' ')} · ${entry.source}`),
-                    h('p', null, entry.text),
-                  ))),
+                    h('span', { className: 'hr-note-meta' }, `${String(entry.at).slice(0, 16).replace('T', ' ')} · ${entry.source}`),
+                    h('p', null, entry.text)))),
                 h('textarea', {
                   className: 'hr-textarea hr-note-input',
                   placeholder: t('notePlaceholder'),
                   value: note,
                   onChange: (event) => setNote(event.target.value),
                 }),
-                h('button', { className: 'hr-button hr-primary', disabled: note.trim() === '', onClick: addNote }, t('noteAdd')),
-              ),
-          ),
-        ),
+                h('div', { className: 'hr-note-actions' },
+                  button(t('noteAdd'), addNote, { primary: true, disabled: busy || note.trim() === '' }))),
+            h('h3', { className: 'hr-side-title' }, t('dataAt')),
+            h('p', { className: 'hr-muted' },
+              state === null ? '' : `本项目 ${state.projectDir === null ? '—' : '.dsh/roles/'}`,
+              h('br'),
+              state === null ? '' : `全局 ${state.globalDir}`)))),
       )
     }
 
+    /** @param {boolean} value - whether the card has unsaved edits. @returns {string} class. */
+    function err(value) { return value ? 'hr-dirty' : 'hr-faint' }
+
     const STYLES = `
-.hr-page { display:flex; flex-direction:column; height:100%; min-height:0; box-sizing:border-box;
-  color:var(--dsw-alias-label-primary,#1f2328); background:var(--dsw-alias-bg-base,transparent); font-size:13.5px; }
-.hr-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:18px 20px 10px; }
-.hr-heading h1 { margin:0; font-size:18px; font-weight:600; }
-.hr-heading p { margin:4px 0 0; color:var(--dsw-alias-label-secondary,#6b7280); font-size:12.5px; }
-.hr-header-actions { display:flex; gap:8px; }
-.hr-scopebar { display:flex; align-items:center; gap:8px; padding:0 20px 10px; border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); }
-.hr-tab { border:1px solid transparent; background:transparent; color:var(--dsw-alias-label-secondary,#6b7280);
-  padding:4px 10px; border-radius:999px; cursor:pointer; font-size:12.5px; }
-.hr-tab-active { background:var(--dsw-alias-bg-layer-2,#f3f4f6); color:var(--dsw-alias-label-primary,#111827); border-color:var(--dsw-alias-border-l1,#e5e7eb); }
-.hr-scope-hint { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:52%; }
-.hr-link { background:none; border:none; color:var(--dsw-alias-brand-primary,#2563eb); cursor:pointer; font-size:12.5px; padding:2px 4px; }
-.hr-notice { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 20px 0;
-  padding:8px 12px; border-radius:8px; font-size:12.5px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); }
-.hr-notice-ok { background:var(--dsw-alias-bg-layer-2,#f0fdf4); border-color:var(--dsw-alias-state-success-primary,#16a34a); }
-.hr-notice-error { background:var(--dsw-alias-bg-layer-2,#fef2f2); border-color:var(--dsw-alias-state-error-primary,#dc2626); }
-.hr-body { display:grid; grid-template-columns:250px minmax(0,1fr) 260px; gap:0; flex:1; min-height:0; }
-.hr-list { border-right:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:12px; overflow:auto; min-height:0; }
-.hr-filter { margin-bottom:10px; }
-.hr-list ul { list-style:none; margin:0; padding:0; }
-.hr-row { display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:8px; cursor:pointer; }
-.hr-row:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
-.hr-row-active { background:var(--dsw-alias-bg-layer-2,#eef2ff); box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary,#2563eb); }
-.hr-row-title { font-weight:550; }
-.hr-row-meta { font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b7280); display:flex; gap:6px; align-items:center; }
-.hr-badge { font-style:normal; font-size:10.5px; padding:0 5px; border-radius:999px; background:var(--dsw-alias-bg-layer-1,#e5e7eb); }
-.hr-builtins { margin-top:18px; border-top:1px dashed var(--dsw-alias-border-l1,#e5e7eb); padding-top:10px; }
-.hr-row-builtin { cursor:default; }
-.hr-editor { padding:16px 20px; overflow:auto; min-height:0; }
-.hr-editor-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
-.hr-editor-head h2 { margin:0; font-size:15px; }
-.hr-editor-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
-.hr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px 14px; }
-.hr-field { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
-.hr-field-label { font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); }
-.hr-field-hint { font-size:11px; color:var(--dsw-alias-label-secondary,#9ca3af); }
-.hr-input,.hr-textarea { width:100%; box-sizing:border-box; padding:7px 9px; border-radius:7px; font-size:13px;
-  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff);
-  color:var(--dsw-alias-label-primary,#111827); font-family:inherit; }
-.hr-input:focus,.hr-textarea:focus { outline:none; border-color:var(--dsw-alias-brand-primary,#2563eb); }
-.hr-textarea { resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; line-height:1.6; }
-.hr-body { min-height:280px; }
-.hr-guide { margin-top:6px; }
-.hr-guide-text { min-height:90px; }
-.hr-button { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff);
-  color:inherit; padding:5px 11px; border-radius:7px; cursor:pointer; font-size:12.5px; }
-.hr-button:hover { border-color:var(--dsw-alias-border-l2,#d1d5db); }
-.hr-button:disabled { opacity:.5; cursor:default; }
+.hr-tab { display:flex; flex-direction:column; height:100%; min-height:0; color:var(--dsw-alias-label-primary,#1f2328);
+  background:var(--dsw-alias-bg-base,transparent); font-size:13px; }
+.hr-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); flex-wrap:wrap; }
+.hr-grow { flex:1; }
+.hr-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.hr-seg-btn { border:none; background:none; padding:3px 9px; border-radius:6px; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
+.hr-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.hr-filter { width:180px; }
+.hr-input, .hr-textarea { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px; padding:5px 8px;
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); color:inherit; outline:none; font:inherit; }
+.hr-input:focus, .hr-textarea:focus { border-color:var(--dsw-alias-brand-primary,#2563eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-btn { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); color:inherit;
+  padding:4px 10px; border-radius:7px; font-size:12px; cursor:pointer; white-space:nowrap; }
+.hr-btn:hover { border-color:var(--dsw-alias-border-l2,#d1d5db); }
+.hr-btn:disabled { opacity:.45; cursor:default; }
 .hr-primary { background:var(--dsw-alias-brand-primary,#2563eb); border-color:var(--dsw-alias-brand-primary,#2563eb); color:#fff; }
-.hr-danger { color:var(--dsw-alias-state-error-primary,#dc2626); border-color:var(--dsw-alias-border-l1,#e5e7eb); }
-.hr-notes { border-left:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:14px; overflow:auto; min-height:0; }
-.hr-notes h3 { margin:0 0 10px; font-size:13px; }
-.hr-note-list { list-style:none; margin:0 0 12px; padding:0; display:flex; flex-direction:column; gap:10px; }
-.hr-note-list li { border-left:2px solid var(--dsw-alias-border-l2,#d1d5db); padding-left:8px; }
-.hr-note-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
-.hr-note-list p { margin:3px 0 0; white-space:pre-wrap; word-break:break-word; }
-.hr-note-input { min-height:80px; margin-bottom:8px; }
-.hr-muted { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12.5px; }
+.hr-danger { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.hr-ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-body-cols { flex:1; min-height:0; display:grid; grid-template-columns:232px minmax(0,1fr) 244px; }
+.hr-col { min-height:0; overflow:auto; }
+.hr-list-col { border-right:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:8px; }
+.hr-editor-col { padding:12px 16px 32px; }
+.hr-side-col { border-left:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:12px; }
+.hr-rows { list-style:none; margin:0; padding:0; }
+.hr-row { display:flex; flex-direction:column; gap:1px; padding:6px 8px; border-radius:7px; cursor:pointer; }
+.hr-row:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.hr-row-on { background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 12%, transparent); }
+.hr-row-title { font-weight:550; }
+.hr-row-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); display:flex; gap:6px; align-items:center; }
+.hr-row-builtin { cursor:default; }
+.hr-badge { font-style:normal; font-size:10px; padding:0 4px; border-radius:999px; border:1px solid var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
+.hr-builtins { margin-top:14px; border-top:1px dashed var(--dsw-alias-border-l1,#e5e7eb); padding-top:8px; }
+.hr-link { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); cursor:pointer; padding:0 2px; font-size:11px; }
+.hr-create { display:flex; flex-direction:column; gap:6px; padding:8px; border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:8px; margin-bottom:8px; }
+.hr-create-actions { display:flex; justify-content:flex-end; gap:6px; }
+.hr-ed-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.hr-ed-title-wrap { flex:1; min-width:0; }
+.hr-title { width:min(420px,100%); font-size:16px; font-weight:600; border:1px solid transparent; border-radius:6px;
+  padding:2px 4px; background:transparent; color:inherit; outline:none; }
+.hr-title:hover, .hr-title:focus { border-color:var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.hr-meta { display:flex; gap:6px; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); margin-top:2px; flex-wrap:wrap; }
+.hr-faint { color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.hr-dirty { color:var(--dsw-alias-state-warn-primary,#d97706); }
+.hr-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.hr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:8px 12px; margin-top:12px; }
+.hr-field { display:flex; flex-direction:column; gap:3px; }
+.hr-label { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-textarea { width:100%; resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; }
+.hr-body { min-height:230px; margin-top:10px; }
+.hr-guide { margin-top:10px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px; padding:0 10px 8px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.hr-guide summary { padding:7px 0; cursor:pointer; font-size:12px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-guide-text { min-height:70px; background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-guide-actions { display:flex; justify-content:flex-end; margin-top:6px; }
+.hr-hint { font-size:11px; color:var(--dsw-alias-label-secondary,#9aa1ab); margin:10px 0 0; }
+.hr-side-title { font-size:12px; font-weight:600; margin:0 0 8px; }
+.hr-note-list { list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px; }
+.hr-note-list li { border-left:2px solid var(--dsw-alias-border-l2,#d1d5db); padding-left:7px; }
+.hr-note-meta { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.hr-note-list p { margin:2px 0 0; white-space:pre-wrap; word-break:break-word; }
+.hr-note-input { min-height:64px; margin-bottom:6px; background:var(--dsw-alias-bg-layer-1,#fff); }
+.hr-note-actions { display:flex; justify-content:flex-end; }
+.hr-banner { display:inline-flex; align-items:center; gap:8px; padding:4px 9px; border-radius:7px; font-size:11.5px;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); max-width:46ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hr-warn { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); margin-bottom:8px; display:flex; justify-content:space-between; }
+.hr-error { border-color:var(--dsw-alias-state-error-primary,#dc2626); color:var(--dsw-alias-state-error-primary,#dc2626); }
+.hr-ok { border-color:var(--dsw-alias-state-success-primary,#16a34a); color:var(--dsw-alias-state-success-primary,#16a34a); }
+.hr-muted { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; }
+.hr-pad { padding:8px; }
+@media (max-width: 1080px) { .hr-body-cols { grid-template-columns:200px minmax(0,1fr); } .hr-side-col { display:none; } }
 `
 
     return {
       inject: ['slots', 'locale'],
+      __test: { queryString, formOf, parseList },
       apply(ctx) {
         ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'hyper-roles: dictionaries')
         t = ctx.locale.bind(NS)
 
-        ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
-          name: 'sidebar.panellist',
-          id: PANEL_ID,
-          order: 30,
+        ctx.slots.inject('conversation.view', () => ctx.slots.register({
+          name: 'conversation.view',
+          id: TAB_ID,
+          order: 50,
           locale: NS,
-          label: () => t('panel'),
-        }, RoleIcon))
-
-        ctx.slots.inject('main', () => ctx.slots.register({
-          name: 'main',
-          key: PANEL_ID,
-          locale: NS,
-        }, RolePanel))
+          label: () => t('tab'),
+        }, RoleTab))
       },
     }
   },

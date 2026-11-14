@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "DeepSeek Harness 的扩展 bundle：增强创造模式（hyper-creator）+ 岗位制编排（hyper-roles），装一次即可使用。",
+  "description": "DeepSeek Harness 的扩展 bundle：增强创造模式（hyper-creator）+ 岗位制编排（hyper-roles）+ 会话内 Wiki（hyper-wiki）。",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -20,7 +20,9 @@
     "./tool-catalog": "./plugins/tool-catalog/index.js",
     "./tool-catalog/locale/*.json": "./plugins/tool-catalog/locale/*.json",
     "./hyper-roles": "./plugins/hyper-roles/index.js",
-    "./hyper-roles/client": "./plugins/hyper-roles/client/client.js"
+    "./hyper-roles/client": "./plugins/hyper-roles/client/client.js",
+    "./hyper-wiki": "./plugins/hyper-wiki/index.js",
+    "./hyper-wiki/client": "./plugins/hyper-wiki/client/client.js"
   },
   "files": [
     "index.js",
@@ -38,7 +40,8 @@
     "orchestration",
     "plugin",
     "roles",
-    "tool-executor"
+    "tool-executor",
+    "wiki"
   ],
   "dsh": {
     "bundle": {

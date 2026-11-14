@@ -57,6 +57,25 @@ export async function apply(ctx) {
   }
 
   /**
+   * Resolve one session's project directory, for the panel's tab.
+   * The tab is session-scoped, so it reports which session it belongs to and
+   * never needs a project picker of its own.
+   * @param sessionId - durable Session id, or null.
+   * @returns the working directory, or undefined.
+   */
+  const cwdOfSession = (sessionId) => {
+    if (typeof sessionId !== 'string' || sessionId === '') return undefined
+    try {
+      const session = ctx.get('sessions')?.get?.(sessionId)
+      if (session === undefined) return undefined
+      const value = ctx.get('workingDirectory')?.get?.(session)
+      return typeof value === 'string' && value !== '' ? value : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
    * Resolve the scope directories a caller works against.
    * @param agent - calling agent, when known.
    * @returns the resolved directories.
@@ -130,7 +149,13 @@ export async function apply(ctx) {
       () => webCtx.webServer.register({
         kind: 'prefix',
         path: API_PREFIX,
-        handler: createApiHandler({ ctx: webCtx, state, home, bundleRoot }),
+        handler: createApiHandler({
+          ctx: webCtx,
+          state,
+          home,
+          bundleRoot,
+          resolveCwd: (sessionId) => cwdOfSession(sessionId),
+        }),
       }),
       'hyper-roles: panel api',
     )

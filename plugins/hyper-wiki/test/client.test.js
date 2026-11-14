@@ -113,8 +113,8 @@ function loadClient() {
       },
       register(options, component) {
         calls.push(['register', options.name, options])
-        // Both slots key on `wiki`, so name them by their slot instead.
-        components[options.name === 'main' ? 'panel' : 'icon'] = component
+        // The tab is the only component now; name it by role for the mounts below.
+        components[options.name === 'conversation.view' ? 'panel' : 'icon'] = component
         return () => {}
       },
     },
@@ -154,11 +154,11 @@ describe('client module', () => {
   const client = loadClient()
 
   test('registers a lazy factory under the package name', () => {
-    expect(client.registration.id).toBe('dsh-wiki')
+    expect(client.registration.id).toBe('@chrock-studio/dsh-hyper-wiki-client')
     expect(typeof client.registration.factory).toBe('function')
   })
 
-  test('declares its client services and registers both slots', () => {
+  test('declares its client services and registers the conversation tab', () => {
     const { calls } = client
     expect(client.app.inject).toEqual(['slots', 'locale'])
     expect(calls[0]).toEqual(['effect', 'dsh-wiki: dictionaries'])
@@ -167,34 +167,14 @@ describe('client module', () => {
     expect(locale[1]).toBe('wiki')
     expect(locale[2]).toEqual(['en', 'zh'])
 
-    expect(calls.filter(row => row[0] === 'inject').map(row => row[1]))
-      .toEqual(['sidebar.panellist', 'main'])
+    expect(calls.filter(row => row[0] === 'inject').map(row => row[1])).toEqual(['conversation.view'])
 
-    const sidebar = calls.find(row => row[0] === 'register' && row[1] === 'sidebar.panellist')
-    expect(sidebar[2].id).toBe('wiki')
-    expect(sidebar[2].order).toBe(40)
-    expect(sidebar[2].locale).toBe('wiki')
-    expect(typeof sidebar[2].label).toBe('function')
-    expect(sidebar[2].label()).toBe('panel')
-
-    const main = calls.find(row => row[0] === 'register' && row[1] === 'main')
-    expect(main[2].key).toBe('wiki')
-  })
-
-  test('mounts the sidebar icon as an svg with a badge slot', () => {
-    const icon = client.components.icon
-    expect(typeof icon).toBe('function')
-    client.hooks.reset()
-    const tree = icon({ size: 20, active: true })
-    expect(tree.type).toBe('svg')
-    expect(tree.props.width).toBe(20)
-    expect(tree.props['aria-hidden']).toBe('true')
-    // Stroke weight follows the active state the sidebar passes.
-    expect(tree.props.strokeWidth).toBe(1.9)
-    const shapes = []
-    walk(tree, node => shapes.push(node.type))
-    expect(shapes).toContain('path')
-    expect(shapes).toContain('circle')
+    const tab = calls.find(row => row[0] === 'register' && row[1] === 'conversation.view')
+    expect(tab[2].id).toBe('wiki')
+    expect(tab[2].order).toBe(60)
+    expect(tab[2].locale).toBe('wiki')
+    expect(typeof tab[2].label).toBe('function')
+    expect(tab[2].label()).toBe('panel')
   })
 
   test('exposes the display helpers for direct checks', () => {
@@ -217,7 +197,7 @@ describe('client module', () => {
 
   test('mounts the main panel without throwing and offers the three tabs', () => {
     client.hooks.reset()
-    const tree = client.components.panel({})
+    const tree = client.components.panel({ sessionId: 'sess-1' })
     expect(tree.type).toBe('div')
     expect(tree.props.className).toBe('dw-root')
     const classes = []

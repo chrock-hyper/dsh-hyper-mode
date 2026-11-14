@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 
-import { authorizeRequest } from '../index.js'
+import { authorizeRequest, cwdOfSession } from '../index.js'
 import { createWikiApi, isLoopbackAddress, MAX_BODY_BYTES, statusFor } from '../lib/api.js'
 import { parsePage, serializePage, sha1Hex } from '../lib/page.js'
 import { call, makeEnv, quietLogger, write } from './helpers.js'
@@ -34,11 +34,25 @@ describe('authorization', () => {
     }
   })
 
-  test('uses the connection service when present and loopback otherwise', () => {
-    const connection = { requestRejection: () => 401 }
-    expect(authorizeRequest({ get: () => connection }, {})).toBe(401)
-    expect(authorizeRequest({ get: () => undefined }, { socket: { remoteAddress: '127.0.0.1' } })).toBeUndefined()
-    expect(authorizeRequest({ get: () => undefined }, { socket: { remoteAddress: '10.1.2.3' } })).toBe(403)
+  test('serves loopback callers and refuses every other peer', () => {
+    expect(authorizeRequest({ socket: { remoteAddress: '127.0.0.1' } })).toBeUndefined()
+    expect(authorizeRequest({ socket: { remoteAddress: '::1' } })).toBeUndefined()
+    expect(authorizeRequest({ socket: { remoteAddress: '10.1.2.3' } })).toBe(401)
+    expect(authorizeRequest({})).toBe(401)
+  })
+
+  test('resolves the project directory from a session id', () => {
+    const session = { id: 'sess-1' }
+    const ctx = {
+      get(name) {
+        if (name === 'sessions') return { get: id => (id === 'sess-1' ? session : undefined) }
+        if (name === 'workingDirectory') return { get: () => '/tmp/project' }
+        return undefined
+      },
+    }
+    expect(cwdOfSession(ctx, 'sess-1')).toBe('/tmp/project')
+    expect(cwdOfSession(ctx, 'missing')).toBeUndefined()
+    expect(cwdOfSession(ctx, null)).toBeUndefined()
   })
 
   test('rejects with the status the authorizer returns', async () => {

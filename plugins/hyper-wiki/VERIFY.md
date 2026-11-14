@@ -1,18 +1,18 @@
 # 手工验收
 
-`bun test dsh-wiki/test` 覆盖纯逻辑、文件副作用与 `/wiki` 路由。下面这些只能在真实 Host + 浏览器里确认。
+`bun test plugins/hyper-wiki/test` 覆盖纯逻辑、文件副作用与 `/wiki` 路由。下面这些只能在真实 Host + 浏览器里确认。
 
 ## 0. 前置
 
-- [ ] 本目录已作为 bundle 安装（**Plugins** → **Add plugin**），插件行 `dsh-wiki` 处于启用状态。
+- [ ] `@chrock-studio/dsh-hyper-mode` bundle 已安装，补丁行 `hyper-wiki` 处于启用状态。
 - [ ] 打开一个新会话（确保新代码被加载）。
 - [ ] 确认 `~/.dsh/wiki/` 与 `~/.dsh/wiki.md` 中的一个存在（仅当存在时才会注入提示段）。
 
-## 1. 插件管理器元数据
+## 1. 标签页入口
 
-- [ ] **Plugins** 里能看到 **Wiki** 一行，标题/描述来自 `locale/zh.json`（中文界面）或 `locale/en.json`（英文界面）。
-- [ ] 打开详情页，正文来自 `docs/DETAIL.md`，没有 metadata 诊断信息。
-- [ ] 图标是自己画的页面+链接图案（不是默认图标），浅色/深色下都可辨认。
+- [ ] 新会话的标题下方，标签页依次是：对话 / 轨迹 / 统计 / **岗位** / **Wiki**（Wiki 带待审数角标）。
+- [ ] 点 Wiki 能打开三栏页面；没有会话时这两个标签页不出现（会话级槽位）。
+- [ ] 侧栏不再有 Wiki 图标（入口只有标签页）。
 
 ## 2. 工具
 

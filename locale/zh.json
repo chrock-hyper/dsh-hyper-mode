@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "增强模式集",
-    "description": "DeepSeek Harness 的模型集 bundle：聚合多个即插即用插件，当前包含增强创造模式（hyper-creator）与岗位制编排（hyper-roles）。"
+    "description": "DeepSeek Harness 的模型集 bundle：增强创造模式（hyper-creator）+ 岗位制编排（hyper-roles）+ 会话内 Wiki（hyper-wiki）。"
   }
 }

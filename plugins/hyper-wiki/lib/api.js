@@ -135,6 +135,25 @@ export function createWikiApi(options) {
   const scopes = options.scopes ?? core.scopes
   const log = options.logger ?? {}
   const authorize = typeof options.authorize === 'function' ? options.authorize : undefined
+  const sessionCwd = typeof options.cwdOf === 'function' ? options.cwdOf : () => undefined
+
+  /**
+   * The project directory one request addresses.
+   *
+   * A page fetch carries no credentials but it does carry the Session id of the
+   * tab that issued it; the Host turns that into the project directory. An
+   * explicit `cwd` stays supported for tests and for non-tab callers, and the
+   * remembered recent project is only a last resort when no session was sent.
+   * @param url - parsed request URL.
+   * @returns an absolute directory, or an empty string when none is known.
+   */
+  const requestCwd = url => {
+    const explicit = (url.searchParams.get('cwd') ?? '').trim()
+    if (explicit !== '') return explicit
+    const session = url.searchParams.get('session') ?? ''
+    if (session !== '') return sessionCwd(session) ?? ''
+    return scopes.readRecent()[0] ?? ''
+  }
 
   /**
    * Resolve the scope one request addresses.
@@ -146,7 +165,7 @@ export function createWikiApi(options) {
     if (name !== 'global' && name !== 'project') {
       return { status: 400, body: { ok: false, code: 'wrong_scope', message: `unknown scope: ${name}` } }
     }
-    const cwd = (url.searchParams.get('cwd') ?? '').trim() || scopes.readRecent()[0]
+    const cwd = requestCwd(url)
     const scope = scopes.resolveScope(name, cwd)
     if (scope === undefined) {
       return {
@@ -165,7 +184,7 @@ export function createWikiApi(options) {
   const handleGet = (url, res) => {
     const pathname = url.pathname
     if (pathname === `${WIKI_ROUTE_PREFIX}/pending`) {
-      const cwd = (url.searchParams.get('cwd') ?? '').trim() || scopes.readRecent()[0]
+      const cwd = requestCwd(url)
       // A drafts-only store still has something to review, so the count is
       // computed for every scope rather than gated on page presence.
       const rows = scopes.listScopes(cwd).map(scope => ({
@@ -181,7 +200,7 @@ export function createWikiApi(options) {
       return
     }
     if (pathname === `${WIKI_ROUTE_PREFIX}/state`) {
-      const cwd = (url.searchParams.get('cwd') ?? '').trim() || scopes.readRecent()[0]
+      const cwd = requestCwd(url)
       sendJson(res, 200, { ok: true, ...core.scopeState(cwd) })
       return
     }

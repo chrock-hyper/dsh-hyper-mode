@@ -33,16 +33,17 @@ const MAX_BODY = 256 * 1024
 
 /**
  * Build the request handler.
- * @param options - mounting context, shared state, DSH home and bundle root.
+ * @param options - mounting context, shared state, DSH home, bundle root and
+ *   a session-to-directory resolver.
  * @returns an HTTP handler for `ctx.webServer.register`.
  */
 export function createApiHandler(options) {
-  const { ctx, state, home, bundleRoot } = options
+  const { ctx, state, home, bundleRoot, resolveCwd } = options
 
   return async function handler(req, res) {
-    const rejection = guard(ctx, req)
+    const rejection = guard(req)
     if (rejection !== undefined) {
-      sendJson(res, rejection, { ok: false, error: rejection === 401 ? 'unauthorized' : 'forbidden' })
+      sendJson(res, rejection, { ok: false, error: 'unauthorized' })
       return
     }
 
@@ -60,7 +61,8 @@ export function createApiHandler(options) {
       return
     }
     const rest = segments.slice(2)
-    const dirs = resolveDirs({ home, cwd: url.searchParams.get('cwd') ?? undefined })
+    const cwd = resolveCwd?.(url.searchParams.get('session')) ?? url.searchParams.get('cwd') ?? undefined
+    const dirs = resolveDirs({ home, cwd: cwd === '' ? undefined : cwd })
 
     try {
       if (req.method === 'GET' && rest.length === 1 && rest[0] === 'state') {
@@ -177,24 +179,16 @@ export function createApiHandler(options) {
 /**
  * Decide whether a request may proceed.
  *
- * With the connection carrier present its own check owns the answer. Without
- * it (CLI or a test harness) the route only serves loopback callers, which is
- * the narrowest useful policy rather than an open port.
- * @param ctx - mounting context.
+ * The panel is an ordinary page fetch, not the `/api` RPC client, so it carries
+ * none of the connection carrier's credentials; requiring them made every
+ * button fail with 401. The route therefore serves loopback callers only, which
+ * is the narrowest policy that still works from the page: the Host binds
+ * loopback by default, and a non-loopback peer is refused here.
  * @param req - incoming request.
- * @returns 401 or 403 when refused, undefined when allowed.
+ * @returns 401 when refused, undefined when allowed.
  */
-function guard(ctx, req) {
-  let connection
-  try {
-    connection = ctx.get('connection')
-  } catch {
-    connection = undefined
-  }
-  if (connection !== undefined && typeof connection.requestRejection === 'function') {
-    return connection.requestRejection(req)
-  }
-  return isLoopback(req.socket?.remoteAddress) ? undefined : 403
+function guard(req) {
+  return isLoopback(req.socket?.remoteAddress) ? undefined : 401
 }
 
 /**

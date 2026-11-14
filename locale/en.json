@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Hyper mode bundle",
-    "description": "A DeepSeek Harness bundle of plug-and-play plugins: the hyper-creator mode and role-based orchestration (hyper-roles)."
+    "description": "A DeepSeek Harness bundle: the hyper-creator mode, role-based orchestration (hyper-roles) and an in-session wiki (hyper-wiki)."
   }
 }

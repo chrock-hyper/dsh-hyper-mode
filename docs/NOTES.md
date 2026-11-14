@@ -254,3 +254,13 @@ client-modules: package @chrock-studio/dsh-hyper-mode resolves from multiple act
 - 投影状态必须同步、纯、且是纯 JSON；未命中事件要返回**同一个引用**，否则每一步都会产生下游工作。
 
 提示词段落拿 `context.agent`（`AssembleContext.agent` 由 `dsh-agent` 合并声明），每次装配读一次磁盘卡片（按需可再加 mtime 缓存），于是「改岗位 → 下一步生效」，不用重开子代理。
+
+## 13. 把它们放进会话标签页：三个被现实纠正的判断
+
+**入口不是 `main` 面板。** DSH 的会话视图排在 `conversation.view`（list/session）里：`chat 0 · trajectory 10 · stats 40`，注册项只有 `id / order / label`（没有图标）。把岗位与 Wiki 分别注册成 `order 50 / 60`，就落在「统计」后面。这个槽位自带 `sessionId` 标准 prop——比原来的根级 `main` 面板强的地方在于：项目作用域直接取当前会话的工作目录，面板不再需要“选择项目目录”。
+
+**浏览器 `fetch` 拿不到连接容器的凭据。** 上一版在自建路由上用 `connection.requestRejection(req)` 鉴权，`curl` 与页面请求都得到 401；页面的 `fetch` 不是 `/api` 通道的客户端，它不带那套凭据，于是所有按钮都“没反应”。改法与其它本地插件一致：路由只接受 loopback，非 loopback 一律 401。代价是本地进程可以读写这些文件；收益是它真的能用。
+
+**Electron 没有 `window.prompt`。** 旧面板用 `prompt()` 收集新建岗位的 id 与目录，点击即抛异常并被 `onClick` 吞掉。现在新建是就地表单；归档是第二次点击确认（按钮文案变「确认归档？」）。同时补上真正的 dirty 计算：每个输入框都参与比较，保存按钮的禁用状态永远能解释。
+
+**收进同一个 bundle 时，客户端仍要独立清单。** `dsh-client-modules` 对同一个包出现多个活跃来源会直接抛错，而本 bundle 有六行来自同一个包。所以 `hyper-roles` 与 `hyper-wiki` 各自把自己的浏览器半边放进嵌套的 `package.json`：`locatePkgJson → nearestPackage` 会从行模块向上取最近的清单，一行认领一个客户端包。wiki 因此从独立 bundle 收回为 `plugins/hyper-wiki/` 的一行，profile 里只剩一个安装项。

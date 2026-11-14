@@ -30,6 +30,11 @@
     # 来自同一个包。
     - id: hyper-roles
       name: ./plugins/hyper-roles/index.js
+    # Wiki：同样是本 bundle 的一行。它的浏览器半边挂在
+    # plugins/hyper-wiki/package.json（独立嵌套包），原因与岗位相同：
+    # client-modules 不允许同一个包出现多个活跃来源。
+    - id: hyper-wiki
+      name: ./plugins/hyper-wiki/index.js
     - id: preset-hyper-creator
       name: '@deepseek-ai/dsh-agent-preset'
       config:

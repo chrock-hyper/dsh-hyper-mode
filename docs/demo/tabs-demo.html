@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>DSH 岗位 / Wiki Tab · 交互 Demo</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --panel-2: #f8f9fb; --line: #e5e7eb; --line-2: #d6dae1;
+    --text: #1f2328; --muted: #6b7280; --faint: #9aa1ab; --accent: #2563eb; --accent-soft: #eef2ff;
+    --danger: #dc2626; --warn: #b45309; --ok: #16a34a; --add-bg: #ecfdf3; --del-bg: #fef2f2;
+    --shadow: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  html[data-theme="dark"] {
+    --bg: #15171b; --panel: #1c1f24; --panel-2: #22262c; --line: #2b3037; --line-2: #3a4048;
+    --text: #e6e8eb; --muted: #9aa1ab; --faint: #767d87; --accent: #6d9bff; --accent-soft: #1e2a45;
+    --danger: #f87171; --warn: #fbbf24; --ok: #4ade80; --add-bg: #14261c; --del-bg: #2a1717;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 13px/1.55 -apple-system, "PingFang SC", "Segoe UI", system-ui, sans-serif; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .shell { display: grid; grid-template-columns: 54px 232px minmax(0, 1fr); height: 100vh; overflow: hidden; }
+  .rail { background: var(--panel-2); border-right: 1px solid var(--line); display: flex; flex-direction: column;
+    align-items: center; gap: 14px; padding: 14px 0; }
+  .rail .dot { width: 26px; height: 26px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line);
+    display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+  .rail .dot.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .sidebar { background: var(--panel-2); border-right: 1px solid var(--line); padding: 12px 10px; overflow: auto; }
+  .sb-title { font-size: 11.5px; color: var(--faint); letter-spacing: .04em; margin: 6px 8px 8px; }
+  .sb-row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; color: var(--muted); }
+  .sb-row.active { background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+  .sb-avatar { width: 18px; height: 18px; border-radius: 5px; background: var(--line); flex: none; }
+  .sb-row .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .main { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+  .sess-head { padding: 14px 20px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .sess-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sess-title { font-size: 14px; font-weight: 600; }
+  .sess-meta { font-size: 11.5px; color: var(--faint); display: flex; gap: 10px; }
+  .tabs { display: flex; gap: 4px; margin-top: 10px; }
+  .tab { border: none; background: none; padding: 8px 10px 9px; color: var(--muted); border-bottom: 2px solid transparent;
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 550; }
+  .tab .count { font-size: 10.5px; line-height: 1; padding: 3px 5px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent); }
+  .views { flex: 1; min-height: 0; overflow: hidden; }
+  .view { display: none; height: 100%; min-height: 0; }
+  .view.active { display: block; }
+  .placeholder { padding: 28px; color: var(--muted); }
+  /* ---- roles tab ---- */
+  .roles { display: grid; grid-template-columns: 250px minmax(0, 1fr) 268px; height: 100%; min-height: 0; background: var(--panel); }
+  .col { border-right: 1px solid var(--line); min-height: 0; overflow: auto; }
+  .col:last-child { border-right: none; border-left: 1px solid var(--line); }
+  .col-head { position: sticky; top: 0; z-index: 2; background: var(--panel); padding: 10px 10px 8px; border-bottom: 1px solid var(--line); }
+  .seg { display: flex; gap: 4px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+  .seg button { flex: 1; border: none; background: none; padding: 4px 6px; border-radius: 6px; color: var(--muted); font-size: 12px; }
+  .seg button.on { background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+  .search { width: 100%; margin-top: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px;
+    background: var(--panel-2); font-size: 12px; outline: none; }
+  .search:focus { border-color: var(--accent); }
+  .role-list { list-style: none; margin: 0; padding: 6px; }
+  .role { padding: 8px 9px; border-radius: 8px; display: flex; flex-direction: column; gap: 2px; }
+  .role:hover { background: var(--panel-2); }
+  .role.on { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+  .role .rt { font-weight: 550; display: flex; align-items: center; gap: 6px; }
+  .role .rm { font-size: 11px; color: var(--faint); display: flex; gap: 6px; align-items: center; }
+  .chip { font-size: 10px; line-height: 1; padding: 3px 5px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--muted); white-space: nowrap; }
+  .chip.shadow { border-color: var(--warn); color: var(--warn); }
+  .chip.builtin { border-color: var(--accent); color: var(--accent); }
+  .editor { padding: 14px 16px 40px; }
+  .ed-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .ed-title { font-size: 16px; font-weight: 600; border: 1px solid transparent; border-radius: 6px; padding: 2px 4px;
+    background: transparent; width: min(420px, 100%); }
+  .ed-title:hover, .ed-title:focus { border-color: var(--line); background: var(--panel-2); outline: none; }
+  .ed-sub { font-size: 11.5px; color: var(--faint); margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn { border: 1px solid var(--line); background: var(--panel); padding: 5px 10px; border-radius: 7px; font-size: 12px; color: var(--text); white-space: nowrap; }
+  .btn:hover { border-color: var(--line-2); background: var(--panel-2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.danger { color: var(--danger); }
+  .btn.ghost { border-color: transparent; color: var(--muted); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 0;
+    padding: 7px 10px; border-radius: 8px; font-size: 12px; border: 1px solid var(--line); background: var(--panel-2); }
+  .banner.warn { border-color: var(--warn); color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent); }
+  .banner.err { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+  .banner.ok { border-color: var(--ok); color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; margin-top: 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11.5px; color: var(--muted); }
+  .field input, .field textarea { border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; background: var(--panel-2); outline: none; }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); background: var(--panel); }
+  .body-box { width: 100%; min-height: 240px; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px; background: var(--panel-2); font: 12px/1.7 var(--mono); resize: vertical; outline: none; }
+  .body-box:focus { border-color: var(--accent); background: var(--panel); }
+  details.guide { margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+  details.guide summary { padding: 8px 10px; cursor: pointer; font-size: 12px; color: var(--muted); }
+  details.guide .in { padding: 0 10px 10px; }
+  details.guide textarea { width: 100%; min-height: 74px; border: 1px solid var(--line); border-radius: 7px;
+    padding: 8px; font: 12px/1.6 var(--mono); background: var(--panel); outline: none; }
+  .notes-pane { padding: 12px; }
+  .pane-title { font-size: 12px; font-weight: 600; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+  .notes { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .note { border-left: 2px solid var(--line-2); padding-left: 8px; }
+  .note .nm { font-size: 10.5px; color: var(--faint); }
+  .note p { margin: 2px 0 0; }
+  .note-input { width: 100%; min-height: 66px; border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px;
+    background: var(--panel-2); font-size: 12px; outline: none; resize: vertical; }
+  .note-input:focus { border-color: var(--accent); background: var(--panel); }
+  /* ---- wiki tab ---- */
+  .wiki { display: grid; grid-template-columns: 250px minmax(0, 1fr) 310px; height: 100%; min-height: 0; background: var(--panel); }
+  .tree { list-style: none; margin: 0; padding: 6px; font-size: 12.5px; }
+  .tree li { border-radius: 7px; }
+  .tree .grp { color: var(--faint); font-size: 11px; padding: 8px 8px 4px; letter-spacing: .03em; }
+  .tree .page { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 7px; color: var(--muted); }
+  .tree .page:hover { background: var(--panel-2); color: var(--text); }
+  .tree .page.on { background: var(--accent-soft); color: var(--text); }
+  .tree .page .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-left: auto; }
+  .page-head { padding: 14px 16px 0; }
+  .page-title { font-size: 17px; font-weight: 600; margin: 0; }
+  .page-meta { font-size: 11.5px; color: var(--faint); margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .page-tools { display: flex; gap: 6px; align-items: center; }
+  .src-wrap { padding: 10px 16px 40px; }
+  .src { width: 100%; min-height: 470px; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+    background: var(--panel-2); font: 12px/1.75 var(--mono); resize: vertical; outline: none; }
+  .src:focus { border-color: var(--accent); background: var(--panel); }
+  .preview { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--panel-2); min-height: 420px; }
+  .preview h3 { margin: 0 0 8px; font-size: 15px; }
+  .preview h4 { margin: 14px 0 6px; font-size: 13px; }
+  .preview p { margin: 6px 0; }
+  .preview code { font-family: var(--mono); font-size: 11.5px; background: var(--panel); padding: 1px 4px; border-radius: 4px; border: 1px solid var(--line); }
+  .draft-pane { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .diff { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font: 11.5px/1.65 var(--mono); }
+  .diff .h { padding: 6px 9px; background: var(--panel-2); border-bottom: 1px solid var(--line); color: var(--muted); font-family: inherit; }
+  .diff .l { padding: 1px 9px; white-space: pre-wrap; }
+  .diff .add { background: var(--add-bg); color: var(--ok); }
+  .diff .del { background: var(--del-bg); color: var(--danger); }
+  .diff .ctx { color: var(--muted); }
+  .backlinks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+  .backlinks a { color: var(--accent); text-decoration: none; }
+  .inline-form { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px dashed var(--line-2); border-radius: 8px; margin: 6px; }
+  .inline-form input { border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; background: var(--panel); font-size: 12px; outline: none; }
+  .inline-form .row { display: flex; gap: 6px; justify-content: flex-end; }
+  /* ---- map view ---- */
+  .map { padding: 18px 20px 40px; overflow: auto; height: 100%; }
+  .map h2 { margin: 0 0 4px; font-size: 15px; }
+  .map p.lead { margin: 0 0 14px; color: var(--muted); font-size: 12.5px; }
+  .fig { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 12px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .fig h3 { margin: 0 0 10px; font-size: 13px; }
+  .wire { display: grid; gap: 8px; }
+  .wire.two { grid-template-columns: 232px 1fr; }
+  .wire.three { grid-template-columns: 232px 1fr 268px; }
+  .zone { border: 1px dashed var(--line-2); border-radius: 8px; padding: 10px; color: var(--muted); font-size: 12px; min-height: 74px; position: relative; background: var(--panel-2); }
+  .zone .n { position: absolute; top: -8px; left: 8px; background: var(--accent); color: #fff; font-size: 10px; line-height: 1;
+    padding: 3px 6px; border-radius: 999px; }
+  .zone b { color: var(--text); display: block; margin-bottom: 2px; font-size: 12px; }
+  .legend { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+  .legend b { color: var(--text); }
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .flow .step { border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; background: var(--panel-2); }
+  .flow .arrow { color: var(--faint); }
+  /* ---- demo bar + toast ---- */
+  .demobar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 8px 6px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.14);
+    font-size: 11.5px; color: var(--muted); z-index: 50; }
+  .demobar .sep { width: 1px; height: 16px; background: var(--line); }
+  .toast { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 60; }
+  .toast .t { background: var(--text); color: var(--panel); padding: 7px 12px; border-radius: 8px; font-size: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.2); animation: pop .16s ease-out; }
+  @keyframes pop { from { transform: translateY(4px); opacity: 0 } to { transform: none; opacity: 1 } }
+  .kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line); border-radius: 4px; padding: 0 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="dot">＋</div>
+    <div class="dot on">◧</div>
+    <div class="dot">☰</div>
+    <div class="dot">⚙</div>
+  </aside>
+  <aside class="sidebar">
+    <div class="sb-title">工作区 / 会话</div>
+    <div class="sb-row active"><span class="sb-avatar"></span><span class="t">岗位与 wiki 评审</span></div>
+    <div class="sb-row"><span class="sb-avatar"></span><span class="t">修复登录重试</span></div>
+    <div class="sb-row"><span class="sb-avatar"></span><span class="t">重构上传管线</span></div>
+    <div class="sb-row"><span class="sb-avatar"></span><span class="t">本周周报</span></div>
+    <div class="sb-title" style="margin-top:16px">昨天</div>
+    <div class="sb-row"><span class="sb-avatar"></span><span class="t">设计评审记录</span></div>
+    <div class="sb-row"><span class="sb-avatar"></span><span class="t">迁移到 bun</span></div>
+  </aside>
+  <main class="main">
+    <header class="sess-head">
+      <div class="sess-top">
+        <div class="sess-title">岗位与 wiki 评审</div>
+        <div class="sess-meta"><span>deepseek-v4.1</span><span>·</span><span>增强创造模式</span><span>·</span><span>12.4k tokens</span></div>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button class="tab" data-tab="chat">对话</button>
+        <button class="tab" data-tab="trajectory">轨迹</button>
+        <button class="tab" data-tab="stats">统计</button>
+        <button class="tab" data-tab="roles">岗位</button>
+        <button class="tab" data-tab="wiki">Wiki <span class="count" id="wikiBadge">2</span></button>
+      </nav>
+    </header>
+    <div class="views">
+      <section class="view" id="view-chat"><div class="placeholder">（对话内容，演示省略）</div></section>
+      <section class="view" id="view-trajectory"><div class="placeholder">（轨迹列表，演示省略）</div></section>
+      <section class="view" id="view-stats"><div class="placeholder">（统计面板，演示省略）</div></section>
+
+      <section class="view" id="view-roles">
+        <div class="roles">
+          <div class="col">
+            <div class="col-head">
+              <div class="seg" id="scopeSeg">
+                <button class="on" data-scope="project">本项目</button>
+                <button data-scope="global">全局</button>
+              </div>
+              <input class="search" id="roleSearch" placeholder="筛选岗位">
+            </div>
+            <ul class="role-list" id="roleList"></ul>
+          </div>
+          <div class="col" style="overflow:auto">
+            <div class="editor" id="roleEditor"></div>
+          </div>
+          <div class="col notes-pane" id="roleSide"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-wiki">
+        <div class="wiki">
+          <div class="col">
+            <div class="col-head">
+              <div class="seg" id="wikiScopeSeg">
+                <button class="on" data-scope="project">本项目</button>
+                <button data-scope="global">全局</button>
+              </div>
+              <input class="search" id="wikiSearch" placeholder="搜索标题 / 标签">
+            </div>
+            <ul class="tree" id="wikiTree"></ul>
+          </div>
+          <div class="col" style="overflow:auto">
+            <div id="wikiPage"></div>
+          </div>
+          <div class="col draft-pane" id="wikiSide"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-map">
+        <div class="map">
+          <h2>布局与信息架构（图示）</h2>
+          <p class="lead">两个新视图都挂在会话级 <code class="kbd">conversation.view</code> 槽位：<b>对话 0 · 轨迹 10 · 统计 40 · 岗位 50 · Wiki 60</b>。会话结束就没有这两个 tab，不需要项目管理器。</p>
+
+          <div class="fig">
+            <h3>图 1 · 岗位 tab（三栏）</h3>
+            <div class="wire three">
+              <div class="zone"><span class="n">1</span><b>作用域与筛选</b>本项目 / 全局切换；搜索框；<i>新建岗位</i> 就地展开表单（不再用浏览器弹窗）</div>
+              <div class="zone"><span class="n">3</span><b>角色卡编辑器</b>名称 · 能力 · 技能 · 交接 · 权限；正文 Markdown；岗位指导折叠区；顶栏 保存/归档/复制提示词</div>
+              <div class="zone"><span class="n">5</span><b>经验与指导</b>最近经验（时间 + 来源）、追加输入框；指导路径指向 wiki 页面</div>
+            </div>
+            <div class="wire two" style="margin-top:8px">
+              <div class="zone"><span class="n">2</span><b>岗位列表</b>名称 + id · vN；「覆盖全局」「随包」徽标；归档项置灰</div>
+              <div class="zone"><span class="n">4</span><b>状态区</b>版本与未保存提示；冲突横幅（v3 → v4）带「重新载入」；保存失败/成功就地在顶部显示</div>
+            </div>
+            <ul class="legend">
+              <li><b>项目作用域来自会话</b>：tab 自带 <span class="kbd">sessionId</span>，Host 用它取会话工作目录，不再需要选目录。</li>
+              <li><b>只读随包岗位</b>：列表尾部单列，点「复制到本项目 / 全局」才可编辑。</li>
+              <li><b>所有按钮都有三态</b>：可点 / 执行中（禁用 + 文案变化）/ 失败（顶部错误条 + 可重试），不会出现“点了没反应”。</li>
+            </ul>
+          </div>
+
+          <div class="fig">
+            <h3>图 2 · Wiki tab（三栏）</h3>
+            <div class="wire three">
+              <div class="zone"><span class="n">1</span><b>页面树 + 搜索</b>按目录分组；有草稿的页面带橙点；作用域切换同岗位</div>
+              <div class="zone"><span class="n">3</span><b>页面编辑</b>标题与元信息；<i>源码 / 预览</i> 切换；人的写入直接保存页面（Agent 只能写草稿）</div>
+              <div class="zone"><span class="n">5</span><b>草稿与反链</b>unified diff（+/- 着色）、批准 / 打回（填理由）/ 强制覆盖；反链列表</div>
+            </div>
+            <div class="wire two" style="margin-top:8px">
+              <div class="zone"><span class="n">2</span><b>待审计数</b>tab 标题上的角标（2）；批准后即时减一</div>
+              <div class="zone"><span class="n">4</span><b>草稿横幅</b>页面顶部提示“有 1 份待审草稿（来自 lead，基于 v3）”，可跳到右侧 diff</div>
+            </div>
+            <ul class="legend">
+              <li><b>基线哈希冲突</b>：页面在草稿期间被改过时，批准按钮变为「强制覆盖」并给出二次确认文字，而不是静默覆盖。</li>
+              <li><b>打回闭环</b>：理由写回草稿的 <span class="kbd">draft.reason</span>，Agent 用 <span class="kbd">wiki status</span> 读到后再改。</li>
+              <li><b>两库独立</b>：本项目 / 全局两棵树，同名页面互不影响；全局库批准后自动 git 提交。</li>
+            </ul>
+          </div>
+
+          <div class="fig">
+            <h3>图 3 · 一次点击的数据流</h3>
+            <div class="flow">
+              <span class="step">tab 组件（sessionId）</span><span class="arrow">→</span>
+              <span class="step">connection.rpc（已鉴权）</span><span class="arrow">→</span>
+              <span class="step">Host store（同一套函数）</span><span class="arrow">→</span>
+              <span class="step">.dsh/roles · .dsh/wiki 文件</span><span class="arrow">→</span>
+              <span class="step">面板回读刷新</span>
+            </div>
+            <ul class="legend" style="margin-top:10px">
+              <li>面板与 Agent 工具调用<b>同一组 store 函数</b>，不维护第二套逻辑。</li>
+              <li>数据通道改用 <span class="kbd">ctx.connection.rpc</span>：面板请求带宿主已有的浏览器凭据，不再出现 401 后“静默没反应”。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="demobar">
+  <span>Demo · 可点</span>
+  <span class="sep"></span>
+  <button class="btn ghost" id="themeBtn">切换亮/暗</button>
+  <button class="btn ghost" id="mapBtn">布局图示</button>
+  <span class="sep"></span>
+  <span>参数 <span class="kbd">?tab=roles|wiki|map</span></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const params = new URLSearchParams(location.search)
+const state = {
+  tab: params.get('tab') || 'roles',
+  theme: params.get('theme') || 'light',
+  roleScope: 'project',
+  roleId: 'reviewer',
+  roleQuery: '',
+  creating: false,
+  dirty: false,
+  saving: false,
+  wikiScope: 'project',
+  wikiPage: 'guide/error-codes',
+  wikiQuery: '',
+  wikiMode: 'source',
+  draftPending: true,
+  draftPage: 'guide/error-codes',
+  rejectedReason: '',
+  conflict: false,
+}
+
+const roles = [
+  { id: 'reviewer', title: '代码评审员', scope: 'project', version: 3, shadow: false, builtin: false,
+    capabilities: ['静态分析', '风险识别', '回归验证'], skills: ['dsh-bundle-authoring'], handoffs: ['implementer', 'architect'], grants: ['edit-roles'],
+    body: '## 职责\n对变更做风险分级，给出可执行的修复清单；不替作者改代码，只指出「哪里会坏、为什么、怎么验证」。\n\n## 工作方式\n先看测试再看实现；diff 超过 400 行先要求拆 PR；每个结论都要能指到具体行。\n\n## 交互对象\n向上：architect（设计约束）；向下：implementer（修复清单）。\n\n## 完成标准\n每条风险都有触发条件、后果与验证方式。' },
+  { id: 'architect', title: '架构师', scope: 'global', version: 5, shadow: true, builtin: false,
+    capabilities: ['边界划分', '取舍记录'], skills: [], handoffs: ['implementer'], grants: [],
+    body: '## 职责\n守住模块边界，把取舍写成可复查的记录。\n\n## 工作方式\n先问「改动的爆炸半径」；ADR 一条只记一个决定。' },
+  { id: 'implementer', title: '实现者', scope: 'project', version: 2, shadow: false, builtin: false,
+    capabilities: ['小步提交', '测试先行'], skills: ['tdd'], handoffs: [], grants: [],
+    body: '## 职责\n按清单小步实现，每步都能单独回滚。\n\n## 完成标准\n新行为有测试，旧测试不改语义。' },
+  { id: 'trainer', title: '培训员', scope: 'global', version: 1, shadow: false, builtin: true,
+    capabilities: ['案例设计', '经验萃取'], skills: ['role-training'], handoffs: [], grants: ['train', 'edit-roles'],
+    body: '## 职责\n把一次真实案例变成团队能力：定框架、按岗位并行分析、交叉回灌、各自落袋。' },
+]
+const notes = {
+  reviewer: [
+    { at: '2026-11-15 02:40', source: 'lead', text: 'diff 超过 400 行才要求拆 PR，否则是噪声。' },
+    { at: '2026-11-14 21:12', source: 'reviewer', text: '先看测试再看实现：测试表达了作者的意图，实现只是手段。' },
+    { at: '2026-11-13 18:03', source: 'trainer', text: '跨岗位经验：架构师的「爆炸半径」可以直接用作评审第一条判据。' },
+  ],
+}
+const guide = '阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。\n- guide/error-codes.md\n- adr/0007-role-orchestration.md'
+
+const wiki = {
+  'guide/error-codes': { title: '错误码规范', tags: ['约定', 'api'], status: 'stable', updated: '2026-11-12',
+    body: '## 原则\n错误码是接口的一部分，一旦发布就只能新增，不能改语义。\n\n## 命名\n`<域>.<对象>.<原因>`，例如 `auth.token.expired`。\n\n## 记录\n每个码必须在错误码表里有一行：含义、触发条件、客户端动作。' },
+  'guide/onboarding': { title: '新人上手', tags: ['流程'], status: 'wip', updated: '2026-11-08',
+    body: '## 第一天\n装好依赖，跑通测试。\n\n## 第一周\n读 ADR，接一个小任务。' },
+  'adr/0007-role-orchestration': { title: 'ADR-0007 岗位制编排', tags: ['adr', '设计'], status: 'wip', updated: '2026-11-15',
+    body: '## 背景\n团队协作的约定散落在 prompt 里。\n\n## 决定\n岗位是文件，身份存会话日志，面板只做编辑与确认。\n\n## 后果\n岗位可评审、可 diff；Agent 能自己维护。' },
+  'domain/glossary': { title: '术语表', tags: ['术语'], status: 'stable', updated: '2026-11-02',
+    body: '## 岗位\n一组可复用的职责与判据。\n\n## 草稿\n对页面的整页修改建议，等人批准。' },
+}
+const draftBody = '## 原则\n错误码是接口的一部分，一旦发布就只能新增，不能改语义；**废弃要走弃用流程**。\n\n## 命名\n`<域>.<对象>.<原因>`，例如 `auth.token.expired`。\n\n## 记录\n每个码必须在错误码表里有一行：含义、触发条件、客户端动作、负责人。'
+
+function $(sel) { return document.querySelector(sel) }
+function esc(value) { return String(value).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) }
+
+function toast(text) {
+  const el = document.createElement('div')
+  el.className = 't'
+  el.textContent = text
+  $('#toast').appendChild(el)
+  setTimeout(() => el.remove(), 2600)
+}
+
+function currentRole() { return roles.find((role) => role.id === state.roleId) }
+
+function renderRoles() {
+  const list = $('#roleList')
+  const rows = roles.filter((role) => role.scope === state.roleScope)
+    .filter((role) => state.roleQuery === '' || `${role.id} ${role.title}`.toLowerCase().includes(state.roleQuery.toLowerCase()))
+  list.innerHTML = rows.map((role) => `
+    <li class="role ${role.id === state.roleId && role.scope === state.roleScope ? 'on' : ''}" data-role="${role.id}">
+      <span class="rt">${esc(role.title)}
+        ${role.builtin ? '<span class="chip builtin">随包</span>' : ''}
+        ${role.shadow ? '<span class="chip shadow">覆盖全局</span>' : ''}
+      </span>
+      <span class="rm">${esc(role.id)} · v${role.version}${role.builtin ? ' · 只读' : ''}</span>
+    </li>`).join('') + (state.creating ? `
+    <li class="inline-form">
+      <input id="newId" placeholder="岗位 id：小写字母/数字/连字符">
+      <input id="newTitle" placeholder="名称，例如「发布检查员」">
+      <div class="row"><button class="btn ghost" id="newCancel">取消</button><button class="btn primary" id="newSave">创建</button></div>
+    </li>` : '')
+
+  const role = currentRole()
+  const editor = $('#roleEditor')
+  if (role === undefined) {
+    editor.innerHTML = '<p class="placeholder">从左侧选择一个岗位</p>'
+  } else {
+    editor.innerHTML = `
+      <div class="ed-head">
+        <div style="flex:1;min-width:0">
+          <input class="ed-title" id="edTitle" value="${esc(role.title)}" ${role.builtin ? 'disabled' : ''}>
+          <div class="ed-sub">
+            <span>${esc(role.id)}</span><span>·</span><span>${role.scope === 'project' ? '本项目' : '全局'}</span>
+            <span>·</span><span>v${role.version}</span>
+            <span>·</span><span>${state.dirty ? '有未保存的修改' : '已保存'}</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="copyPrompt">复制岗位提示词</button>
+          ${role.builtin ? '<button class="btn primary" id="copyIn">复制到本项目</button>' : `
+            <button class="btn" id="reloadRole">重新载入</button>
+            <button class="btn primary" id="saveRole" ${state.saving ? 'disabled' : ''}>${state.saving ? '保存中…' : '保存'}</button>
+            <button class="btn danger" id="archiveRole">归档</button>`}
+        </div>
+      </div>
+      ${state.conflict ? `<div class="banner warn"><span>这个岗位已被他人修改（v${role.version} → v${role.version + 1}），保存会被拒绝。</span>
+        <span><button class="btn ghost" id="reloadRole2">重新载入</button><button class="btn ghost" id="forceSave">仍要覆盖</button></span></div>` : ''}
+      ${state.saving ? '<div class="banner"><span>正在写入 .dsh/roles/reviewer.md …</span></div>' : ''}
+      <div class="grid2">
+        <div class="field"><label>能力（逗号分隔）</label><input value="${esc(role.capabilities.join(', '))}" ${role.builtin ? 'disabled' : ''}></div>
+        <div class="field"><label>技能（逗号分隔）</label><input value="${esc(role.skills.join(', '))}" ${role.builtin ? 'disabled' : ''}></div>
+        <div class="field"><label>交接对象（岗位 id）</label><input value="${esc(role.handoffs.join(', '))}" ${role.builtin ? 'disabled' : ''}></div>
+        <div class="field"><label>权限（edit-roles / train）</label><input value="${esc(role.grants.join(', '))}" ${role.builtin ? 'disabled' : ''}></div>
+      </div>
+      <textarea class="body-box" ${role.builtin ? 'disabled' : ''}>${esc(role.body)}</textarea>
+      <details class="guide" ${role.id === 'reviewer' ? 'open' : ''}>
+        <summary>岗位指导 · 指向 wiki 页面与阅读顺序（Agent 维护）</summary>
+        <div class="in"><textarea>${esc(role.id === 'reviewer' ? guide : '（还没有指导文件）')}</textarea></div>
+      </details>`
+  }
+
+  $('#roleSide').innerHTML = `
+    <h3 class="pane-title">经验 <span class="chip">${(notes[role?.id] || []).length}</span></h3>
+    <ul class="notes">${(notes[role?.id] || []).map((note) => `
+      <li class="note"><div class="nm">${note.at} · ${esc(note.source)}</div><p>${esc(note.text)}</p></li>`).join('') || '<li class="note"><p style="color:var(--faint)">还没有经验条目</p></li>'}</ul>
+    <textarea class="note-input" id="noteInput" placeholder="一条一事：什么信号出现时 → 做什么判断 → 为什么"></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn primary" id="addNote">记一条经验</button></div>
+    <h3 class="pane-title" style="margin-top:16px">数据位置</h3>
+    <p style="color:var(--muted);font-size:11.5px;margin:0">本项目 <span class="kbd">.dsh/roles/</span><br>全局 <span class="kbd">~/.dsh/roles/</span><br>写入都会追加一行 CHANGELOG。</p>
+    <h3 class="pane-title" style="margin-top:16px">随包岗位</h3>
+    <ul class="notes">${roles.filter((role) => role.builtin).map((role) => `<li class="note"><div class="nm">${esc(role.id)}</div><p>${esc(role.title)} · 只读</p></li>`).join('')}</ul>`
+
+  for (const el of document.querySelectorAll('[data-role]')) {
+    el.addEventListener('click', () => { if (el.dataset.role !== undefined) { state.roleId = el.dataset.role; state.dirty = false; state.conflict = false; renderRoles() } })
+  }
+  $('#newCancel')?.addEventListener('click', () => { state.creating = false; renderRoles() })
+  $('#newSave')?.addEventListener('click', () => {
+    const id = $('#newId').value.trim(); const title = $('#newTitle').value.trim()
+    if (id === '' || title === '') { toast('id 与名称都要填'); return }
+    roles.unshift({ id, title, scope: state.roleScope, version: 1, shadow: false, builtin: false, capabilities: [], skills: [], handoffs: [], grants: [], body: '## 职责\n\n## 工作方式\n\n## 完成标准\n' })
+    notes[id] = []
+    state.creating = false; state.roleId = id; renderRoles(); toast(`已创建 ${id}`)
+  })
+  $('#edTitle')?.addEventListener('input', () => { state.dirty = true; renderRoles() })
+  $('.body-box')?.addEventListener('input', () => { if (!state.dirty) { state.dirty = true } })
+  $('#saveRole')?.addEventListener('click', () => { state.saving = true; renderRoles(); setTimeout(() => { state.saving = false; state.dirty = false; currentRole().version += 1; renderRoles(); toast('已保存 · v' + currentRole().version) }, 420) })
+  $('#reloadRole')?.addEventListener('click', () => { state.dirty = false; state.conflict = false; renderRoles(); toast('已重新载入') })
+  $('#reloadRole2')?.addEventListener('click', () => { state.dirty = false; state.conflict = false; renderRoles(); toast('已重新载入') })
+  $('#forceSave')?.addEventListener('click', () => { state.conflict = false; currentRole().version += 1; state.dirty = false; renderRoles(); toast('已强制覆盖 · v' + currentRole().version) })
+  $('#archiveRole')?.addEventListener('click', () => { const role = currentRole(); roles.splice(roles.indexOf(role), 1); state.roleId = roles.find((item) => item.scope === state.roleScope)?.id; renderRoles(); toast('已归档到 .archive/') })
+  $('#copyPrompt')?.addEventListener('click', () => { navigator.clipboard?.writeText('<!-- role:' + state.roleId + ' -->'); toast('已复制岗位提示词') })
+  $('#copyIn')?.addEventListener('click', () => { const src = currentRole(); const copy = JSON.parse(JSON.stringify(src)); copy.scope = 'project'; copy.builtin = false; copy.version = 1; roles.unshift(copy); state.roleId = copy.id; state.roleScope = 'project'; renderRoles(); toast('已复制到本项目') })
+  $('#addNote')?.addEventListener('click', () => { const text = $('#noteInput').value.trim(); if (text === '') { toast('先写一条再提交'); return } (notes[state.roleId] ||= []).unshift({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), source: '你', text }); renderRoles(); toast('已写入经验') })
+}
+
+function renderWiki() {
+  const tree = $('#wikiTree')
+  const groups = {}
+  for (const [path, page] of Object.entries(wiki)) {
+    if (state.wikiQuery !== '' && !`${path} ${page.title} ${page.tags.join(' ')}`.toLowerCase().includes(state.wikiQuery.toLowerCase())) continue
+    const group = path.includes('/') ? path.split('/')[0] : '(根目录)'
+    ;(groups[group] ||= []).push([path, page])
+  }
+  const names = { guide: 'guides/', adr: 'adr/', domain: 'domain/' }
+  tree.innerHTML = Object.entries(groups).map(([group, entries]) => `
+    <li class="grp">${names[group] || group}</li>
+    ${entries.map(([path, page]) => `<li><div class="page ${path === state.wikiPage ? 'on' : ''}" data-page="${path}">
+      <span>${esc(page.title)}</span>${state.draftPending && state.draftPage === path ? '<span class="dot" title="有草稿待审"></span>' : ''}
+    </div></li>`).join('')}`).join('')
+
+  const page = wiki[state.wikiPage]
+  const hasDraft = state.draftPending && state.draftPage === state.wikiPage
+  $('#wikiPage').innerHTML = `
+    <div class="page-head">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <h2 class="page-title" style="flex:1;min-width:0">${esc(page.title)}</h2>
+        <div class="page-tools">
+          <div class="seg" style="width:132px" id="modeSeg">
+            <button class="${state.wikiMode === 'source' ? 'on' : ''}" data-mode="source">源码</button>
+            <button class="${state.wikiMode === 'preview' ? 'on' : ''}" data-mode="preview">预览</button>
+          </div>
+          <button class="btn primary" id="savePage">保存页面</button>
+        </div>
+      </div>
+      <div class="page-meta" style="margin-bottom:2px"><span>${esc(state.wikiPage)}.md</span><span>·</span><span>更新于 ${page.updated}</span>
+        <span>·</span><span class="chip">${page.status}</span>${page.tags.map((tag) => `<span class="chip">${esc(tag)}</span>`).join('')}</div>
+      ${hasDraft ? `<div class="banner warn" style="margin-top:10px"><span>有 1 份待审草稿（来自 lead，基于 v3），右侧可看 diff 并批准。</span><span><button class="btn ghost" id="jumpDraft">查看草稿</button></span></div>` : ''}
+    </div>
+    <div class="src-wrap">
+      ${state.wikiMode === 'source'
+        ? `<textarea class="src" id="srcBox">${esc(page.body)}</textarea>`
+        : `<div class="preview">${renderMarkdown(page.body)}</div>`}
+    </div>`
+
+  const side = $('#wikiSide')
+  side.innerHTML = hasDraft ? `
+    <h3 class="pane-title">待审草稿 <span class="chip">1 份 · lead</span></h3>
+    <div class="diff">
+      <div class="h">unified diff · lead · 基于 v3</div>
+      <div class="l ctx">@@ 原则</div>
+      <div class="l ctx"> 错误码是接口的一部分，一旦发布就只能新增，不能改语义。</div>
+      <div class="l add">+ **废弃要走弃用流程**：先标记 deprecated，下一个大版本再删除。</div>
+      <div class="l ctx">@@ 记录</div>
+      <div class="l del">- 每个码必须在错误码表里有一行：含义、触发条件、客户端动作。</div>
+      <div class="l add">+ 每个码必须在错误码表里有一行：含义、触发条件、客户端动作、负责人。</div>
+    </div>
+    <div class="field"><label>打回理由（会写进草稿，Agent 能读到）</label><input id="reason" placeholder="例如：与 ADR-12 的弃用流程冲突"></div>
+    <div class="actions" style="justify-content:stretch">
+      <button class="btn primary" id="approve" style="flex:1">批准并发布</button>
+      <button class="btn" id="reject" style="flex:1">打回</button>
+    </div>
+    <button class="btn danger" id="force">强制覆盖（跳过基线校验）</button>
+    <p style="color:var(--faint);font-size:11px;margin:0">批准后：页面覆盖、草稿删除、${state.wikiScope === 'global' ? '全局库自动 git 提交' : '项目库不碰 git'}。</p>`
+  : `<h3 class="pane-title">草稿</h3><p style="color:var(--muted);font-size:12px;margin:0">这个页面没有待审草稿。Agent 写入会先落到 <span class="kbd">drafts/</span>，再等你批准。</p>`
+
+  side.innerHTML += `
+    <h3 class="pane-title" style="margin-top:16px">反链 <span class="chip">2</span></h3>
+    <ul class="backlinks">
+      <li><a href="#">新人上手</a> → 引用了本节</li>
+      <li><a href="#">ADR-0007 岗位制编排</a> → 引用了本节</li>
+    </ul>
+    <h3 class="pane-title" style="margin-top:16px">本库</h3>
+    <p style="color:var(--muted);font-size:11.5px;margin:0">${state.wikiScope === 'project' ? '.dsh/wiki/ · 不自动提交' : '~/.dsh/wiki/ · 独立 git 仓'}<br>契约文件：<span class="kbd">wiki.md</span></p>`
+
+  for (const el of document.querySelectorAll('[data-page]')) el.addEventListener('click', () => { state.wikiPage = el.dataset.page; renderWiki() })
+  for (const el of document.querySelectorAll('[data-mode]')) el.addEventListener('click', () => { state.wikiMode = el.dataset.mode; renderWiki() })
+  $('#savePage')?.addEventListener('click', () => { const box = $('#srcBox'); if (box) wiki[state.wikiPage].body = box.value; wiki[state.wikiPage].updated = '2026-11-15'; renderWiki(); toast('已保存页面') })
+  $('#approve')?.addEventListener('click', () => { wiki[state.draftPage].body = draftBody; wiki[state.draftPage].updated = '2026-11-15'; state.draftPending = false; renderWiki(); setBadge(); toast('已批准并发布') })
+  $('#reject')?.addEventListener('click', () => { const reason = $('#reason')?.value.trim() || '（未填理由）'; state.rejectedReason = reason; toast('已打回：' + reason) })
+  $('#force')?.addEventListener('click', () => { if (!window.confirm('页面在草稿期间被改过，确定强制覆盖？')) return; wiki[state.draftPage].body = draftBody; state.draftPending = false; renderWiki(); setBadge(); toast('已强制覆盖') })
+  $('#jumpDraft')?.addEventListener('click', () => toast('右栏就是草稿 diff'))
+}
+
+function renderMarkdown(body) {
+  const lines = body.split('\n')
+  let html = ''
+  for (const line of lines) {
+    if (line.startsWith('## ')) html += `<h4>${esc(line.slice(3))}</h4>`
+    else if (line.startsWith('### ')) html += `<h4>${esc(line.slice(4))}</h4>`
+    else if (line.trim() === '') continue
+    else html += `<p>${esc(line).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>')}</p>`
+  }
+  return html
+}
+
+function setBadge() { $('#wikiBadge').textContent = state.draftPending ? '2' : '0'; $('#wikiBadge').style.display = state.draftPending ? '' : 'none' }
+
+function setTab(tab) {
+  state.tab = tab
+  for (const el of document.querySelectorAll('.tab')) el.classList.toggle('active', el.dataset.tab === tab)
+  for (const el of document.querySelectorAll('.view')) el.classList.toggle('active', el.id === `view-${tab}`)
+  try { history.replaceState(null, '', `?tab=${tab}`) } catch { /* file:// may refuse */ }
+  if (tab === 'roles') renderRoles()
+  if (tab === 'wiki') renderWiki()
+}
+
+for (const el of document.querySelectorAll('.tab')) el.addEventListener('click', () => setTab(el.dataset.tab))
+$('#themeBtn').addEventListener('click', () => {
+  state.theme = state.theme === 'light' ? 'dark' : 'light'
+  document.documentElement.dataset.theme = state.theme
+})
+$('#mapBtn').addEventListener('click', () => setTab('map'))
+$('#roleSearch').addEventListener('input', (event) => { state.roleQuery = event.target.value; renderRoles() })
+$('#wikiSearch').addEventListener('input', (event) => { state.wikiQuery = event.target.value; renderWiki() })
+for (const el of document.querySelectorAll('#scopeSeg button')) el.addEventListener('click', () => {
+  state.roleScope = el.dataset.scope
+  for (const button of document.querySelectorAll('#scopeSeg button')) button.classList.toggle('on', button === el)
+  state.roleId = roles.find((role) => role.scope === state.roleScope)?.id
+  renderRoles()
+})
+for (const el of document.querySelectorAll('#wikiScopeSeg button')) el.addEventListener('click', () => {
+  state.wikiScope = el.dataset.scope
+  for (const button of document.querySelectorAll('#wikiScopeSeg button')) button.classList.toggle('on', button === el)
+  renderWiki()
+})
+
+document.documentElement.dataset.theme = state.theme
+setBadge()
+setTab(state.tab)
+renderRoles()
+renderWiki()
+globalThis.__demoReady = true
+globalThis.__demoState = state
+</script>
+</body>
+</html>

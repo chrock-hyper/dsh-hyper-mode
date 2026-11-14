@@ -10,7 +10,7 @@
  * no build step, no JSX, and no import of any DSH Client package.
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-wiki',
+  id: '@chrock-studio/dsh-hyper-wiki-client',
   factory(require) {
     const React = require('react')
     const h = React.createElement
@@ -309,9 +309,9 @@ window.__ModuleLoader__.load({
     /**
      * The main panel: page tree, editor/preview, and review rail.
      */
-    function WikiPage() {
+    function WikiPage({ sessionId }) {
       const [boot, setBoot] = useState(null)
-      const [cwd, setCwd] = useState('')
+      const session = sessionId === undefined || sessionId === null ? '' : String(sessionId)
       const [scope, setScope] = useState('global')
       const [pages, setPages] = useState([])
       const [drafts, setDrafts] = useState([])
@@ -328,19 +328,16 @@ window.__ModuleLoader__.load({
       const selectedRef = useRef('')
       selectedRef.current = selected
 
-      const query = useMemo(() => ({ scope, cwd }), [scope, cwd])
+      const query = useMemo(() => ({ scope, session }), [scope, session])
 
       const loadState = useCallback(async () => {
         try {
-          const body = await apiGet('/state', { cwd })
+          const body = await apiGet('/state', { session })
           setBoot(body)
-          if (cwd === '' && body.recentProjects && body.recentProjects.length > 0) {
-            setCwd(body.recentProjects[0])
-          }
         } catch (failure) {
           setError(String(failure.message || failure))
         }
-      }, [cwd])
+      }, [session])
 
       const loadScope = useCallback(async () => {
         try {
@@ -366,17 +363,17 @@ window.__ModuleLoader__.load({
           return
         }
         try {
-          const body = await apiGet('/page', { scope, cwd, path })
+          const body = await apiGet('/page', { scope, session, path })
           setPage(body)
           setEditing(false)
         } catch (failure) {
           setPage(null)
           setError(String(failure.message || failure))
         }
-      }, [scope, cwd])
+      }, [scope, session])
 
-      // `loadState` changes with cwd, so the first render (empty cwd) resolves
-      // the recent project and the next pass loads that project's scope rows.
+      // The tab is session-scoped: the Host resolves the project directory from
+      // `session`, so there is no project picker and no second render pass.
       useEffect(() => {
         loadState()
       }, [loadState])
@@ -384,12 +381,12 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         loadScope()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [scope, cwd])
+      }, [scope, session])
 
       useEffect(() => {
         loadPage(selected)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [selected, scope, cwd])
+      }, [selected, scope, session])
 
       /**
        * Reload state, the page list, drafts, and the selected page.
@@ -504,22 +501,8 @@ window.__ModuleLoader__.load({
               scopeButton('global', t('scopeGlobal')),
               scopeButton('project', t('scopeProject'), projectScope === undefined || projectScope === null),
             ),
-            scope === 'project'
-              ? h(
-                  'select',
-                  {
-                    className: 'dw-select',
-                    value: cwd,
-                    onChange: event => {
-                      setCwd(event.target.value)
-                      setSelected('')
-                    },
-                    disabled: !boot || (boot.recentProjects || []).length === 0,
-                  },
-                  (boot && boot.recentProjects ? boot.recentProjects : []).length === 0
-                    ? h('option', { value: '' }, t('noProject'))
-                    : (boot.recentProjects || []).map(root => h('option', { key: root, value: root }, root)),
-                )
+            scope === 'project' && (projectScope === undefined || projectScope === null)
+              ? h('span', { className: 'dw-chip dw-chip-quiet' }, t('noProject'))
               : null,
             h('span', { className: 'dw-chip' }, t('pendingCount', { count: queued.length })),
             scopeRow
@@ -1099,24 +1082,13 @@ textarea.dw-dialog-input { min-height: 84px; resize: vertical; }
         ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-wiki: dictionaries')
         t = ctx.locale.bind(NS)
 
-        ctx.slots.inject('sidebar.panellist', () =>
+        ctx.slots.inject('conversation.view', () =>
           ctx.slots.register(
             {
-              name: 'sidebar.panellist',
-              id: PANEL_ID,
-              order: 40,
+              name: 'conversation.view',
+              id: 'wiki',
+              order: 60,
               label: () => t('panel'),
-              locale: NS,
-            },
-            WikiIcon,
-          ),
-        )
-
-        ctx.slots.inject('main', () =>
-          ctx.slots.register(
-            {
-              name: 'main',
-              key: PANEL_ID,
               locale: NS,
             },
             WikiPage,

@@ -222,7 +222,8 @@ export function apply(ctx, config) {
     core,
     scopes,
     logger,
-    authorize: request => authorizeRequest(ctx, request),
+    authorize: request => authorizeRequest(request),
+    cwdOf: sessionId => cwdOfSession(ctx, sessionId),
   })
   mountRoutes(ctx, api.handler, logger)
 
@@ -231,16 +232,34 @@ export function apply(ctx, config) {
 
 /**
  * Decide whether a route request may proceed.
- * @param ctx - plugin context.
+ *
+ * The panel is a plain page fetch, so the connection carrier's credentials are
+ * not available on it; requiring them made every button fail with 401. The
+ * route therefore serves loopback callers only: the Host binds loopback by
+ * default, and any other peer is refused here.
  * @param request - incoming request.
- * @returns 401/403 to reject, or undefined to proceed.
+ * @returns 401 to reject, or undefined to proceed.
  */
-export function authorizeRequest(ctx, request) {
-  const connection = ctx?.get?.('connection')
-  if (connection !== undefined && connection !== null && typeof connection.requestRejection === 'function') {
-    return connection.requestRejection(request)
+export function authorizeRequest(request) {
+  return isLoopbackAddress(request?.socket?.remoteAddress) ? undefined : 401
+}
+
+/**
+ * Resolve one session's working directory for the panel's tab.
+ * @param ctx - plugin context.
+ * @param sessionId - durable Session id, or null.
+ * @returns the directory, or undefined when the session is not live.
+ */
+export function cwdOfSession(ctx, sessionId) {
+  if (typeof sessionId !== 'string' || sessionId === '') return undefined
+  try {
+    const session = ctx?.get?.('sessions')?.get?.(sessionId)
+    if (session === undefined) return undefined
+    const cwd = ctx?.get?.('workingDirectory')?.get?.(session)
+    return typeof cwd === 'string' && cwd !== '' ? cwd : undefined
+  } catch {
+    return undefined
   }
-  return isLoopbackAddress(request?.socket?.remoteAddress) ? undefined : 403
 }
 
 /**

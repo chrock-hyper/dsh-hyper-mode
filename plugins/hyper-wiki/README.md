@@ -1,17 +1,16 @@
-# dsh-wiki
+# hyper-wiki · 会话内的 Wiki
 
-约定优先的 Markdown 知识库 bundle：给 Agent 一个 `wiki` 工具，给你一个草稿审核面板，给全局库一份 git 历史。
+约定优先的 Markdown 知识库：给 Agent 一个 `wiki` 工具，给你一个会话里的「Wiki」标签页，给全局库一份 git 历史。
 
 目录与文件就是产物——`~/.dsh/wiki/`（全局）和 `<projectRoot>/.dsh/wiki/`（项目）里的 Markdown 不依赖本插件也能被任何编辑器或 Agent 读写。插件只负责校验约定、把草稿 diff 摆到你面前、把确认做成一次点击。
 
-## 安装
+## 安装与入口
 
-本包是一个 bundle（`package.json` 里声明了 `dsh.bundle.patch`）：
+它是 `@chrock-studio/dsh-hyper-mode` bundle 里的一行（`cordis.patch.yml` 的 `hyper-wiki`），不需要单独安装。
 
-1. 在 **Plugins** 里选择 **Add plugin**，指向本目录（本地目录安装会链接这份 checkout）。
-2. 安装后在新会话里确认出现 `wiki` 工具；侧栏出现 **Wiki** 一行，打开即面板。
+装好 bundle、新开一个会话后，会话标题下方会多出 **Wiki** 标签页（与「对话」「轨迹」「统计」同一排）。标签页自带会话 id，项目作用域直接取当前会话的工作目录——没有“选项目”这一步；没有会话时标签页也不存在。
 
-本目录自带 `cordis.patch.yml`，安装 bundle 时会自动插入 `dsh-wiki` 这一行（包名即行名），**不需要**修改父仓库的补丁。它与同仓库的 `dsh-hyper-mode` 是两个可独立装卸的 bundle，只通过文件约定互操作。
+`package.json` 只声明标签页的 `dsh.client`（独立嵌套包）：`dsh-client-modules` 不允许同一个包出现多个活跃来源，所以面板的浏览器半边必须挂在自己的清单上，与 `hyper-roles` 同理。
 
 ## 快速开始
 
@@ -30,14 +29,14 @@ Agent：（调用 wiki 工具，action=draft，path=guide/error-codes）
      已写入草稿 drafts/guide/error-codes.md，等你在 Wiki 面板批准。
 ```
 
-打开 **Wiki** → 左侧选中该页 → 中栏「草稿对比」看增删行 → 右栏 **批准**。写页面、更新 `updated`、删除草稿、全局库提交，一次点击完成。
+会话里的 **Wiki** 标签页 → 左侧选中该页 → 中栏「草稿对比」看增删行 → 右栏 **批准**。写页面、更新 `updated`、删除草稿、全局库提交，一次点击完成。
 
 ## 文件布局
 
 ```
-dsh-wiki/
+plugins/hyper-wiki/
 ├─ index.js                    # 组装：config、工具、提示段、HTTP 路由、随包 skill
-├─ cordis.patch.yml            # 一行：id/name 均为 dsh-wiki
+├─ package.json                # 嵌套包：只声明标签页的 dsh.client
 ├─ lib/shipped.js              # loadShipped 的本地副本（shipped 包只能在 apply() 里加载）
 ├─ lib/scopes.js               # 两个作用域的路径、最近项目、原子写
 ├─ lib/page.js                 # frontmatter 解析/序列化、页面 id 校验、sha1
@@ -81,7 +80,7 @@ dsh-wiki/
 ## 开发与测试
 
 ```sh
-bun test dsh-wiki/test
+bun test plugins/hyper-wiki/test
 ```
 
 测试只用 `mkdtempSync` 临时目录，不连网络；git 相关测试在临时目录里真的建仓，缺 git 的降级路径用不存在的 `gitBin` 模拟。

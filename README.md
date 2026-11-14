@@ -1,11 +1,13 @@
 # dsh-hyper-mode · 增强创造模式 + 岗位 + Wiki
 
-给 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）的扩展集合。仓库里有两个**可独立安装**的 bundle：
+给 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）的扩展 bundle：一个包里聚合即插即用插件，装一次即可用。
 
-| Bundle | 目录 | 提供什么 |
+除了「增强创造模式」，它还在**会话里**加了两个标签页（与「对话」「轨迹」「统计」同一排）：
+
+| 标签页 | 插件 | 提供什么 |
 |---|---|---|
-| `@chrock-studio/dsh-hyper-mode` | 仓库根 | 增强创造模式 + 独立组件（岗位制编排、`/hyper-skill`、工具编目） |
-| `dsh-wiki` | `dsh-wiki/` | 约定优先的 Markdown wiki：Agent 工具 + 草稿审批面板 + 每作用域 git 历史 |
+| 岗位 | `hyper-roles` | 可编辑的角色卡、会话级岗位绑定、按岗位委派；数据在 `~/.dsh/roles` 与 `<项目>/.dsh/roles` |
+| Wiki | `hyper-wiki` | 约定优先的 Markdown 知识库、草稿审批、反链、每作用域 git 历史 |
 
 两者不共享代码，只通过文件约定互操作（岗位的「岗位指导」引用 wiki 页面，培训员的报告写成 wiki 草稿）。
 
@@ -18,7 +20,8 @@
 | **hyper-teams**（空壳） | `@chrock-studio/dsh-hyper-mode/hyper-teams` | **独立组件**（顶层行，Host 作用域）：对所有会话生效，可在 Plugin Manager 单独启用/禁用。仅塞一个提示词标记，验收后可删 |
 | **tool-catalog**（检视修复） | `@chrock-studio/dsh-hyper-mode/tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
 | **hyper-skills**（`/hyper-skill` 命令） | `@chrock-studio/dsh-hyper-mode/hyper-skills`（补丁行用相对路径 `./plugins/hyper-skills/index.js`） | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
-| **hyper-roles**（岗位制编排） | `@chrock-studio/dsh-hyper-mode/hyper-roles`（补丁行用相对路径 `./plugins/hyper-roles/index.js`） | **独立组件**（顶层行，Host 作用域）：可编辑的角色卡 + 会话级岗位绑定 + `role` / `role_spawn` / `role_edit` + 一级面板；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
+| **hyper-roles**（岗位） | `@chrock-studio/dsh-hyper-mode/hyper-roles`（补丁行用相对路径 `./plugins/hyper-roles/index.js`） | 顶层行 + 会话级「岗位」标签页：可编辑角色卡、会话级绑定、`role` / `role_spawn` / `role_edit`；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
+| **hyper-wiki**（Wiki） | `@chrock-studio/dsh-hyper-mode/hyper-wiki`（补丁行用相对路径 `./plugins/hyper-wiki/index.js`） | 顶层行 + 会话级「Wiki」标签页：约定优先的 Markdown 页面、镜像草稿与人工批准、反链、标题/标签检索、全局库自动 git 提交 |
 
 ## 结构
 
@@ -30,17 +33,15 @@ dsh-hyper-mode/
 ├─ locale/               bundle 在插件管理器里的标题/描述（en + zh）
 ├─ plugins/
 │  ├─ hyper-creator/     增强创造模式插件（执行器 + 路由策略 + skill + locale + 文档 + 测试）
-│  │  └─ skills/         随插件发布、由预设加载或按需安装的 skill
-│  ├─ hyper-skills/      /hyper-skill 命令插件（Host 作用域：按需安装随包 skill）
-│  ├─ hyper-roles/       岗位制编排（角色卡/绑定/工具/面板）
-│  │  └─ package.json    嵌套包：只声明面板的 dsh.client（见下文「为什么是嵌套包」）
-│  ├─ tool-catalog/      检视修复插件（Host 作用域：ToolCatalog provider）
-│  └─ shared/            跨插件共享代码（shipped 解析器）
-├─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
-└─ dsh-wiki/             第二个 bundle（独立包，自带 package.json / patch / client）
-   ├─ lib/               页面、草稿、链接、检索、git、路由、工具
-   ├─ client/client.js   手写浏览器模块：页面树 + 编辑 + 草稿 diff + 反链
-   └─ skills/            随包 skill：写草稿后如何请人批准
+│  ├─ hyper-skills/      /hyper-skill 命令插件（按需安装随包 skill）
+│  ├─ hyper-roles/       岗位标签页（角色卡 / 绑定 / 工具 / 面板）
+│  │  └─ package.json    嵌套包：只声明岗位标签页的 dsh.client
+│  ├─ hyper-wiki/        Wiki 标签页（页面 / 草稿 / 链接 / 检索 / git / 工具 / 面板）
+│  │  └─ package.json    嵌套包：只声明 Wiki 标签页的 dsh.client
+│  ├─ tool-catalog/      检视修复插件（ToolCatalog provider）
+│  └─ shared/            跨插件共享代码（shipped 解析器、路径工具）
+├─ scripts/              Host 冒烟检查：smoke-roles.mjs / smoke-wiki.mjs
+└─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
 ```
 
 **聚合点是 `cordis.patch.yml`，不是 `index.js`**：DSH 按补丁里的行挂载插件，根目录导出它们并不会自动生效。
@@ -54,19 +55,13 @@ dsh-hyper-mode/
 
 ## 安装
 
-两个包分别安装，互不依赖：
-
 ```bash
-# 模式集 + 岗位
 plugin_manager action=install_bundle target=<本仓库绝对路径>
-
-# wiki（可选）
-plugin_manager action=install_bundle target=<本仓库绝对路径>/dsh-wiki
 ```
 
-装完新建会话，模式选「增强创造模式」；侧栏会出现「岗位」，装了 wiki 后再多一个「Wiki」入口。
+装完新建会话，模式选「增强创造模式」：会话标题下方会多出「岗位」与「Wiki」两个标签页。它们都是会话级的——没有会话就不显示，项目作用域直接取当前会话的工作目录。
 
-回滚：`plugin_manager action=remove_bundle target=@chrock-studio/dsh-hyper-mode` / `target=dsh-wiki`
+回滚：`plugin_manager action=remove_bundle target=@chrock-studio/dsh-hyper-mode`
 
 ## 岗位制编排（hyper-roles）
 
@@ -121,7 +116,7 @@ can: edit-roles
 
 ### 面板
 
-侧栏「岗位」→ 一级页面：作用域切换（项目/全局）、岗位列表（标出覆盖全局）、字段与正文编辑、岗位指导、经验列表与追加、归档、复制岗位提示词、随包岗位复制。
+会话里的「岗位」标签页：作用域切换（本项目/全局）、岗位列表（标出覆盖全局）、字段与正文编辑、岗位指导、经验列表与追加、归档、复制岗位提示词、随包岗位复制。项目作用域来自当前会话，不需要选目录。
 
 ### 培训员
 
@@ -142,7 +137,7 @@ can: edit-roles
 
 验收步骤见 `plugins/hyper-roles/VERIFY.md`。
 
-## Wiki（dsh-wiki）
+## 会话内 Wiki（hyper-wiki）
 
 一个**约定优先**的知识库：`<作用域>/wiki/` 下是普通 Markdown 页面，`<作用域>/wiki/drafts/` 下是镜像草稿，`<作用域>/wiki.md` 是写给任何 Agent 看的契约。插件只做三件事——校验约定、把草稿 diff 摆到人面前、把确认做成一次点击；插件坏掉或换编辑器，内容照样可读。
 
@@ -155,9 +150,9 @@ can: edit-roles
 | 链接 | 只支持相对 Markdown 链接；反链由插件扫描得出（不支持 `[[ ]]`） |
 | 检索 | 零依赖，只匹配标题 / 标签 / 文件名，正文由 Agent 直接读 |
 | 历史 | 仅全局库：首次使用时 `git init`，批准/删除/重命名后自动提交；项目库不碰 git |
-| 面板 | 侧栏「Wiki」→ 页面树 + 源码编辑 + 纯文本预览 + 反链 + 草稿 diff + 待审角标 |
+| 面板 | 会话里的「Wiki」标签页：页面树 + 源码编辑 + 纯文本预览 + 反链 + 草稿 diff + 待审角标 |
 
-工具只有一个 `wiki`，动作为 `list` / `search` / `read` / `draft` / `status` / `backlinks`，**没有批准权限**。完整说明见 `dsh-wiki/README.md`。
+工具只有一个 `wiki`，动作为 `list` / `search` / `read` / `draft` / `status` / `backlinks`，**没有批准权限**。完整说明见 `plugins/hyper-wiki/README.md`。
 
 ## 验证
 
@@ -167,7 +162,7 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-roles.mjs   # 岗位
 ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki：真实 Host 装配
 ```
 
-端到端验收用例见 `plugins/hyper-creator/VERIFY.md`、`plugins/hyper-roles/VERIFY.md`、`dsh-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
+端到端验收用例见 `plugins/hyper-creator/VERIFY.md`、`plugins/hyper-roles/VERIFY.md`、`plugins/hyper-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
 
 ## 随包发布的技能
 
@@ -184,7 +179,7 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki�
 | `dsh-bundle-authoring` | hyper-creator | bundle 的模块解析，以及「装上了但加载不了」的排查清单 |
 | `role-training` | hyper-roles | 组织一次岗位交叉培训：定框架、并行分析、交叉回灌、经验落袋、报告成文 |
 
-`dsh-wiki` 还自带一个 skill：`wiki-draft-review`。它在插件加载时通过 `ctx.skills.register()` 注册为运行时技能（不走文件扫描根），只在装了 wiki 的组合里出现。
+`hyper-wiki` 还自带一个 skill：`wiki-draft-review`。它在插件加载时通过 `ctx.skills.register()` 注册为运行时技能（不走文件扫描根），只在装了 wiki 的组合里出现。
 
 在任意会话里直接敲（人类命令，不进模型消息、不占 token）：
 

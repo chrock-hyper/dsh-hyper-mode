@@ -30,7 +30,7 @@ describe('client module', () => {
     expect(typeof loaded[0].factory).toBe('function')
   })
 
-  test('registers the locale, the sidebar entry and the main panel', () => {
+  test('registers the locale and the conversation tab', () => {
     const plugin = loaded[0].factory((specifier) => {
       expect(specifier).toBe('react')
       return React
@@ -59,19 +59,15 @@ describe('client module', () => {
 
     const locale = registrations.find((entry) => entry.kind === 'locale')
     expect(locale.ns).toBe('hyperRoles')
-    expect(locale.dictionaries.zh.panel).toBe('岗位')
-    expect(locale.dictionaries.en.panel).toBe('Roles')
+    expect(locale.dictionaries.zh.tab).toBe('岗位')
+    expect(locale.dictionaries.en.tab).toBe('Roles')
 
     const slots = registrations.filter((entry) => entry.kind === 'slot')
-    expect(slots.map((entry) => entry.options.name).sort()).toEqual(['main', 'sidebar.panellist'])
+    expect(slots.map((entry) => entry.options.name)).toEqual(['conversation.view'])
 
-    const sidebar = slots.find((entry) => entry.options.name === 'sidebar.panellist')
-    expect(sidebar.options.id).toBe('hyper-roles')
-    expect(sidebar.options.order).toBe(30)
-    expect(typeof sidebar.component).toBe('function')
-
-    const main = slots.find((entry) => entry.options.name === 'main')
-    expect(main.options.key).toBe('hyper-roles')
-    expect(typeof main.component).toBe('function')
+    const tab = slots[0]
+    expect(tab.options.id).toBe('roles')
+    expect(tab.options.order).toBe(50)
+    expect(typeof tab.component).toBe('function')
   })
 })

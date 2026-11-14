@@ -7,13 +7,13 @@ bun test
 ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-roles.mjs
 ```
 
-安装/更新 bundle 后，Host 行会随 bundle 重载生效（不需要重启 DSH）；面板是浏览器模块，重载后**刷新页面**再验证。
+安装/更新 bundle 后，Host 行会随 bundle 重载生效（不需要重启 DSH）；标签页是浏览器模块，重载后**刷新页面**再验证。
 
-## 1. 面板出现并能写文件
+## 1. 标签页出现并能写文件
 
-1. 侧栏出现「岗位」图标（order 30），点开是一级页面。
-2. 作用域切到「项目」，点「选择项目目录」，输入一个真实项目路径。
-3. 「新建岗位」→ id `reviewer`、名称 `代码评审员`；填正文后保存。
+1. 会话标题下方出现「岗位」标签页（对话 / 轨迹 / 统计 / 岗位 / Wiki）。
+2. 作用域默认「本项目」——它取自当前会话的工作目录，不需要选目录。
+3. 「新建岗位」就地展开表单：id `reviewer`、名称 `代码评审员`；填正文后保存。
 4. 宿主侧核对：`ls <项目>/.dsh/roles/` 应出现 `reviewer.md` 与 `CHANGELOG.md`；卡片里 `version: 1`。
 5. 再保存一次：版本变 2，CHANGELOG 多一行。
 

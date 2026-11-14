@@ -64,11 +64,11 @@ function makeReq(method, url, body, remote = '127.0.0.1') {
 }
 
 /** @returns a handler bound to a fresh state object. */
-function makeHandler() {
+function makeHandler(options = {}) {
   const state = {
     config: { provider: 'spawn', maxRosterRoles: 20, briefMaxChars: 6000, selfSectionMaxChars: 1200, rosterSection: true, notesShown: 3 },
   }
-  return createApiHandler({ ctx: makeCtx(), state, home, bundleRoot })
+  return createApiHandler({ ctx: makeCtx(), state, home, bundleRoot, ...options })
 }
 
 const handler = makeHandler()
@@ -150,10 +150,18 @@ describe('role lifecycle', () => {
 })
 
 describe('guard and errors', () => {
-  test('refuses a non-loopback peer when no connection carrier exists', async () => {
+  test('refuses a non-loopback peer', async () => {
     const res = makeRes()
     await handler(makeReq('GET', '/hyper-roles/api/state', undefined, '10.0.0.7'), res)
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(401)
+  })
+
+  test('resolves the project directory from the session', async () => {
+    const sessionHandler = makeHandler({ resolveCwd: (id) => (id === 'sess-1' ? project : undefined) })
+    const res = makeRes()
+    await sessionHandler(makeReq('GET', '/hyper-roles/api/state?session=sess-1'), res)
+    expect(res.status).toBe(200)
+    expect(res.json().projectRoot).toBe(project)
   })
 
   test('answers 404 for an unknown path and 400 for a non-JSON body', async () => {
