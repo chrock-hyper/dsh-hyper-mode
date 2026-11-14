@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Wiki",
+    "description": "约定优先的 Markdown 知识库：给 Agent 一个 `wiki` 工具，给你一个草稿审核面板；全局库自带 git 历史。",
+    "detail": "docs/DETAIL.md"
+  }
+}

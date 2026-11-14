@@ -1,0 +1,8 @@
+# dsh-wiki bundle patch.
+#
+# One row only: this package ships one Host plugin, and its client half is
+# declared on the same row (package root), so client-modules sees a single
+# source for the bundle.
+- insert:
+    - id: dsh-wiki
+      name: 'dsh-wiki'

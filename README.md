@@ -1,6 +1,13 @@
-# dsh-hyper-mode · 增强创造模式
+# dsh-hyper-mode · 增强创造模式 + 岗位 + Wiki
 
-给 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）的**模式集 bundle**：一个包里聚合多个即插即用插件，装一次即可在会话里选到所有模式。
+给 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）的扩展集合。仓库里有两个**可独立安装**的 bundle：
+
+| Bundle | 目录 | 提供什么 |
+|---|---|---|
+| `@chrock-studio/dsh-hyper-mode` | 仓库根 | 增强创造模式 + 独立组件（岗位制编排、`/hyper-skill`、工具编目） |
+| `dsh-wiki` | `dsh-wiki/` | 约定优先的 Markdown wiki：Agent 工具 + 草稿审批面板 + 每作用域 git 历史 |
+
+两者不共享代码，只通过文件约定互操作（岗位的「岗位指导」引用 wiki 页面，培训员的报告写成 wiki 草稿）。
 
 ## 插件地图
 
@@ -11,6 +18,7 @@
 | **hyper-teams**（空壳） | `@chrock-studio/dsh-hyper-mode/hyper-teams` | **独立组件**（顶层行，Host 作用域）：对所有会话生效，可在 Plugin Manager 单独启用/禁用。仅塞一个提示词标记，验收后可删 |
 | **tool-catalog**（检视修复） | `@chrock-studio/dsh-hyper-mode/tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
 | **hyper-skills**（`/hyper-skill` 命令） | `@chrock-studio/dsh-hyper-mode/hyper-skills`（补丁行用相对路径 `./plugins/hyper-skills/index.js`） | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
+| **hyper-roles**（岗位制编排） | `@chrock-studio/dsh-hyper-mode/hyper-roles`（补丁行用相对路径 `./plugins/hyper-roles/index.js`） | **独立组件**（顶层行，Host 作用域）：可编辑的角色卡 + 会话级岗位绑定 + `role` / `role_spawn` / `role_edit` + 一级面板；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
 
 ## 结构
 
@@ -24,9 +32,15 @@ dsh-hyper-mode/
 │  ├─ hyper-creator/     增强创造模式插件（执行器 + 路由策略 + skill + locale + 文档 + 测试）
 │  │  └─ skills/         随插件发布、由预设加载或按需安装的 skill
 │  ├─ hyper-skills/      /hyper-skill 命令插件（Host 作用域：按需安装随包 skill）
+│  ├─ hyper-roles/       岗位制编排（角色卡/绑定/工具/面板）
+│  │  └─ package.json    嵌套包：只声明面板的 dsh.client（见下文「为什么是嵌套包」）
 │  ├─ tool-catalog/      检视修复插件（Host 作用域：ToolCatalog provider）
 │  └─ shared/            跨插件共享代码（shipped 解析器）
-└─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
+├─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
+└─ dsh-wiki/             第二个 bundle（独立包，自带 package.json / patch / client）
+   ├─ lib/               页面、草稿、链接、检索、git、路由、工具
+   ├─ client/client.js   手写浏览器模块：页面树 + 编辑 + 草稿 diff + 反链
+   └─ skills/            随包 skill：写草稿后如何请人批准
 ```
 
 **聚合点是 `cordis.patch.yml`，不是 `index.js`**：DSH 按补丁里的行挂载插件，根目录导出它们并不会自动生效。
@@ -40,21 +54,120 @@ dsh-hyper-mode/
 
 ## 安装
 
+两个包分别安装，互不依赖：
+
 ```bash
+# 模式集 + 岗位
 plugin_manager action=install_bundle target=<本仓库绝对路径>
+
+# wiki（可选）
+plugin_manager action=install_bundle target=<本仓库绝对路径>/dsh-wiki
 ```
 
-装完新建会话，模式选「增强创造模式」。
+装完新建会话，模式选「增强创造模式」；侧栏会出现「岗位」，装了 wiki 后再多一个「Wiki」入口。
 
-回滚：`plugin_manager action=remove_bundle target=@chrock-studio/dsh-hyper-mode`
+回滚：`plugin_manager action=remove_bundle target=@chrock-studio/dsh-hyper-mode` / `target=dsh-wiki`
+
+## 岗位制编排（hyper-roles）
+
+把「团队岗位」变成会话里可用的东西：一张可编辑的角色卡、一个 durable 的身份绑定、一个按岗位委派的工具，以及一个编辑面板。
+
+### 数据在哪
+
+| 作用域 | 位置 | 可见性 |
+|---|---|---|
+| 全局 | `${DSH_HOME:-~/.dsh}/roles/` | 所有会话 |
+| 项目 | `<项目根>/.dsh/roles/` | 仅该项目；同名岗位覆盖全局 |
+| 随包 | `plugins/hyper-roles/roles/` | 只读，可复制到任一作用域 |
+
+每个岗位是三个文件：`<id>.md`（角色卡）、`<id>.notes.md`（经验，追加式）、`<id>.guide.md`（岗位指导）。写入都会追加一行到同目录的 `CHANGELOG.md`，归档进 `.archive/`，不删除。
+
+### 角色卡
+
+```markdown
+---
+id: reviewer
+title: 代码评审员
+version: 3
+capabilities: 静态分析, 风险识别
+skills: dsh-bundle-authoring
+handoffs: implementer, architect
+can: edit-roles
+---
+## 职责
+（首段会被摘进子代理每一步看到的紧凑卡片）
+## 工作方式
+## 交互对象
+## 完成标准
+```
+
+`version` 由保存动作维护，同时作为乐观锁：面板和工具都带 `expectedVersion`，读到旧版本会要求重读而不是覆盖。
+
+### 岗位怎么绑定到一次会话
+
+- `role_spawn` 把 `<!-- role:<id> -->` 写在子代理任务的第一行；
+- 插件用 session projection 从会话日志里折叠出「这个会话的岗位」，所以 resume / fork / 重放都还在；
+- 人手敲同一行也能给一个普通会话绑岗位。
+
+绑定之后，每一步系统提示里都有一段紧凑的「你的岗位」（职责首段 / 能力 / 交接 / 经验条数），取的是磁盘上的最新卡片——改了岗位不用重开子代理。
+
+### 三个工具
+
+| 工具 | 用途 |
+|---|---|
+| `role` | `brief`（默认）读自己的卡；`list` 看目录；`read` 读指定岗位；`skill` 加载岗位声明的技能正文；`note` 记一条经验；`notes` 在全部岗位经验里按关键词找（借鉴别的岗位的做法）；`guide` 读/写岗位指导 |
+| `role_spawn` | 按岗位委派：自动把岗位卡片写进子代理任务开头，并绑定岗位 |
+| `role_edit` | `create` / `update` / `archive`。未绑定岗位的调用者，或带 `can: edit-roles` 的岗位才能写；写入带版本校验 |
+
+### 面板
+
+侧栏「岗位」→ 一级页面：作用域切换（项目/全局）、岗位列表（标出覆盖全局）、字段与正文编辑、岗位指导、经验列表与追加、归档、复制岗位提示词、随包岗位复制。
+
+### 培训员
+
+`plugins/hyper-roles/roles/trainer.md` 是随包岗位，`skills/role-training/SKILL.md` 是同一套 playbook 的 skill 版。它以**根会话**运行（默认委派深度为 1，子代理拉不起同级），流程是：定框架 → 并行 `role_spawn` → 三栏对照 → `send_message` 交叉回灌 → 各岗位写经验 → 报告落成 wiki 草稿。
+
+### 可调项
+
+没有导出 `Config`（链接安装的 bundle 无法静态 import schemastery），可调项在 `<DSH_HOME>/roles/config.json`，面板的配置接口也能改：
+
+```json
+{ "provider": "spawn", "maxRosterRoles": 20, "briefMaxChars": 6000,
+  "selfSectionMaxChars": 1200, "rosterSection": true, "notesShown": 3 }
+```
+
+### 为什么面板的客户端是嵌套包
+
+`dsh-client-modules` 对**同一个包出现多个活跃 Loader 来源**会直接报错。本 bundle 已有四行来自同一个包，所以面板的 `dsh.client` 必须挂在独立清单上：`plugins/hyper-roles/package.json`（包名 `@chrock-studio/dsh-hyper-roles`）。`locatePkgJson` 会从行模块向上取最近的 `package.json`，因此只有 `hyper-roles` 这一行认领它。
+
+验收步骤见 `plugins/hyper-roles/VERIFY.md`。
+
+## Wiki（dsh-wiki）
+
+一个**约定优先**的知识库：`<作用域>/wiki/` 下是普通 Markdown 页面，`<作用域>/wiki/drafts/` 下是镜像草稿，`<作用域>/wiki.md` 是写给任何 Agent 看的契约。插件只做三件事——校验约定、把草稿 diff 摆到人面前、把确认做成一次点击；插件坏掉或换编辑器，内容照样可读。
+
+| 维度 | 行为 |
+|---|---|
+| 作用域 | 全局 `$DSH_HOME/wiki`、项目 `<项目根>/.dsh/wiki`，两库独立、同名互不影响 |
+| 页面 | frontmatter `title` / `tags` / `status` / `updated`；相对路径即 id（支持中文目录） |
+| 写入 | Agent 只写 `drafts/`（`draft:` 段记录状态、作者、基线哈希、打回理由）；批准、打回、删除、重命名是人 |
+| 冲突 | 草稿基线哈希与当前页面不一致时阻止批准，需显式强制覆盖 |
+| 链接 | 只支持相对 Markdown 链接；反链由插件扫描得出（不支持 `[[ ]]`） |
+| 检索 | 零依赖，只匹配标题 / 标签 / 文件名，正文由 Agent 直接读 |
+| 历史 | 仅全局库：首次使用时 `git init`，批准/删除/重命名后自动提交；项目库不碰 git |
+| 面板 | 侧栏「Wiki」→ 页面树 + 源码编辑 + 纯文本预览 + 反链 + 草稿 diff + 待审角标 |
+
+工具只有一个 `wiki`，动作为 `list` / `search` / `read` / `draft` / `status` / `backlinks`，**没有批准权限**。完整说明见 `dsh-wiki/README.md`。
 
 ## 验证
 
 ```bash
-bun test                                # 全部：hyper-creator（执行器/策略）+ tool-catalog（provider 接线）
+bun test                                                     # 全部单元测试
+ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-roles.mjs   # 岗位：真实 Host 装配
+ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki：真实 Host 装配
 ```
 
-端到端验收用例见 `plugins/hyper-creator/VERIFY.md`，建造过程见 `docs/NOTES.md`。
+端到端验收用例见 `plugins/hyper-creator/VERIFY.md`、`plugins/hyper-roles/VERIFY.md`、`dsh-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
 
 ## 随包发布的技能
 
@@ -65,10 +178,13 @@ bun test                                # 全部：hyper-creator（执行器/策
 | **预设预挂**（`hyper-creator` 的 `skill-filesystem.customSkillDirs`） | 只在「增强创造模式」的会话 | 改这一行要**重启 DSH**（preset 行属 `unmanaged-plugin`） |
 | **`/hyper-skill` 按需安装**（Host 行 `hyper-skills`） | 所有模式 | 命令把链接写进扫描根，下一步自动进编目，**不用重启** |
 
-| skill | 用途 |
-|---|---|
-| `dsh-preset-authoring` | 新建或改造 agent 预设：放置决策、从基线派生、写声明、挂 skill 目录、验收 |
-| `dsh-bundle-authoring` | bundle 的模块解析，以及「装上了但加载不了」的排查清单 |
+| skill | 来源 | 用途 |
+|---|---|---|
+| `dsh-preset-authoring` | hyper-creator | 新建或改造 agent 预设：放置决策、从基线派生、写声明、挂 skill 目录、验收 |
+| `dsh-bundle-authoring` | hyper-creator | bundle 的模块解析，以及「装上了但加载不了」的排查清单 |
+| `role-training` | hyper-roles | 组织一次岗位交叉培训：定框架、并行分析、交叉回灌、经验落袋、报告成文 |
+
+`dsh-wiki` 还自带一个 skill：`wiki-draft-review`。它在插件加载时通过 `ctx.skills.register()` 注册为运行时技能（不走文件扫描根），只在装了 wiki 的组合里出现。
 
 在任意会话里直接敲（人类命令，不进模型消息、不占 token）：
 

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Hyper mode bundle",
-    "description": "Bundles the enhanced creative mode preset (增强创造模式) with its hybrid tool executor: one agent can call tools directly and also reach the same tools as program bindings inside run_code. Start a new session and pick 增强创造模式 in the mode menu."
+    "description": "A DeepSeek Harness bundle of plug-and-play plugins: the hyper-creator mode and role-based orchestration (hyper-roles)."
   }
 }

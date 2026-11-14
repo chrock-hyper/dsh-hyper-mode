@@ -216,3 +216,41 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" …  # 模�
 理由是本仓库的坑几乎都来自「凭记忆写插件契约」：加载器把导入失败吞成 `never started`（坑 2）、`exports` 被进程级缓存（坑 5）、preset 行的配置冻结在会话组合里（坑 3/4）。这些规则随 DSH 版本变化，`dsh-doc` 是随安装发布的那份事实，记忆里的那份不是。
 
 文本落在 `lib/policy.js` 的 `HYBRID_INSTRUCTION`（order 800，在各工具专属段落之前），`policy.test.js` 断言它还在。注意它在 preset 行里，属于 `unmanaged-plugin`：改完重载返回 `restart-required`，要重启 DSH 才进提示词。
+
+## 11. 一个 bundle 里的第二块客户端：多来源限制
+
+给 `hyper-roles` 加面板时，最直觉的做法是在根 `package.json` 加 `dsh.client`。这会**让整个 bundle 起不来**。
+
+`dsh-client-modules` 的 `reconcilePackage` 会把「同一个包名」的所有活跃 Loader 来源收在一起，出现两个就抛：
+
+```
+client-modules: package @chrock-studio/dsh-hyper-mode resolves from multiple active Loader sources:
+  "./plugins/hyper-skills/index.js" from file://…, "./plugins/hyper-roles/index.js" from file://…; remove one entry
+```
+
+本 bundle 有四行来自同一个包（hyper-teams / tool-catalog / hyper-skills / preset 里的 hyper-creator），所以根包上永远不能声明 `dsh.client`。
+
+**做法**：把客户端挂到一个嵌套清单 `plugins/hyper-roles/package.json`（包名 `@chrock-studio/dsh-hyper-roles`，只声明 `exports["./client"]` 与 `dsh.client`）。`locatePkgJson → nearestPackage` 会从行模块向上找**最近**的 `package.json`，因此只有 `hyper-roles` 这一行认领这个包，冲突消失。
+
+顺带确认了三点：
+
+| 事实 | 位置 |
+|---|---|
+| 路径式行（`./plugins/x.js`）会从模块向上找最近的包清单 | `dsh-client-modules/src/index.ts:931-992` |
+| 同一个包出现多个活跃来源 → 抛错 | 同上 `reconcilePackage` |
+| 嵌套包不需要被安装：清单从磁盘读，client 文件按 `dirname(pkgPath)+exports["./client"]` 提供 | 同上 `resolveMeta` |
+
+## 12. 岗位绑定：为什么是 projection 而不是旁存文件
+
+岗位身份要能扛住 resume / fork / 重放，所以它必须来自**会话日志**。三条路都比想象中窄：
+
+1. `session.snapshotEvents()` / `ownEvents()` 已标记 deprecated，新代码禁用；
+2. 自建 JSON 绑定表不受重放保护，fork 出来的子代理会丢身份；
+3. 写新事件类型会污染会话格式（`appendPluginRecord` 只对 DSH 自家实验包开放）。
+
+最终形态：委派时在子代理首条消息里写 `<!-- role:<id> -->`，插件注册一个 host-only 的 session projection 折叠它。两个细节值得记：
+
+- `ProjectionDefinition.stateSchema` 的运行时契约只需要 `{ parse(value) }`（`dsh-session-projection/src/index.ts:216` 的注册入口按结构接收），所以一个 6 行校验器就够，不必为了 schema 把 zod 塞进一个零依赖 bundle；
+- 投影状态必须同步、纯、且是纯 JSON；未命中事件要返回**同一个引用**，否则每一步都会产生下游工作。
+
+提示词段落拿 `context.agent`（`AssembleContext.agent` 由 `dsh-agent` 合并声明），每次装配读一次磁盘卡片（按需可再加 mtime 缓存），于是「改岗位 → 下一步生效」，不用重开子代理。

@@ -23,6 +23,13 @@
     # 也不需要重启（exports 里仍保留该子路径给外部消费者）。
     - id: hyper-skills
       name: ./plugins/hyper-skills/index.js
+    # 岗位制编排：角色卡 + 身份绑定 + 按岗位委派 + 面板。
+    # 与 hyper-skills 同样用相对路径：新增行不必等 Node 的 exports 进程级缓存失效。
+    # 面板的浏览器半边挂在 plugins/hyper-roles/package.json（独立嵌套包）上：
+    # client-modules 对同一个包出现多个活跃来源会直接抛错，而本 bundle 已有四行
+    # 来自同一个包。
+    - id: hyper-roles
+      name: ./plugins/hyper-roles/index.js
     - id: preset-hyper-creator
       name: '@deepseek-ai/dsh-agent-preset'
       config:

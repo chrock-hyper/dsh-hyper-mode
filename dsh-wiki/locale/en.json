@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Wiki",
+    "description": "Convention-first Markdown wiki: a `wiki` tool for agents, a draft review panel for you, and per-scope git history for the global store.",
+    "detail": "docs/DETAIL.md"
+  }
+}
