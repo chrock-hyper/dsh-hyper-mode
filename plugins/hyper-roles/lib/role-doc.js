@@ -17,6 +17,8 @@
 export const ROLE_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
 /** Capability grants a role may carry in its `can` field. */
 export const GRANTS = ['edit-roles', 'train']
+/** A routed model reference: `model` or `provider/model`, with the characters real model ids carry. */
+export const MODEL_REF = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/
 
 /** Frontmatter keys in canonical serialization order. */
 const LIST_KEYS = ['capabilities', 'skills', 'handoffs', 'can']
@@ -41,7 +43,12 @@ export function parseRoleDoc(text) {
     throw new Error(`role "${id}" has an invalid version "${versionText}"`)
   }
 
-  const fields = { id, title, version }
+  const model = (scalar(raw.model) ?? '').trim()
+  if (model !== '' && !MODEL_REF.test(model)) {
+    throw new Error(`role "${id}" has an invalid model "${model}" (use model or provider/model)`)
+  }
+
+  const fields = { id, title, version, model }
   for (const key of LIST_KEYS) fields[key] = parseList(scalar(raw[key]))
   for (const grant of fields.can) {
     if (!GRANTS.includes(grant)) throw new Error(`role "${id}" declares unknown grant "${grant}"`)
@@ -60,6 +67,7 @@ export function parseRoleDoc(text) {
 export function serializeRoleDoc(card) {
   const fields = normalizeFields(card.fields)
   const lines = ['---', `id: ${fields.id}`, `title: ${quoteIfNeeded(fields.title)}`, `version: ${fields.version}`]
+  if (typeof fields.model === 'string' && fields.model !== '') lines.push(`model: ${quoteIfNeeded(fields.model)}`)
   for (const key of LIST_KEYS) {
     if (fields[key].length > 0) lines.push(`${key}: ${fields[key].join(', ')}`)
   }
@@ -81,7 +89,12 @@ export function normalizeFields(input) {
   if (title === '') throw new Error(`role "${id}" needs a title`)
   const version = input?.version === undefined ? 1 : Number(input.version)
   if (!Number.isSafeInteger(version) || version < 1) throw new Error(`invalid version for role "${id}"`)
-  const fields = { id, title, version }
+  const model = String(input?.model ?? '').trim()
+  if (model !== '' && !MODEL_REF.test(model)) {
+    throw new Error(`role "${id}" has an invalid model "${model}" (use model or provider/model)`)
+  }
+
+  const fields = { id, title, version, model }
   for (const key of LIST_KEYS) fields[key] = unique(parseList(input?.[key]))
   for (const grant of fields.can) {
     if (!GRANTS.includes(grant)) throw new Error(`role "${id}" declares unknown grant "${grant}"`)

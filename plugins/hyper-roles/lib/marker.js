@@ -68,6 +68,7 @@ export function renderCard(card, options = {}) {
   if (fields.skills.length > 0) lines.push(`技能：${fields.skills.join('、')}`)
   if (fields.handoffs.length > 0) lines.push(`交接：${fields.handoffs.join('、')}`)
   if (fields.can.length > 0) lines.push(`权限：${fields.can.join('、')}`)
+  if (typeof fields.model === 'string' && fields.model !== '') lines.push(`模型：${fields.model}`)
   lines.push('', '---', '', clip(String(card.body ?? '').trim(), Math.floor(budget * 0.6)))
   const notes = options.notes ?? []
   if (notes.length > 0) {
@@ -103,6 +104,9 @@ export function renderBrief(card, options = {}) {
   if (fields.capabilities.length > 0) lines.push('', `能力：${fields.capabilities.join('、')}`)
   if (fields.skills.length > 0) {
     lines.push('', `技能：${fields.skills.join('、')}（用 \`role\` 的 action=skill 读取全文）`)
+  }
+  if (typeof fields.model === 'string' && fields.model !== '') {
+    lines.push('', `模型：${fields.model}（本次委派按这个路由启动）`)
   }
   if (fields.handoffs.length > 0) {
     lines.push('', `交接对象：${fields.handoffs.join('、')}（需要他们接手时用 \`role_spawn\`）`)

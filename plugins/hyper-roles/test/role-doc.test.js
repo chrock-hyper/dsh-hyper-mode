@@ -94,3 +94,27 @@ describe('parseList', () => {
     expect(parseList(undefined)).toEqual([])
   })
 })
+
+describe('model routing field', () => {
+  test('reads provider/model, a bare model, and defaults to empty', () => {
+    expect(parseRoleDoc('---\nid: cheap\ntitle: 苦力\nmodel: opencode-go/deepseek-v4.1-flash\n---\n').fields.model)
+      .toBe('opencode-go/deepseek-v4.1-flash')
+    expect(parseRoleDoc('---\nid: bare\ntitle: 裸模型\nmodel: gpt-x\n---\n').fields.model).toBe('gpt-x')
+    expect(parseRoleDoc('---\nid: plain\ntitle: 普通\n---\n').fields.model).toBe('')
+  })
+
+  test('round-trips a routed model and omits the line when unset', () => {
+    const routed = serializeRoleDoc({
+      fields: normalizeFields({ id: 'cheap', title: '苦力', model: 'opencode-go/deepseek-v4.1-flash' }),
+      body: '',
+    })
+    expect(routed).toContain('model: opencode-go/deepseek-v4.1-flash')
+    expect(parseRoleDoc(routed).fields.model).toBe('opencode-go/deepseek-v4.1-flash')
+    expect(serializeRoleDoc({ fields: normalizeFields({ id: 'plain', title: '普通' }), body: '' }))
+      .not.toContain('model:')
+  })
+
+  test('rejects a value that cannot be a route reference', () => {
+    expect(() => normalizeFields({ id: 'bad', title: '坏', model: '带空格 的模型' })).toThrow(/invalid model/)
+  })
+})

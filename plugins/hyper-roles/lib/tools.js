@@ -286,6 +286,7 @@ export function buildRoleTools(options) {
         throw new Error(`子代理 provider "${provider}" 未载入，无法委派`)
       }
       const guide = readGuide(dirs, id)
+      const agentOptions = modelOptions(card.fields.model)
       const preamble = [
         bindLine(id),
         renderBrief(card, {
@@ -298,6 +299,7 @@ export function buildRoleTools(options) {
       const started = await subagents.startActivation({
         provider,
         label: String(args.description),
+        ...(agentOptions === undefined ? {} : { agentOptions }),
         ...(typeof args.name === 'string' && args.name !== '' ? { name: args.name } : {}),
         ...(typeof args.cwd === 'string' && args.cwd !== '' ? { cwd: args.cwd } : {}),
         prompt: [{ type: 'text', text: `${preamble}${String(args.prompt)}` }],
@@ -306,8 +308,9 @@ export function buildRoleTools(options) {
         signal: exec.signal,
         delivery: 'parent',
       })
+      const routed = agentOptions === undefined ? '' : `（model ${card.fields.model}）`
       return {
-        text: `started subagent ${started.name} in role ${id}`,
+        text: `started subagent ${started.name} in role ${id}${routed}`,
         kind: 'activation',
         name: started.name,
         role: id,
@@ -341,6 +344,11 @@ export function buildRoleTools(options) {
       skills: { type: 'string', description: '该岗位常用的技能名，逗号分隔。' },
       handoffs: { type: 'string', description: '交接对象岗位 id，逗号分隔。' },
       can: { type: 'string', description: '权限授予，逗号分隔：edit-roles、train。' },
+      model: {
+        type: 'string',
+        description: '该岗位委派时使用的模型，写 provider/model（如 opencode-go/deepseek-v4.1-flash）；'
+          + '省略则继承父代理的默认路由。传空字符串表示清除。',
+      },
       expected_version: { type: 'number', description: 'update 时的乐观锁：读到的 version，不匹配则失败。' },
     },
     output: { schema: TEXT_OUTPUT, render: (_args, value) => [{ type: 'text', text: value.text }] },
@@ -366,6 +374,7 @@ export function buildRoleTools(options) {
             skills: parseList(args.skills),
             handoffs: parseList(args.handoffs),
             can: parseList(args.can),
+            ...(typeof args.model === 'string' ? { model: args.model } : {}),
           },
         })
         return { text: `已创建岗位 ${card.fields.id} · ${card.fields.title}（${scopeLabel(card.scope)}作用域，v${card.fields.version}）` }
@@ -385,6 +394,7 @@ export function buildRoleTools(options) {
               ...(args.skills === undefined ? {} : { skills: parseList(args.skills) }),
               ...(args.handoffs === undefined ? {} : { handoffs: parseList(args.handoffs) }),
               ...(args.can === undefined ? {} : { can: parseList(args.can) }),
+              ...(args.model === undefined ? {} : { model: String(args.model) }),
             },
           })
           return { text: `已保存岗位 ${card.fields.id}（${scopeLabel(card.scope)}作用域，v${card.fields.version}）` }
@@ -409,6 +419,25 @@ export function buildRoleTools(options) {
   })
 
   return [roleTool, spawnTool, editTool]
+}
+
+/**
+ * Translate a card's `model` field into the runtime's agent options.
+ *
+ * `provider/model` names both halves; a bare `model` pins only the model and
+ * lets the runtime resolve its provider from the default route.
+ * @param ref - the card's model field, possibly absent or empty.
+ * @returns agent options, or undefined when the card pins no model.
+ */
+export function modelOptions(ref) {
+  if (typeof ref !== 'string') return undefined
+  const text = ref.trim()
+  if (text === '') return undefined
+  const slash = text.indexOf('/')
+  if (slash > 0 && slash < text.length - 1) {
+    return { provider: text.slice(0, slash), model: text.slice(slash + 1) }
+  }
+  return { model: text }
 }
 
 /**

@@ -41,6 +41,7 @@ window.__ModuleLoader__.load({
       skills: '技能（逗号分隔）',
       handoffs: '交接对象（岗位 id，逗号分隔）',
       can: '权限（edit-roles / train）',
+      model: '模型（provider/model，留空继承默认路由）',
       body: '正文（Markdown）',
       guide: '岗位指导：指向 wiki 页面与阅读顺序',
       guideSave: '保存指导',
@@ -93,6 +94,7 @@ window.__ModuleLoader__.load({
       skills: 'Skills (comma separated)',
       handoffs: 'Handoffs (role ids)',
       can: 'Grants (edit-roles / train)',
+      model: 'Model (provider/model, blank inherits the default route)',
       body: 'Body (Markdown)',
       guide: 'Reading guide: wiki pages and order',
       guideSave: 'Save guide',
@@ -171,6 +173,7 @@ window.__ModuleLoader__.load({
         skills: Array.isArray(fields.skills) ? [...fields.skills] : [],
         handoffs: Array.isArray(fields.handoffs) ? [...fields.handoffs] : [],
         can: Array.isArray(fields.can) ? [...fields.can] : [],
+        model: typeof fields.model === 'string' ? fields.model : '',
         body: body || '',
       }
     }
@@ -342,6 +345,7 @@ window.__ModuleLoader__.load({
           || !sameList(form.skills, original.skills)
           || !sameList(form.handoffs, original.handoffs)
           || !sameList(form.can, original.can)
+          || form.model !== original.model
           || form.body !== original.body
       }, [doc, form])
 
@@ -363,6 +367,7 @@ window.__ModuleLoader__.load({
                 skills: form.skills,
                 handoffs: form.handoffs,
                 can: form.can,
+                model: form.model,
               },
               body: form.body,
               expectedVersion: doc.revision,
@@ -574,6 +579,11 @@ window.__ModuleLoader__.load({
                 onChange: setList('can'),
                 suggestions: ['edit-roles', 'train'],
                 placeholder: 'edit-roles / train',
+              }),
+              h(Field, {
+                label: t('model'),
+                value: form.model,
+                onChange: setField('model'),
               }),
             ),
             h('textarea', { className: 'hr-textarea hr-body', value: form.body, onChange: setField('body') }),

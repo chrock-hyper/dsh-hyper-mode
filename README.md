@@ -110,6 +110,7 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 id: reviewer
 title: 代码评审员
 version: 3
+model: opencode-go/deepseek-v4.1-flash
 capabilities: 静态分析, 风险识别
 skills: dsh-bundle-authoring
 handoffs: implementer, architect
@@ -124,6 +125,8 @@ can: edit-roles
 
 `version` 由保存动作维护，同时作为乐观锁：面板和工具都带 `expectedVersion`，读到旧版本会要求重读而不是覆盖。
 
+`model` 是这一行的**薪酬**：`role_spawn` 按它给子代理指定路由，写 `provider/model`（如 `opencode-go/deepseek-v4.1-flash`）或裸 `model`；省略则继承父代理的默认路由。它只影响委派，不影响这张卡在提示词里的渲染体积（只在 `role` 读卡与委派简报里各多一行）。可用的子代理路由由设置里的「子代理委派」决定，用 `list_subagent_models` 查；写了一个不存在的路由时，委派会在启动那一刻失败，而不是静默降级。
+
 ### 岗位怎么绑定到一次会话
 
 - `role_spawn` 把 `<!-- role:<id> -->` 写在子代理任务的第一行；
@@ -137,7 +140,7 @@ can: edit-roles
 | 工具 | 用途 |
 |---|---|
 | `role` | `brief`（默认）读自己的卡；`list` 看目录；`read` 读指定岗位；`skill` 加载岗位声明的技能正文；`note` 记一条经验；`notes` 在全部岗位经验里按关键词找（借鉴别的岗位的做法）；`guide` 读/写岗位指导 |
-| `role_spawn` | 按岗位委派：自动把岗位卡片写进子代理任务开头，并绑定岗位 |
+| `role_spawn` | 按岗位委派：自动把岗位卡片写进子代理任务开头，并绑定岗位；卡片带 `model` 时按该路由启动 |
 | `role_edit` | `create` / `update` / `archive`。未绑定岗位的调用者，或带 `can: edit-roles` 的岗位才能写；写入带版本校验 |
 
 ### 面板

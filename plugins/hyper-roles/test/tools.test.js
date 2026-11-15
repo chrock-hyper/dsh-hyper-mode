@@ -222,3 +222,21 @@ describe('store integration', () => {
     expect(saved.fields.version).toBeGreaterThan(1)
   })
 })
+
+describe('role_spawn model routing', () => {
+  test('passes a provider/model card field to the activation as agent options', async () => {
+    ensureRole('routed', '外包岗', { model: 'opencode-go/deepseek-v4.1-flash' })
+    const { byName, activations } = toolsFor(undefined)
+    const result = await byName.role_spawn.execute({ role: 'routed', description: '外包一段', prompt: '写点东西' }, exec)
+    expect(activations[0].agentOptions).toEqual({ provider: 'opencode-go', model: 'deepseek-v4.1-flash' })
+    expect(result.text).toContain('deepseek-v4.1-flash')
+    expect(activations[0].prompt[0].text).toContain('模型：opencode-go/deepseek-v4.1-flash')
+  })
+
+  test('leaves agent options unset when the card pins no model', async () => {
+    ensureRole('unrouted', '普通岗')
+    const { byName, activations } = toolsFor(undefined)
+    await byName.role_spawn.execute({ role: 'unrouted', description: '普通一段', prompt: '做点事' }, exec)
+    expect(activations[0].agentOptions).toBeUndefined()
+  })
+})
