@@ -319,7 +319,9 @@ export function buildRoleTools(options) {
     name: 'role_edit',
     description:
       '新建、修改或归档一个岗位。岗位是团队协作的持久约定，动它之前先读一遍现有卡片；'
-      + '保存采用版本校验，读到的版本已变时会要求重读，避免覆盖别人的修改。',
+      + '保存采用版本校验，读到的版本已变时会要求重读，避免覆盖别人的修改。'
+      + '要写一张新卡或重写旧卡前，先加载 role-authoring 技能（role action=skill skill=role-authoring，'
+      + '未安装时用 /hyper-skill install role-authoring）：它给了提问协议与卡片结构，不要凭想象直接写。',
     parameters: {
       action: {
         type: 'string',

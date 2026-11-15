@@ -73,13 +73,13 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 |---|---|---|
 | 全局 | `${DSH_HOME:-~/.dsh}/roles/` | 所有会话 |
 | 项目 | `<项目根>/.dsh/roles/` | 仅该项目；同名岗位覆盖全局 |
-| 随包 | `plugins/hyper-roles/roles/` | 只读，可复制到任一作用域 |
+| 随包 | `plugins/hyper-roles/roles/` | 只读模板；面板里显示「复制到本项目 / 全局」，是否复制由用户决定 |
 
 每个岗位是三个文件：`<id>.md`（角色卡）、`<id>.notes.md`（经验，追加式）、`<id>.guide.md`（岗位指导）。写入都会追加一行到同目录的 `CHANGELOG.md`，归档进 `.archive/`，不删除。
 
 ### 预设岗位
 
-随包带了五个岗位，复制到全局或项目即可用（`role` 面板的「随包岗位」列表里一键复制）：
+随包带了五个岗位，**只存在于插件目录里**；面板的「随包岗位」列表会把它们列出来，复制到全局或项目之后才可编辑（复制是用户主动动作，不会自动落盘）：
 
 | 岗位 | id | 在流程里做什么 | 交给谁 |
 |---|---|---|---|
@@ -100,6 +100,8 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 ```
 
 秘书不做专业判断，专家不直接对用户；这条边界写在每张卡里，也决定了两两之间的 `handoffs`。
+
+要改这些卡、或给团队加新岗位，先让 Agent 装上 `role-authoring` 技能（`/hyper-skill install role-authoring`）：它会按「五问 + 按缺口追问」的协议向你收集信息，再落成卡片。写卡的方法本身就是这套预置岗位的产出过程。
 
 ### 角色卡
 
@@ -204,6 +206,7 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki�
 | `dsh-preset-authoring` | hyper-creator | 新建或改造 agent 预设：放置决策、从基线派生、写声明、挂 skill 目录、验收 |
 | `dsh-bundle-authoring` | hyper-creator | bundle 的模块解析，以及「装上了但加载不了」的排查清单 |
 | `role-training` | hyper-roles | 组织一次岗位交叉培训：定框架、并行分析、交叉回灌、经验落袋、报告成文 |
+| `role-authoring` | hyper-roles | 用一轮结构化提问把职责、边界、输入输出、决策权问清，再写成可执行的岗位卡并校验 |
 
 `hyper-wiki` 还自带一个 skill：`wiki-draft-review`。它在插件加载时通过 `ctx.skills.register()` 注册为运行时技能（不走文件扫描根），只在装了 wiki 的组合里出现。
 

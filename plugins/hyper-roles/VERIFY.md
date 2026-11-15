@@ -77,3 +77,12 @@ curl -s -b '<从浏览器复制的 cookie>' 'http://127.0.0.1:<port>/hyper-roles
 - 面板在真实浏览器里的视觉与交互（需要安装后人工过一遍；本仓库的单元测试只校验了模块格式与槽位注册）。
 - 子代理在 `maxDepth: 0` 的组合里调用 `role_spawn` 的报错文案（由 provider 返回）。
 - 岗位卡片很大（>6000 字符）时的截断体验。
+
+## 5. 写卡技能（role-authoring）
+
+1. `/hyper-skill` 列表里能看到 `role-authoring`（来源 hyper-roles）。
+2. `/hyper-skill install role-authoring` 之后，新会话的技能目录里有它。
+3. 在会话里说「帮我新建一个岗位」，Agent 应该先加载 `role-authoring`，然后**一次问五个问题**（服务对象、不做什么、输入输出、决策权、完成标准），而不是直接写卡。
+4. 回答后，Agent 用 `role_edit action=create` 落卡，并 `role action=read` 让你复核边界与完成标准。
+5. 卡片正文包含「职责 / 工作方式 / 交互对象 / 完成标准 / 反模式」五段，`handoffs` 与正文的交互对象一致。
+6. 随包岗位在面板里显示为只读模板：未复制时按钮是「复制到本项目 / 全局」，复制后才可编辑。
