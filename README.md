@@ -43,7 +43,9 @@ dsh-hyper-mode/
 │  ├─ tool-catalog/      检视修复插件（ToolCatalog provider）
 │  └─ shared/            跨插件共享代码（shipped 解析器、路径工具）
 ├─ scripts/              Host 冒烟检查：smoke-roles.mjs / smoke-wiki.mjs
-└─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
+├─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
+├─ docs/HANDOFF.md       交接：现状、下一个工单（看板 UI）与已核实的落点
+└─ AGENTS.md             本工作区的三条硬规矩
 ```
 
 **聚合点是 `cordis.patch.yml`，不是 `index.js`**：DSH 按补丁里的行挂载插件，根目录导出它们并不会自动生效。
