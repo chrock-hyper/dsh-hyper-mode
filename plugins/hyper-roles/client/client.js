@@ -56,6 +56,7 @@ window.__ModuleLoader__.load({
       reload: '重新载入',
       copyPrompt: '复制岗位提示词',
       copied: '已复制到剪贴板',
+      installed: '已安装',
       copyFailed: '复制失败，请手动选择',
       version: 'v',
       shadowed: '覆盖全局',
@@ -107,6 +108,7 @@ window.__ModuleLoader__.load({
       reload: 'Reload',
       copyPrompt: 'Copy role prompt',
       copied: 'Copied',
+      installed: 'installed',
       copyFailed: 'Copy failed; select the text manually',
       version: 'v',
       shadowed: 'overrides global',
@@ -624,17 +626,22 @@ window.__ModuleLoader__.load({
             ))),
         builtinRows.length === 0 ? null : h('div', { className: 'hr-builtins' },
           h('p', { className: 'hr-muted hr-pad' }, t('readonly')),
-          h('ul', { className: 'hr-rows' }, builtinRows.map((row) => h('li', { key: row.id, className: 'hr-row hr-row-builtin' },
-            h('span', { className: 'hr-row-title' }, row.title),
-            h('span', { className: 'hr-row-meta' }, row.id,
-              h('button', {
-                type: 'button',
-                className: 'hr-link',
-                onClick: () => copyBuiltin(row.id),
-                disabled: busy || (scope === 'project' && state.projectDir === null),
-              }, t('copyIn')),
-            ),
-          ))),
+          h('ul', { className: 'hr-rows' }, builtinRows.map((row) => {
+            const installed = rows.some((entry) => entry.id === row.id)
+            return h('li', { key: row.id, className: 'hr-row hr-row-builtin' },
+              h('span', { className: 'hr-row-title' }, row.title),
+              h('span', { className: 'hr-row-meta' }, row.id,
+                installed
+                  ? h('em', { className: 'hr-installed' }, t('installed'))
+                  : h('button', {
+                      type: 'button',
+                      className: 'hr-link',
+                      onClick: () => copyBuiltin(row.id),
+                      disabled: busy || (scope === 'project' && state.projectDir === null),
+                    }, t('copyIn')),
+              ),
+            )
+          })),
         ),
       )
 
@@ -739,6 +746,7 @@ window.__ModuleLoader__.load({
 .hr-row-title { font-weight:550; }
 .hr-row-meta { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); display:flex; gap:6px; align-items:center; }
 .hr-row-builtin { cursor:default; }
+.hr-installed { font-style:normal; font-size:10.5px; color:var(--dsw-alias-state-success-primary,#16a34a); }
 .hr-badge { font-style:normal; font-size:10px; padding:0 4px; border-radius:999px; border:1px solid var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
 .hr-builtins { margin-top:14px; border-top:1px dashed var(--dsw-alias-border-l1,#e5e7eb); padding-top:8px; }
 .hr-link { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); cursor:pointer; padding:0 2px; font-size:11px; }
