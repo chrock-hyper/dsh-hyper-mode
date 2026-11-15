@@ -12,7 +12,8 @@ import { readRole } from '../../hyper-roles/lib/store.js'
 
 import { parseOrder } from './order-doc.js'
 import { renderBoard, renderOrder, renderPulse } from './marker.js'
-import { createOrder, listOrders, orgDirs, readOrder, saveOrder, signOrder } from './store.js'
+import { createWithRules, explainCreate, signWithRules, updateWithRules } from './rules.js'
+import { listOrders, orgDirs, readOrder } from './store.js'
 
 /** Every result carries one model-facing text block. */
 const TEXT_OUTPUT = {
@@ -39,21 +40,6 @@ export function buildOrgTools(options) {
    * @returns a short identity label for logs.
    */
   const identityOf = (agent) => boundRoleOf(binding, agent) ?? 'lead'
-
-  /**
-   * Assert that a DRI names a role the company actually has.
-   * @param dirs - role scope directories.
-   * @param id - role id from the order.
-   * @returns the role card.
-   * @throws Error listing where to look instead.
-   */
-  const requireRole = (dirs, id) => {
-    const card = readRole(dirs, id)
-    if (card === undefined) {
-      throw new Error(`岗位 "${id}" 不存在；先建岗位，或用 role action=list 看现有岗位，再指派 DRI`)
-    }
-    return card
-  }
 
   const orderTool = defineTool({
     name: 'org_order',
@@ -93,31 +79,19 @@ export function buildOrgTools(options) {
       const by = identityOf(agent)
 
       if (action === 'create') {
-        const title = String(args.title ?? '').trim()
-        if (title === '') throw new Error('create 需要 title：一句话说清要交付什么')
-        if (typeof args.dri === 'string' && args.dri !== '') requireRole(roleDirs, args.dri)
-        const created = createOrder(dirs, {
+        const created = createWithRules(dirs, {
           scope: args.scope === 'global' || args.scope === 'project' ? args.scope : undefined,
-          title,
+          title: args.title,
           size: args.size,
-          dri: typeof args.dri === 'string' && args.dri !== '' ? args.dri : undefined,
-          acceptance: splitLines(args.acceptance),
-          note: typeof args.note === 'string' ? args.note : undefined,
+          dri: args.dri,
+          acceptance: args.acceptance,
+          note: args.note,
           by,
-          wipLimit: config.wipLimit,
-        })
+        }, { lookupRole: (id) => readRole(roleDirs, id), wipLimit: config.wipLimit })
         const lines = [
           `已建单 ${created.order.id} · ${created.order.title}（${created.order.stage}，${created.order.size}）`,
+          ...explainCreate(created),
         ]
-        if (created.reason === 'wip') {
-          lines.push(`在制已满 ${created.wipLimit} 张，这单排队在 intake；先关单再 update 到 active。`)
-        }
-        if (created.reason === 'acceptance') {
-          lines.push('这张单没有验收标准，M/L 规模不能直接进 active，已排队在 intake；补上 acceptance 再 update。')
-        }
-        if (created.order.acceptance.length === 0 && created.reason === undefined) {
-          lines.push('还没有验收标准：将来进 review 前要补上，否则签不了字。')
-        }
         return { text: lines.join('\n') }
       }
 
@@ -129,8 +103,7 @@ export function buildOrgTools(options) {
 
       if (action === 'update') {
         const found = requireOrderAt(dirs, args.id)
-        if (typeof args.dri === 'string' && args.dri !== '') requireRole(roleDirs, args.dri)
-        const saved = saveOrder(dirs, {
+        const saved = updateWithRules(dirs, {
           id: found.order.id,
           by,
           patch: {
@@ -138,28 +111,26 @@ export function buildOrgTools(options) {
             ...(args.title === undefined ? {} : { title: args.title }),
             ...(args.size === undefined ? {} : { size: args.size }),
             ...(args.dri === undefined ? {} : { dri: args.dri }),
-            ...(args.acceptance === undefined ? {} : { acceptance: splitLines(args.acceptance) }),
-            ...(args.artifacts === undefined ? {} : { artifacts: splitList(args.artifacts) }),
+            ...(args.acceptance === undefined ? {} : { acceptance: args.acceptance }),
+            ...(args.artifacts === undefined ? {} : { artifacts: args.artifacts }),
             ...(args.note === undefined ? {} : { note: args.note }),
           },
-        })
+        }, { lookupRole: (id) => readRole(roleDirs, id) })
         return { text: `已更新 ${saved.id}（${saved.stage}，${saved.size}）` }
       }
 
       if (action === 'sign') {
         const found = requireOrderAt(dirs, args.id)
-        const callerRole = boundRoleOf(binding, agent)
-        if (callerRole !== undefined && callerRole === found.order.dri) {
-          throw new Error(`工单 ${found.order.id} 的领取人是 ${callerRole}：验收不能由领取人自己签`)
-        }
-        if (typeof args.note !== 'string' || args.note.trim() === '') {
-          throw new Error('sign 需要 note：写清签收依据，或打回时要改哪一条')
-        }
-        const signed = signOrder(dirs, {
+        const signed = signWithRules(dirs, {
           id: found.order.id,
-          approved: args.approve === true,
+          approve: args.approve,
+          // The tool's sign always asks for a note, so a missing argument is an
+          // empty one: `undefined` means "nobody asked yet" to the rules.
+          note: args.note ?? '',
+          // `by` is the log label; only a real binding can be the order's own
+          // DRI, so an unbound caller never trips the self-sign check.
           by,
-          note: args.note.trim(),
+          role: boundRoleOf(binding, agent),
         })
         return { text: `${signed.id} ${args.approve === true ? '已签收 → done' : '已打回 → active'}（by ${by}）` }
       }
@@ -212,33 +183,13 @@ export function buildOrgTools(options) {
 }
 
 /**
- * Split a newline-separated argument into items.
+ * Parsers shared with the panel, re-exported at their historical path.
  *
- * Acceptance criteria are prose: "无构建、无网络，断网可玩" is ONE criterion,
- * so the Chinese comma must not split it. Only a line break starts a new one.
- * @param value - raw argument.
- * @returns trimmed, non-empty lines.
+ * `test/org-flow.test.js` imports `splitLines` from here, and the panel needs
+ * the same "only a line break separates criteria" rule; the definition lives in
+ * `rules.js` so there is one copy.
  */
-export function splitLines(value) {
-  if (typeof value !== 'string') return []
-  return value
-    .split(/\n/)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry !== '')
-}
-
-/**
- * Split a comma- or newline-separated argument into items.
- * @param value - raw argument.
- * @returns trimmed, non-empty items.
- */
-export function splitList(value) {
-  if (typeof value !== 'string') return []
-  return value
-    .split(/[,，\n]/)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry !== '')
-}
+export { splitLines, splitList } from './rules.js'
 
 /**
  * Parse an order file, exposed for tests that need the same rules.

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head><meta charset="utf-8"><title>preview · orders</title>
+<style>
+  :root { --dsw-alias-bg-base:#f4f5f7; --dsw-alias-bg-layer-1:#ffffff; --dsw-alias-bg-layer-2:#f8f9fb;
+    --dsw-alias-border-l1:#e5e7eb; --dsw-alias-border-l2:#d6dae1; --dsw-alias-label-primary:#1f2328;
+    --dsw-alias-label-secondary:#6b7280; --dsw-alias-brand-primary:#2563eb; --dsw-alias-state-error-primary:#dc2626;
+    --dsw-alias-state-warn-primary:#b45309; --dsw-alias-state-success-primary:#16a34a; }
+  html[data-theme="dark"] { --dsw-alias-bg-base:#15171b; --dsw-alias-bg-layer-1:#1c1f24; --dsw-alias-bg-layer-2:#22262c;
+    --dsw-alias-border-l1:#2b3037; --dsw-alias-border-l2:#3a4048; --dsw-alias-label-primary:#e6e8eb;
+    --dsw-alias-label-secondary:#9aa1ab; --dsw-alias-brand-primary:#6d9bff; --dsw-alias-state-error-primary:#f87171;
+    --dsw-alias-state-warn-primary:#fbbf24; --dsw-alias-state-success-primary:#4ade80; }
+  /* no global box-sizing: the panel must carry its own, as it does in the app. */
+  body { margin:0; background:var(--dsw-alias-bg-base); color:var(--dsw-alias-label-primary);
+    font:13px/1.55 -apple-system,"PingFang SC","Segoe UI",system-ui,sans-serif; height:100vh; overflow:hidden; }
+  .shell { display:grid; grid-template-columns:54px 232px minmax(0,1fr); height:100vh; }
+  .rail { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); }
+  .side { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); padding:12px 10px; }
+  .side div { height:28px; margin:4px 0; border-radius:6px; background:var(--dsw-alias-bg-layer-1); opacity:.6; }
+  .main { display:flex; flex-direction:column; min-width:0; }
+  .sesshead { background:var(--dsw-alias-bg-layer-1); border-bottom:1px solid var(--dsw-alias-border-l1); padding:14px 20px 0; }
+  .sesstop { display:flex; justify-content:space-between; color:var(--dsw-alias-label-secondary); font-size:11.5px; }
+  .sesstop b { color:var(--dsw-alias-label-primary); font-size:14px; font-weight:600; }
+  .tabs { display:flex; gap:4px; margin-top:10px; color:var(--dsw-alias-label-secondary); font-size:12.5px; }
+  .tabs span { padding:8px 10px 9px; border-bottom:2px solid transparent; }
+  .tabs .on { color:var(--dsw-alias-label-primary); border-bottom-color:var(--dsw-alias-brand-primary); font-weight:550; }
+  .viewArea { display:flex; flex:1; flex-direction:column; min-height:0; }
+</style>
+<style>
+.ho-root, .ho-root *, .ho-root *::before, .ho-root *::after { box-sizing:border-box; }
+.ho-root { display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0;
+  color:var(--dsw-alias-label-primary,#1f2328); background:var(--dsw-alias-bg-base,transparent);
+  font-size:13px; line-height:1.55; overflow:hidden; }
+.ho-banners { display:flex; flex-direction:column; gap:6px; padding:7px 14px; flex:none;
+  border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.ho-banner { display:flex; align-items:center; gap:8px; padding:4px 9px; border-radius:7px;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); font-size:11.5px; }
+.ho-banner-error { border-color:var(--dsw-alias-state-error-primary,#dc2626); color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-banner-ok { border-color:var(--dsw-alias-state-success-primary,#16a34a); color:var(--dsw-alias-state-success-primary,#16a34a); }
+.ho-banner-text { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.ho-cols { flex:1 1 auto; min-height:0; display:grid; grid-template-columns:248px minmax(0,1fr) 286px;
+  background:var(--dsw-alias-bg-layer-1,#fff); }
+.ho-col { min-height:0; overflow-y:auto; overflow-x:hidden; }
+.ho-list-col { border-right:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:0 8px 8px; }
+.ho-detail-col { padding:14px 16px 40px; }
+.ho-side { border-left:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:12px; display:flex; flex-direction:column; gap:10px; }
+.ho-list-head { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:8px 0 6px; background:var(--dsw-alias-bg-layer-1,#fff); }
+.ho-list-title { font-weight:600; }
+.ho-wip { display:flex; flex-direction:column; gap:2px; padding:4px 8px; margin-bottom:8px; font-size:11.5px;
+  color:var(--dsw-alias-label-secondary,#6b7280); border:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-wip-over { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-wip-warn { font-size:11px; }
+.ho-new { display:flex; align-items:center; justify-content:center; width:100%; padding:5px 8px; margin-bottom:8px;
+  border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb);
+  color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; cursor:pointer; }
+.ho-new:hover:not(:disabled) { border-color:var(--dsw-alias-brand-primary,#2563eb); color:var(--dsw-alias-brand-primary,#2563eb); }
+.ho-new:disabled { opacity:.45; cursor:default; }
+.ho-create { display:flex; flex-direction:column; gap:6px; padding:8px; margin-bottom:8px;
+  border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:8px; }
+.ho-create-acceptance { min-height:60px; }
+.ho-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.ho-seg-btn { flex:1; border:none; background:none; padding:3px 8px; border-radius:6px; font-size:12px;
+  color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
+.ho-seg-btn:disabled { opacity:.45; cursor:default; }
+.ho-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.ho-groups { display:flex; flex-direction:column; gap:6px; }
+.ho-group { border-radius:8px; }
+.ho-group-head { display:flex; align-items:center; gap:6px; width:100%; padding:5px 6px; border:none; background:none;
+  border-radius:6px; color:var(--dsw-alias-label-secondary,#6b7280); font-size:11.5px; font-weight:600;
+  letter-spacing:.02em; cursor:pointer; text-align:left; }
+.ho-group-head:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.ho-caret { width:10px; display:inline-block; }
+.ho-group-empty { margin:2px 0 4px 22px; font-size:11.5px; }
+.ho-rows { list-style:none; margin:0; padding:0; }
+.ho-row { display:flex; flex-direction:column; gap:2px; padding:7px 9px; border-radius:8px; cursor:pointer; }
+.ho-row:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.ho-row-on { background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 14%, var(--dsw-alias-bg-layer-1,#fff));
+  box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary,#2563eb); }
+.ho-row-title { font-weight:550; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.ho-row-meta { display:flex; gap:5px; align-items:center; flex-wrap:wrap; font-size:11px;
+  color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-row-age { color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-badge { font-style:normal; font-size:10px; padding:0 4px; border-radius:999px;
+  border:1px solid var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-problems { margin-bottom:8px; border:1px solid var(--dsw-alias-state-warn-primary,#d97706); border-radius:7px;
+  padding:4px 7px; font-size:11.5px; color:var(--dsw-alias-state-warn-primary,#d97706);
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-problems-head { border:none; background:none; color:inherit; font:inherit; cursor:pointer; padding:0; }
+.ho-problem-list { margin:4px 0 0; padding-left:16px; }
+.ho-problem-list li { word-break:break-all; }
+.ho-muted { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; }
+.ho-faint { color:var(--dsw-alias-label-secondary,#9aa1ab); font-size:11.5px; }
+.ho-pad { padding:8px; }
+.ho-hint { margin:4px 0; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-placeholder { margin:40px auto; color:var(--dsw-alias-label-secondary,#6b7280); text-align:center; }
+.ho-detail-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.ho-detail-title { margin:0; font-size:16px; font-weight:600; word-break:break-word; }
+.ho-mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
+.ho-meta { display:flex; gap:6px; flex-wrap:wrap; margin-top:3px; font-size:11px;
+  color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-item { display:grid; grid-template-columns:96px minmax(0,1fr); gap:10px; padding:7px 0;
+  border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb); }
+.ho-item-label { font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-item-body { min-width:0; }
+.ho-stage { font-weight:600; }
+.ho-stage-done { color:var(--dsw-alias-state-success-primary,#16a34a); }
+.ho-stage-blocked { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-stage-review { color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-acceptance { margin:0; padding-left:16px; }
+.ho-acceptance li { margin:1px 0; word-break:break-word; }
+.ho-warn-inline { margin:0; padding:4px 8px; border-radius:6px; font-size:11.5px;
+  border:1px solid var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706);
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-artifacts { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:3px; }
+.ho-artifact { display:flex; align-items:center; gap:6px; font-size:12px; }
+.ho-artifact-open { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); font:inherit; cursor:pointer; padding:0; text-align:left; }
+.ho-artifact-open:disabled { color:var(--dsw-alias-label-secondary,#9aa1ab); cursor:default; }
+.ho-artifact-open:disabled:hover { text-decoration:none; }
+.ho-artifact-open:hover:not(:disabled) { text-decoration:underline; }
+.ho-artifact-kind { font-size:10.5px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-artifact-missing .ho-artifact-kind, .ho-artifact-escape .ho-artifact-kind { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-link { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); cursor:pointer;
+  padding:0 2px; font-size:11px; }
+.ho-log { max-height:260px; overflow:auto; }
+.ho-log-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+.ho-log-list li { border-left:2px solid var(--dsw-alias-border-l2,#d1d5db); padding-left:7px; }
+.ho-log-meta { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-log-note { margin:1px 0 0; white-space:pre-wrap; word-break:break-word; }
+.ho-pre { margin:0; padding:10px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px;
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px; line-height:1.6; overflow:auto; max-height:calc(100% - 90px); }
+.ho-pre-wrap { white-space:pre-wrap; word-break:break-word; }
+.ho-card { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:9px; padding:9px 10px;
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-card-title { margin:0 0 7px; font-size:12.5px; font-weight:600; }
+.ho-field { display:flex; flex-direction:column; gap:3px; margin-bottom:7px; }
+.ho-label { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-input, .ho-textarea { width:100%; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px;
+  padding:5px 7px; background:var(--dsw-alias-bg-layer-1,#fff); color:inherit; outline:none; font:inherit; }
+.ho-input:focus, .ho-textarea:focus { border-color:var(--dsw-alias-brand-primary,#2563eb); }
+.ho-textarea { resize:vertical; min-height:56px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+.ho-sign-note { min-height:58px; margin-bottom:6px; }
+.ho-artifacts-input { min-height:46px; }
+.ho-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.ho-btn { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff);
+  color:inherit; padding:4px 10px; border-radius:7px; font-size:12px; cursor:pointer; white-space:nowrap; }
+.ho-btn:hover:not(:disabled) { border-color:var(--dsw-alias-border-l2,#d1d5db); }
+.ho-btn:disabled { opacity:.45; cursor:default; }
+.ho-primary { background:var(--dsw-alias-brand-primary,#2563eb); border-color:var(--dsw-alias-brand-primary,#2563eb); color:#fff; }
+.ho-danger { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-blockers { list-style:none; margin:0 0 7px; padding:0; display:flex; flex-direction:column; gap:4px; }
+.ho-blocker { font-size:11px; color:var(--dsw-alias-state-warn-primary,#d97706); }
+@media (max-width: 1239px) {
+  .ho-cols { grid-template-columns:236px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 240px; }
+  .ho-side { grid-column:1 / -1; border-left:0; border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+    flex-direction:row; flex-wrap:wrap; overflow-y:auto; }
+  .ho-side > .ho-card { flex:1 1 260px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail"></aside>
+  <aside class="side"><div></div><div></div><div></div><div></div><div></div><div></div></aside>
+  <main class="main">
+    <header class="sesshead">
+      <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
+      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="">岗位</span><span class="">Wiki</span><span class="on">工单</span></nav>
+    </header>
+    <div class="viewArea" id="mount"><div class="ho-root"><div class="ho-cols"><aside class="ho-col ho-list-col"><div class="ho-list-head"><span class="ho-list-title">工单 (4)</span><button class="ho-btn ho-ghost">刷新</button></div><div class="ho-wip">在制 2/2</div><div class="ho-problems"><button class="ho-problems-head">1 个工单文件无法解析</button></div><button class="ho-new">＋ 新建工单</button><div class="ho-groups"><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>intake (1)</span></button><ul class="ho-rows"><li class="ho-row"><span class="ho-row-title">把工单脉冲写进系统提示：只给主代理看的那一段</span><span class="ho-row-meta"><span class="ho-row-size">L</span><span>·</span><span class="ho-row-dri">未指派</span><span>·</span><span class="ho-row-age">3 天</span><em class="ho-badge">全局</em></span></li></ul></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>active (1)</span></button><ul class="ho-rows"><li class="ho-row"><span class="ho-row-title">工单看板：会话内「工单」标签页</span><span class="ho-row-meta"><span class="ho-row-size">M</span><span>·</span><span class="ho-row-dri">工程师</span><span>·</span><span class="ho-row-age">6 小时</span></span></li></ul></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>review (1)</span></button><ul class="ho-rows"><li class="ho-row ho-row-on"><span class="ho-row-title">键盘导航：会话内快捷键与焦点环</span><span class="ho-row-meta"><span class="ho-row-size">S</span><span>·</span><span class="ho-row-dri">工程师</span><span>·</span><span class="ho-row-age">2 天</span></span></li></ul></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>blocked (0)</span></button><p class="ho-muted ho-group-empty">—</p></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▸</span><span>done (1)</span></button></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▸</span><span>dropped (0)</span></button></div></div></aside><section class="ho-col ho-detail-col"><div class="ho-detail-head"><h2 class="ho-detail-title">键盘导航：会话内快捷键与焦点环</h2><div class="ho-meta"><span>wo-20261115-3</span><span>·</span><span>本项目</span><span>·</span><span>2 天</span></div></div><div class="ho-item"><div class="ho-item-label">当前阶段</div><div class="ho-item-body"><span class="ho-stage ho-stage-review">review</span></div></div><div class="ho-item"><div class="ho-item-label">规模</div><div class="ho-item-body">S · 单兵</div></div><div class="ho-item"><div class="ho-item-label">领取人</div><div class="ho-item-body">工程师（engineer）</div></div><div class="ho-item"><div class="ho-item-label">验收标准</div><div class="ho-item-body"><ul class="ho-acceptance"><li>Tab 顺序与视觉顺序一致</li><li>Esc 关闭浮层，焦点回到触发元素</li></ul></div></div><div class="ho-item"><div class="ho-item-label">交付物</div><div class="ho-item-body"><ul class="ho-artifacts"><li class="ho-artifact ho-artifact-file"><button class="ho-artifact-open">plugins/hyper-roles/client/client.js</button><span class="ho-artifact-kind">文件</span><button class="ho-link">复制路径</button></li></ul></div></div><div class="ho-item"><div class="ho-item-label">完整日志</div><div class="ho-item-body"><div class="ho-log"><ul class="ho-log-list"><li><span class="ho-log-meta">11-13 12:00 · engineer</span><p class="ho-log-note">update → review：两条标准都有截图证据，等签字。</p></li><li><span class="ho-log-meta">11-13 10:30 · engineer</span><p class="ho-log-note">实现落盘：焦点环用 :focus-visible，Esc 走 keydown 冒泡。</p></li><li><span class="ho-log-meta">11-13 09:00 · lead</span><p class="ho-log-note">建单：键盘可用的最小集，先覆盖标签页切换与浮层关闭。</p></li></ul></div></div></div></section><aside class="ho-col ho-side"><section class="ho-card"><h3 class="ho-card-title">签收 / 打回</h3><p class="ho-muted">签收身份：engineer</p><ul class="ho-blockers"><li class="ho-blocker">工单 wo-20261115-3 的领取人是 engineer：验收不能由领取人自己签</li></ul><p class="ho-hint">签收必须写 note</p><textarea class="ho-textarea ho-sign-note" value="" placeholder="写清签收依据，或打回时要改哪一条"></textarea><div class="ho-actions"><button class="ho-btn ho-primary" disabled>签收 → done</button><button class="ho-btn ho-danger" disabled>打回 → active</button></div></section><section class="ho-card"><h3 class="ho-card-title">改阶段与领取人</h3><label class="ho-field"><span class="ho-label">当前阶段</span><select class="ho-input" value="review"><option value="intake">intake</option><option value="active">active</option><option value="review">review</option><option value="blocked">blocked</option><option value="dropped">dropped</option><option value="done" disabled>done（只能由签收产生）</option></select></label><label class="ho-field"><span class="ho-label">领取人</span><select class="ho-input" value="engineer"><option value="">未指派</option><option value="engineer">工程师（engineer）</option><option value="reviewer">验收评审员（reviewer）</option><option value="architect">架构师（architect）</option></select></label><label class="ho-field"><span class="ho-label">验收标准 · 一行一条，逗号不拆</span><textarea class="ho-textarea" value="Tab 顺序与视觉顺序一致
+Esc 关闭浮层，焦点回到触发元素">Tab 顺序与视觉顺序一致
+Esc 关闭浮层，焦点回到触发元素</textarea></label><label class="ho-field"><span class="ho-label">交付物 · 逗号或换行分隔，只追加</span><textarea class="ho-textarea ho-artifacts-input" value="" placeholder="逗号或换行分隔，只追加"></textarea></label><label class="ho-field"><span class="ho-label">备注（写进日志）</span><input class="ho-input" value=""></label><div class="ho-actions"><button class="ho-btn ho-primary">保存</button></div></section><section class="ho-card"><h3 class="ho-card-title">数据位置</h3><p class="ho-muted">本项目：.dsh/org/</p><p class="ho-muted">全局：/Users/you/.dsh/org</p></section></aside></div></div></div>
+  </main>
+</div>
+<script>globalThis.__previewReady = true</script>
+</body>
+</html>

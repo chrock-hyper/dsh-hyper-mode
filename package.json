@@ -20,6 +20,7 @@
     "./tool-catalog": "./plugins/tool-catalog/index.js",
     "./tool-catalog/locale/*.json": "./plugins/tool-catalog/locale/*.json",
     "./hyper-org": "./plugins/hyper-org/index.js",
+    "./hyper-org/client": "./plugins/hyper-org/client/client.js",
     "./hyper-roles": "./plugins/hyper-roles/index.js",
     "./hyper-roles/client": "./plugins/hyper-roles/client/client.js",
     "./hyper-wiki": "./plugins/hyper-wiki/index.js",

@@ -15,6 +15,7 @@ import { registerBinding } from '../hyper-roles/lib/binding.js'
 import { resolveDirs } from '../hyper-roles/lib/scopes.js'
 import { loadShipped } from '../shared/shipped.js'
 
+import { API_PREFIX, createApiHandler } from './lib/api.js'
 import { buildOrgTools } from './lib/tools.js'
 import { listOrders, orgDirs } from './lib/store.js'
 import { renderPulse } from './lib/marker.js'
@@ -88,6 +89,77 @@ export async function apply(ctx) {
     }),
     'hyper-org: pulse section',
   )
+
+  /**
+   * Read one live session by id, tolerating an unavailable service.
+   * @param sessionId - durable Session id from the panel's query string.
+   * @returns the session object, or undefined.
+   */
+  const sessionOf = (sessionId) => {
+    if (typeof sessionId !== 'string' || sessionId === '') return undefined
+    try {
+      return ctx.get('sessions')?.get?.(sessionId) ?? undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * Resolve one session's project directory for the board.
+   * @param sessionId - durable Session id.
+   * @returns the working directory, or undefined.
+   */
+  const cwdOfSession = (sessionId) => {
+    const session = sessionOf(sessionId)
+    if (session === undefined) return undefined
+    try {
+      const value = ctx.get('workingDirectory')?.get?.(session)
+      return typeof value === 'string' && value !== '' ? value : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * Read the role a session is bound to.
+   *
+   * Same projection and same fallback as `identityOf` in `lib/tools.js`: the
+   * panel must not be able to sign an order its own session holds.
+   * @param sessionId - durable Session id.
+   * @returns the bound role id, or undefined for an unbound session.
+   */
+  const roleOfSession = (sessionId) => {
+    const session = sessionOf(sessionId)
+    if (session === undefined || binding?.stateOf === undefined) return undefined
+    try {
+      const state = binding.stateOf(session)
+      return state !== null && state !== undefined && typeof state.role === 'string' ? state.role : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  ctx.inject(['webServer'], (webCtx) => {
+    webCtx.effect(
+      () => webCtx.webServer.register({
+        kind: 'prefix',
+        path: API_PREFIX,
+        handler: createApiHandler({
+          ctx: webCtx,
+          home,
+          config,
+          // A session that cannot be read yields `undefined`: the route still
+          // answers, with `actor.confirmed: false`, so the panel can say why.
+          resolveSession: (sessionId) => {
+            const session = sessionOf(sessionId)
+            if (session === undefined) return undefined
+            return { cwd: cwdOfSession(sessionId), role: roleOfSession(sessionId) }
+          },
+        }),
+      }),
+      'hyper-org: panel api',
+    )
+  })
 
   ctx.logger?.info?.(`hyper-org: mounted (${home})`)
 }

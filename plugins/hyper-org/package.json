@@ -1,0 +1,21 @@
+{
+  "name": "@chrock-studio/dsh-hyper-org",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "工单看板的浏览器半边：会话级工单看板，数据走 Host 的 /hyper-org/api",
+  "exports": {
+    "./client": "./client/client.js"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  }
+}

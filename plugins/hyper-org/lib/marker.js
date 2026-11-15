@@ -100,10 +100,13 @@ export function renderPulse(summary, options = {}) {
 
 /**
  * Human-scale age of one timestamp.
+ *
+ * Exported for the panel: two places rendering "how old" must not disagree, so
+ * the board's wording is the only wording.
  * @param iso - ISO timestamp.
  * @returns something like `3 天`.
  */
-function ageOf(iso) {
+export function ageOf(iso) {
   const then = Date.parse(iso)
   if (!Number.isFinite(then)) return '未知'
   const minutes = Math.max(0, Math.round((Date.now() - then) / 60_000))

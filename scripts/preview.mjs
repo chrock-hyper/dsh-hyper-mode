@@ -7,6 +7,7 @@
  *
  *   bun scripts/preview.mjs roles
  *   bun scripts/preview.mjs wiki
+ *   bun scripts/preview.mjs orders
  *
  * @module @chrock-studio/dsh-hyper-mode/scripts/preview
  */
@@ -15,10 +16,13 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const kind = process.argv[2] === 'wiki' ? 'wiki' : 'roles'
+const requested = process.argv[2]
+const kind = requested === 'wiki' ? 'wiki' : requested === 'orders' ? 'orders' : 'roles'
 const clientFile = kind === 'roles'
   ? join(root, 'plugins/hyper-roles/client/client.js')
-  : join(root, 'plugins/hyper-wiki/client/client.js')
+  : kind === 'wiki'
+    ? join(root, 'plugins/hyper-wiki/client/client.js')
+    : join(root, 'plugins/hyper-org/client/client.js')
 const source = readFileSync(clientFile, 'utf8')
 const styles = /const STYLES = `([\s\S]*?)`\n/.exec(source)?.[1] ?? ''
 if (styles === '') throw new Error('no STYLES block found')
@@ -167,8 +171,157 @@ const wikiPage = {
   },
 }
 
+// The board fixture mirrors the real payloads from `/hyper-org/api`: one order
+// per stage, so grouping, aging, the six detail items and the sign panel are all
+// visible in one page.
+const orderRows = [
+  {
+    id: 'wo-20261115-2', title: '工单看板：会话内「工单」标签页', stage: 'active', size: 'M',
+    dri: 'engineer', driTitle: '工程师', scope: 'project', age: '6 小时',
+    updatedAt: '2026-11-15T09:30:00.000Z', acceptanceCount: 6, artifactCount: 1, logCount: 1, occupiesSlot: true,
+  },
+  {
+    id: 'wo-20261115-3', title: '键盘导航：会话内快捷键与焦点环', stage: 'review', size: 'S',
+    dri: 'engineer', driTitle: '工程师', scope: 'project', age: '2 天',
+    updatedAt: '2026-11-13T12:00:00.000Z', acceptanceCount: 2, artifactCount: 1, logCount: 3, occupiesSlot: true,
+  },
+  {
+    id: 'wo-20261114-4', title: '把工单脉冲写进系统提示：只给主代理看的那一段', stage: 'intake', size: 'L',
+    dri: null, driTitle: null, scope: 'global', age: '3 天',
+    updatedAt: '2026-11-12T08:00:00.000Z', acceptanceCount: 3, artifactCount: 0, logCount: 1, occupiesSlot: false,
+  },
+  {
+    id: 'wo-20261115-1', title: '第一单：可玩的中国象棋飞行棋页面', stage: 'done', size: 'M',
+    dri: 'engineer', driTitle: '工程师', scope: 'project', age: '9 天',
+    updatedAt: '2026-11-06T10:00:00.000Z', acceptanceCount: 4, artifactCount: 2, logCount: 4, occupiesSlot: false,
+  },
+]
+
+const ordersState = {
+  ok: true,
+  now: '2026-11-15T15:39:21.000Z',
+  projectRoot: '/Users/you/src/app',
+  globalDir: '/Users/you/.dsh/org',
+  projectDir: '/Users/you/src/app/.dsh/org',
+  wipLimit: 2,
+  // Bound to engineer, so the review order below shows the self-sign blocker.
+  actor: { role: 'engineer', label: 'engineer', confirmed: true },
+  stages: ['intake', 'active', 'review', 'blocked', 'done', 'dropped'],
+  wipStages: ['active', 'review', 'blocked'],
+  sizes: ['S', 'M', 'L'],
+  occupied: 2,
+  orders: orderRows,
+  roles: [
+    { id: 'engineer', title: '工程师', scope: 'project' },
+    { id: 'reviewer', title: '验收评审员', scope: 'project' },
+    { id: 'architect', title: '架构师', scope: 'global' },
+  ],
+  problems: [{ path: '/Users/you/src/app/.dsh/org/orders/wo-broken.json', message: 'Unexpected token } in JSON' }],
+}
+
+const sixCriteria = [
+  '会话内出现「工单」标签页，与「岗位」「Wiki」同排；没有会话时不显示',
+  '看板按阶段分组：intake / active / review / blocked / done，显示在制 x/wipLimit、超龄时长、领取人岗位名',
+  '点开一张单能看到六项：验收标准、完整日志、交付物路径（可点开）、规模、DRI、当前阶段',
+  '面板可建单（标题 / 规模 / DRI / 验收标准），且受同一套门禁约束：M/L 无验收标准不能进 active、在制满时落 intake',
+  '签收必须写 note，且领取人不能给自己签；面板与 org_order 用同一套规则，不是两套',
+  '不改变数据格式：.dsh/org 仍是唯一数据源，老工单文件不用迁移',
+]
+
+const orderDetails = {
+  'wo-20261115-2': {
+    acceptance: sixCriteria,
+    artifacts: [
+      { path: 'docs/design/orders-tab.md', kind: 'file', bytes: 41388 },
+      { path: 'missing/screenshot.png', kind: 'missing' },
+    ],
+    log: [
+      { at: '2026-11-15T09:30:00.000Z', by: 'architect', note: '方案定稿：路由前缀 /hyper-org/api，标签页 order=70（岗位 50 / Wiki 60，避免撞号）。' },
+      { at: '2026-11-15T11:10:00.000Z', by: 'engineer', note: 'Phase 0：把 note/自签与 DRI 校验下沉到 lib/rules.js，org-flow.test.js 未改动即全绿。' },
+      { at: '2026-11-15T14:05:00.000Z', by: 'reviewer', note: '签收身份与日志 by 分离，避免未绑定会话被误判为自签。' },
+    ],
+  },
+  'wo-20261115-3': {
+    acceptance: ['Tab 顺序与视觉顺序一致', 'Esc 关闭浮层，焦点回到触发元素'],
+    artifacts: [{ path: 'plugins/hyper-roles/client/client.js', kind: 'file', bytes: 33712 }],
+    log: [
+      { at: '2026-11-13T09:00:00.000Z', by: 'lead', note: '建单：键盘可用的最小集，先覆盖标签页切换与浮层关闭。' },
+      { at: '2026-11-13T10:30:00.000Z', by: 'engineer', note: '实现落盘：焦点环用 :focus-visible，Esc 走 keydown 冒泡。' },
+      { at: '2026-11-13T12:00:00.000Z', by: 'engineer', note: 'update → review：两条标准都有截图证据，等签字。' },
+    ],
+    blockers: [{
+      code: 'self_sign',
+      message: '工单 wo-20261115-3 的领取人是 engineer：验收不能由领取人自己签',
+    }],
+  },
+  'wo-20261114-4': {
+    acceptance: ['脉冲只出现在主代理系统提示', '绑定岗位的子代理看不到它', '脉冲行数不超过配置'],
+    artifacts: [],
+    log: [{ at: '2026-11-12T08:00:00.000Z', by: 'architect', note: '在制满了，先排队：这一单等看板落地后再排。' }],
+  },
+  'wo-20261115-1': {
+    acceptance: ['纯静态，无网络请求，断网可玩', 'Canvas 绘制，适配 DPR', '规则与裁决一致', '交付物路径写进工单'],
+    artifacts: [{ path: 'examples/flying-chess/index.html', kind: 'file', bytes: 84213 }],
+    log: [
+      { at: '2026-11-06T08:00:00.000Z', by: 'lead', note: '建单：参考飞行棋，先做能玩的一局。' },
+      { at: '2026-11-06T09:00:00.000Z', by: 'architect', note: '方案：单文件、无依赖、状态机驱动。' },
+      { at: '2026-11-06T10:00:00.000Z', by: 'engineer', note: '实现与截图落在 examples/flying-chess/。' },
+      { at: '2026-11-06T11:00:00.000Z', by: 'reviewer', note: '验收通过：断网可玩，日志与产物对得上。' },
+    ],
+  },
+}
+
+/**
+ * Build one detail payload, derived from its board row so the two stay in sync.
+ * @param {string} id - order id.
+ * @returns the `/order` fixture.
+ */
+function orderDocFor(id) {
+  const row = orderRows.find((entry) => entry.id === id) ?? orderRows[0]
+  const detail = orderDetails[row.id] ?? { acceptance: [], artifacts: [], log: [] }
+  return {
+    ok: true,
+    scope: row.scope,
+    path: `/Users/you/src/app/.dsh/org/orders/${row.id}.json`,
+    order: {
+      schemaVersion: 1,
+      id: row.id,
+      title: row.title,
+      stage: row.stage,
+      size: row.size,
+      ...(row.dri === null ? {} : { dri: row.dri }),
+      acceptance: detail.acceptance,
+      artifacts: detail.artifacts.map((entry) => entry.path),
+      log: detail.log,
+      createdAt: detail.log[0]?.at ?? row.updatedAt,
+      updatedAt: row.updatedAt,
+    },
+    driTitle: row.driTitle,
+    age: row.age,
+    artifacts: detail.artifacts,
+    sign: { allowed: (detail.blockers ?? []).length === 0, blockers: detail.blockers ?? [] },
+  }
+}
+
 /** @param {string} url - request URL. @returns the fixture body. */
 function fixtureFor(url) {
+  if (kind === 'orders') {
+    if (url.includes('/state')) return ordersState
+    if (url.includes('/artifact')) {
+      return {
+        ok: true,
+        path: 'docs/design/orders-tab.md',
+        bytes: 41388,
+        truncated: false,
+        text: '# 工单看板（会话内「工单」标签页）· 开工方案\n\n- 工单：wo-20261115-2\n- 状态：方案，可直接开工\n\n## 0. 结论摘要\n\n1. 路由前缀用 /hyper-org/api\n2. 标签页 order 必须用 70，不是 60\n3. 规则复用：lib/rules.js\n',
+      }
+    }
+    if (url.includes('/order')) {
+      const id = new URL(url, 'http://localhost').searchParams.get('id') ?? 'wo-20261115-3'
+      return orderDocFor(id)
+    }
+    return { ok: true }
+  }
   if (kind === 'roles') {
     if (url.includes('/api/state')) return rolesState
     if (url.includes('/api/role/')) return roleDoc
@@ -200,9 +353,21 @@ const plugin = registration.factory((name) => {
 })
 
 const registered = []
+// Resolve the panel's own dictionary so the page shows the words a user sees,
+// not the locale keys: label width is part of the layout being checked.
+const dictionaries = {}
 const ctx = {
   effect: (factory) => factory(),
-  locale: { register: () => () => {}, bind: () => (key) => key },
+  locale: {
+    register: (namespace, value) => {
+      dictionaries[namespace] = value
+      return () => {}
+    },
+    bind: (namespace) => (key) => {
+      const zh = (dictionaries[namespace] || {}).zh || {}
+      return zh[key] === undefined ? key : zh[key]
+    },
+  },
   slots: {
     inject: (_owner, factory) => factory(),
     register: (options, component) => { registered.push({ options, component }); return () => {} },
@@ -308,7 +473,7 @@ const shell = `<!doctype html>
   <main class="main">
     <header class="sesshead">
       <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
-      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="on">${kind === 'roles' ? '岗位' : 'Wiki'}</span><span>${kind === 'roles' ? 'Wiki' : '岗位'}</span></nav>
+      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="${kind === 'roles' ? 'on' : ''}">岗位</span><span class="${kind === 'wiki' ? 'on' : ''}">Wiki</span><span class="${kind === 'orders' ? 'on' : ''}">工单</span></nav>
     </header>
     <div class="viewArea" id="mount">${mount}</div>
   </main>

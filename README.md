@@ -2,14 +2,15 @@
 
 给 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）的扩展 bundle：一个包里聚合即插即用插件，装一次即可用。
 
-除了「增强创造模式」，它还在**会话里**加了两个标签页（与「对话」「轨迹」「统计」同一排）：
+除了「增强创造模式」，它还在**会话里**加了三个标签页（与「对话」「轨迹」「统计」同一排）：
 
 | 标签页 | 插件 | 提供什么 |
 |---|---|---|
 | 岗位 | `hyper-roles` | 可编辑的角色卡、会话级岗位绑定、按岗位委派；数据在 `~/.dsh/roles` 与 `<项目>/.dsh/roles` |
 | Wiki | `hyper-wiki` | 约定优先的 Markdown 知识库、草稿审批、反链、每作用域 git 历史 |
+| 工单 | `hyper-org` | 按阶段分组的工单看板、建单 / 改阶段 / 签收、交付物文本预览；数据仍是 `<项目>/.dsh/org` |
 
-两者不共享代码，只通过文件约定互操作（岗位的「岗位指导」引用 wiki 页面，培训员的报告写成 wiki 草稿）。
+三个面板不共享代码，只通过文件约定互操作（岗位的「岗位指导」引用 wiki 页面，培训员的报告写成 wiki 草稿，工单的 DRI 引用岗位 id）。
 
 ## 插件地图
 
@@ -21,7 +22,7 @@
 | **tool-catalog**（检视修复） | `@chrock-studio/dsh-hyper-mode/tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
 | **hyper-skills**（`/hyper-skill` 命令） | `@chrock-studio/dsh-hyper-mode/hyper-skills`（补丁行用相对路径 `./plugins/hyper-skills/index.js`） | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
 | **hyper-roles**（岗位） | `@chrock-studio/dsh-hyper-mode/hyper-roles`（补丁行用相对路径 `./plugins/hyper-roles/index.js`） | 顶层行 + 会话级「岗位」标签页：可编辑角色卡、会话级绑定、`role` / `role_spawn` / `role_edit`；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
-| **hyper-org**（公司层） | `@chrock-studio/dsh-hyper-mode/hyper-org`（补丁行用相对路径 `./plugins/hyper-org/index.js`） | 顶层行：在岗位制之上加工单——`org_order`（建单 / 改单 / 签收）、`org_board`（看板），以及在制上限与「M/L 无验收标准不能进 active」的门禁；数据在 `~/.dsh/org` 与 `<项目>/.dsh/org` |
+| **hyper-org**（公司层） | `@chrock-studio/dsh-hyper-mode/hyper-org`（补丁行用相对路径 `./plugins/hyper-org/index.js`） | 顶层行 + 会话级「工单」标签页：在岗位制之上加工单——`org_order`（建单 / 改单 / 签收）、`org_board`（看板）、在制上限与「M/L 无验收标准不能进 active」的门禁；数据在 `~/.dsh/org` 与 `<项目>/.dsh/org` |
 | **hyper-wiki**（Wiki） | `@chrock-studio/dsh-hyper-mode/hyper-wiki`（补丁行用相对路径 `./plugins/hyper-wiki/index.js`） | 顶层行 + 会话级「Wiki」标签页：约定优先的 Markdown 页面、镜像草稿与人工批准、反链、标题/标签检索、全局库自动 git 提交 |
 
 ## 结构
@@ -38,13 +39,14 @@ dsh-hyper-mode/
 │  ├─ hyper-roles/       岗位标签页（角色卡 / 绑定 / 工具 / 面板）
 │  │  └─ package.json    嵌套包：只声明岗位标签页的 dsh.client
 │  ├─ hyper-org/         公司层（工单 / 在制上限 / 验收签字，依赖 hyper-roles）
+│  │  └─ package.json    嵌套包：只声明工单标签页的 dsh.client
 │  ├─ hyper-wiki/        Wiki 标签页（页面 / 草稿 / 链接 / 检索 / git / 工具 / 面板）
 │  │  └─ package.json    嵌套包：只声明 Wiki 标签页的 dsh.client
 │  ├─ tool-catalog/      检视修复插件（ToolCatalog provider）
 │  └─ shared/            跨插件共享代码（shipped 解析器、路径工具）
 ├─ scripts/              Host 冒烟检查：smoke-roles.mjs / smoke-wiki.mjs
 ├─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
-├─ docs/HANDOFF.md       交接：现状、下一个工单（看板 UI）与已核实的落点
+├─ docs/HANDOFF.md       交接：现状、已完成的看板 UI 与剩余遗留
 └─ AGENTS.md             本工作区的三条硬规矩
 ```
 
@@ -63,7 +65,7 @@ dsh-hyper-mode/
 plugin_manager action=install_bundle target=<本仓库绝对路径>
 ```
 
-装完新建会话，模式选「增强创造模式」：会话标题下方会多出「岗位」与「Wiki」两个标签页。它们都是会话级的——没有会话就不显示，项目作用域直接取当前会话的工作目录。
+装完新建会话，模式选「增强创造模式」：会话标题下方会多出「岗位」「Wiki」「工单」三个标签页。它们都是会话级的——没有会话就不显示，项目作用域直接取当前会话的工作目录。
 
 回滚：`plugin_manager action=remove_bundle target=@chrock-studio/dsh-hyper-mode`
 
@@ -203,6 +205,18 @@ can: edit-roles
 
 两个工具都只写工单，**不代替 `role_spawn`**：建单 → 看板确认在制 → `role_spawn` 派活 → 交付物挂回工单 → `review` → 别人签字。
 
+### 面板（会话里的「工单」标签页）
+
+三栏：左栏按阶段分组（intake / active / review / blocked / done，末尾 dropped），组内按 `updatedAt` 升序，超龄一眼看见；中栏是一张单的六项——当前阶段、规模、DRI、验收标准、交付物、完整日志（不截断，>100 条才折叠）；右栏是签收 / 打回与改阶段 / 领取人。
+
+- **规则只有一套**：面板的写操作与 `org_order` 走同一个 `lib/rules.js`（note 必填、领取人不能自签、DRI 必须存在），门禁仍由 `lib/store.js` 执行；面板不自己判断，只渲染 Host 下发的 `sign.blockers` 与 `create.notes`。
+- **身份同源**：`actor` 取当前会话的岗位绑定（与工具同一个 projection）；未绑定即 `lead`。日志里的 `by` 是标签，自签判定只看真实岗位——手改文件把 DRI 写成 `lead` 不会误伤主代理。
+- **建单受同一套门禁**：M/L 无验收标准落 intake，在制满时强制排队；降级是 200 + 解释，不是失败。
+- **交付物「可点开」= 文本预览 + 复制路径**：Host 的 `/hyper-org/api/artifact` 依次校验路径形态、是否在工单 `artifacts` 里声明、词法包含、符号链接包含、类型与体积，再做二进制嗅探；HTML 不渲染（不把仓库代码执行在 GUI 页面里）。
+- **数据不动**：`schemaVersion` 仍为 1，`.dsh/org` 是唯一数据源，面板不建第二份存储、不改写老文件。
+
+路由前缀 `/hyper-org/api`（跟 `hyper-roles` 一致）；面板客户端在独立嵌套包 `plugins/hyper-org/package.json`（`@chrock-studio/dsh-hyper-org`），标签页 `order: 70` 排在岗位（50）、Wiki（60）右侧。
+
 ### 配置
 
 没有导出 `Config`（链接安装的 bundle 无法静态 import schemastery），可调项在 `<DSH_HOME>/org/config.json`：
@@ -238,7 +252,7 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-roles.mjs   # 岗位
 ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki：真实 Host 装配
 ```
 
-界面自查（不改 app、不点按钮）：`bun scripts/preview.mjs roles` / `bun scripts/preview.mjs wiki` 会把**真实组件**渲染成 `docs/demo/preview-*.html`，用无头 Chrome 截图即可看到 1200/1440 下的实际样子。它复刻了 `conversation.view` 的 flex 容器，所以布局塌缩这类问题会在这里暴露。
+界面自查（不改 app、不点按钮）：`bun scripts/preview.mjs roles` / `wiki` / `orders` 会把**真实组件**渲染成 `docs/demo/preview-*.html`，用无头 Chrome 截图即可看到 1200/1440 下的实际样子。它复刻了 `conversation.view` 的 flex 容器，所以布局塌缩这类问题会在这里暴露。
 
 端到端验收用例见 `plugins/hyper-creator/VERIFY.md`、`plugins/hyper-roles/VERIFY.md`、`plugins/hyper-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
 
