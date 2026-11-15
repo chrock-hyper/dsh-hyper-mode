@@ -42,7 +42,7 @@ export const inject = ['commands']
 /** Command name without the leading slash. */
 const COMMAND_NAME = 'hyper-skill'
 /** Shown in the composer input box and in every failure message. */
-const USAGE = '用法：/hyper-skill list | install <名称> [--project] | remove <名称>'
+const USAGE = '用法：/hyper-skill list | install [<名称>|--all] [--project] | remove <名称>'
 /** Kebab-case skill name, matching the skill provider's own rule. */
 const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 /** Keep the toast short enough to read in one glance. */
@@ -204,7 +204,7 @@ function listSkills(dirs, skills) {
   if (installed.length > 0) {
     parts.push(`已安装：${installed.map((row) => `${row.skill.name}（${row.where.join('、')}）`).join('、')}`)
   }
-  parts.push(`用法：/hyper-skill install <名称> [--project]`)
+  parts.push('用法：/hyper-skill install [<名称>|--all] [--project]')
   return ok(parts.join('。'))
 }
 
@@ -218,13 +218,15 @@ function listSkills(dirs, skills) {
 function installFromCommand(dirs, skills, tokens) {
   const project = tokens.includes('--project') || tokens.includes('-p')
   const user = tokens.includes('--user') || tokens.includes('-u')
-  const skillName = tokens.find((token) => !token.startsWith('-'))
-  if (skillName === undefined) return fail(`缺少 skill 名称。${USAGE}`)
   if (project && user) return fail('只选一个安装位置：--project 或 --user。')
-  const skill = skills.find((entry) => entry.name === skillName)
-  if (!skill) return fail(`没有这个 skill：${skillName}。可选：${nameList(skills.map((entry) => entry.name))}`)
   const root = project ? dirs.projectSkillsDir : dirs.userSkillsDir
   if (!root) return fail('无法确定当前会话的工作目录；不加 --project 时默认装到 ~/.dsh/skills。')
+  const skillName = tokens.find((token) => !token.startsWith('-'))
+  if (skillName === undefined || tokens.includes('--all') || tokens.includes('-a')) {
+    return installAll(dirs, skills, root, project)
+  }
+  const skill = skills.find((entry) => entry.name === skillName)
+  if (!skill) return fail(`没有这个 skill：${skillName}。可选：${nameList(skills.map((entry) => entry.name))}`)
   const outcome = installSkill(root, skill)
   if (outcome.status === 'installed') {
     return ok(`已安装 ${skillName} → ${display(outcome.target)}（下一步进技能编目，无需重启）`)
@@ -260,6 +262,37 @@ function removeFromCommand(dirs, tokens) {
     return fail(`${skillName} 的同名路径不是本 bundle 的链接，未删除：${foreign.map(display).join('，')}`)
   }
   return fail(`${skillName} 未安装。`)
+}
+
+/**
+ * Install every shipped skill that is not already present.
+ *
+ * `install` with no name is the bulk form: it is the command a fresh profile
+ * wants, and it reports per-skill outcomes instead of stopping on the first
+ * conflict (a foreign directory with the same name is skipped, not fatal).
+ * @param dirs - resolved skill directories.
+ * @param skills - discovered bundle skills.
+ * @param root - target scanned root.
+ * @param project - whether the target is the project root.
+ * @returns a one-line summary.
+ */
+function installAll(dirs, skills, root, project) {
+  const installed = []
+  const already = []
+  const skipped = []
+  for (const skill of skills) {
+    const outcome = installSkill(root, skill)
+    if (outcome.status === 'installed') installed.push(skill.name)
+    else if (outcome.status === 'already') already.push(skill.name)
+    else skipped.push(skill.name)
+  }
+  const where = project ? '项目' : '用户'
+  const parts = []
+  if (installed.length > 0) parts.push(`已安装到${where}：${nameList(installed)}`)
+  if (already.length > 0) parts.push(`已存在：${nameList(already)}`)
+  if (skipped.length > 0) parts.push(`跳过（同名路径不是本 bundle 的链接）：${nameList(skipped)}`)
+  parts.push('下一步进技能编目，无需重启')
+  return ok(parts.join('。'))
 }
 
 /**

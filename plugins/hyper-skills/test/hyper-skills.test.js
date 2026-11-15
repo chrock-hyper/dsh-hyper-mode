@@ -154,7 +154,7 @@ describe('runSkillCommand', () => {
 
     expect(result.kind).toBe('success')
     expect(result.text).toContain('可安装：one、two')
-    expect(result.text).toContain('用法：/hyper-skill install <名称> [--project]')
+    expect(result.text).toContain('用法：/hyper-skill install [<名称>|--all] [--project]')
   })
 
   test('treats empty input as list', () => {
@@ -200,10 +200,21 @@ describe('runSkillCommand', () => {
     expect(result.text).toContain('可选：one、two')
   })
 
-  test('rejects a missing name and conflicting location flags', () => {
+  test('installs every shipped skill when no name is given', () => {
     const dirs = dirsFor(makeBundle())
 
-    expect(runSkillCommand(dirs, ' install').text).toContain('缺少 skill 名称')
+    const result = runSkillCommand(dirs, ' install')
+
+    expect(result.kind).toBe('success')
+    expect(result.text).toContain('已安装到用户：one、two')
+    // Running it again reports the existing links instead of failing.
+    expect(runSkillCommand(dirs, ' install').text).toContain('已存在：one、two')
+  })
+
+  test('accepts an explicit --all and rejects conflicting location flags', () => {
+    const dirs = dirsFor(makeBundle())
+
+    expect(runSkillCommand(dirs, ' install --all').text).toContain('已安装到用户')
     expect(runSkillCommand(dirs, ' install one --project --user').text).toContain('只选一个安装位置')
     expect(runSkillCommand(dirs, ' install one').kind).toBe('success')
   })

@@ -214,7 +214,9 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki�
 
 ```text
 /hyper-skill                                         # 列出可安装 / 已安装
-/hyper-skill install dsh-preset-authoring            # 装到 ~/.dsh/skills（默认，跨项目）
+/hyper-skill install                                 # 全量装到 ~/.dsh/skills
+/hyper-skill install role-authoring                  # 只装一个
+/hyper-skill install --all --project                 # 全量装进当前项目的 .dsh/skills
 /hyper-skill install dsh-preset-authoring --project  # 装到 <项目根>/.dsh/skills
 /hyper-skill remove dsh-preset-authoring             # 删掉本 bundle 的链接
 ```
