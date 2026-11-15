@@ -9,7 +9,7 @@ import { join } from 'node:path'
 
 import { createRole } from '../../hyper-roles/lib/store.js'
 import { orgDirs, createOrder, listOrders, saveOrder, signOrder } from '../lib/store.js'
-import { buildOrgTools } from '../lib/tools.js'
+import { buildOrgTools, splitLines } from '../lib/tools.js'
 
 const root = mkdtempSync(join(tmpdir(), 'hyper-org-'))
 const home = join(root, 'home')
@@ -164,5 +164,29 @@ describe('org_board tool', () => {
     expect(textOf(status).length).toBeGreaterThan(0)
     const list = await tools.org_board.execute({ action: 'list' }, execAs(lead))
     expect(textOf(list)).toContain('工单看板')
+  })
+})
+
+describe('acceptance parsing', () => {
+  test('only a line break starts a new criterion', () => {
+    expect(splitLines('纯静态，无网络请求，断网可玩\nCanvas 绘制，适配 DPR')).toEqual([
+      '纯静态，无网络请求，断网可玩',
+      'Canvas 绘制，适配 DPR',
+    ])
+    expect(splitLines('')).toEqual([])
+  })
+
+  test('a comma-heavy criterion survives a round trip through the tool', async () => {
+    const tools = toolsFor()
+    const created = await tools.org_order.execute({
+      action: 'create',
+      title: '逗号不该切开标准',
+      size: 'S',
+      acceptance: '纯静态，无网络请求，断网可玩\nCanvas 绘制，适配 DPR',
+    }, execAs(lead))
+    const id = /wo-\d{8}-\d+/.exec(textOf(created))[0]
+    const read = await tools.org_order.execute({ action: 'read', id }, execAs(lead))
+    expect(textOf(read)).toContain('- 纯静态，无网络请求，断网可玩')
+    expect(textOf(read)).toContain('- Canvas 绘制，适配 DPR')
   })
 })

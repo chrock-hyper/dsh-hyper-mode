@@ -72,7 +72,7 @@ export function buildOrgTools(options) {
       title: { type: 'string', description: '一句话说清这单要交付什么；create 必填。' },
       size: { type: 'string', enum: ['S', 'M', 'L'], description: '规模：S 单兵、M 三岗、L 全链路；默认 M。' },
       dri: { type: 'string', description: '领取人岗位 id（必须已存在）；留空表示未指派。' },
-      acceptance: { type: 'string', description: '验收标准，换行或逗号分隔；M/L 规模必填。' },
+      acceptance: { type: 'string', description: '验收标准，一行一条（换行分隔，逗号不算分隔）；M/L 规模必填。' },
       artifacts: { type: 'string', description: '交付物路径，逗号分隔；update 时追加。' },
       stage: {
         type: 'string',
@@ -101,7 +101,7 @@ export function buildOrgTools(options) {
           title,
           size: args.size,
           dri: typeof args.dri === 'string' && args.dri !== '' ? args.dri : undefined,
-          acceptance: splitList(args.acceptance),
+          acceptance: splitLines(args.acceptance),
           note: typeof args.note === 'string' ? args.note : undefined,
           by,
           wipLimit: config.wipLimit,
@@ -138,7 +138,7 @@ export function buildOrgTools(options) {
             ...(args.title === undefined ? {} : { title: args.title }),
             ...(args.size === undefined ? {} : { size: args.size }),
             ...(args.dri === undefined ? {} : { dri: args.dri }),
-            ...(args.acceptance === undefined ? {} : { acceptance: splitList(args.acceptance) }),
+            ...(args.acceptance === undefined ? {} : { acceptance: splitLines(args.acceptance) }),
             ...(args.artifacts === undefined ? {} : { artifacts: splitList(args.artifacts) }),
             ...(args.note === undefined ? {} : { note: args.note }),
           },
@@ -209,6 +209,22 @@ export function buildOrgTools(options) {
     if (found === undefined) throw new Error(`工单 ${text} 不存在；用 org_board 的 action=list 查看现有工单`)
     return found
   }
+}
+
+/**
+ * Split a newline-separated argument into items.
+ *
+ * Acceptance criteria are prose: "无构建、无网络，断网可玩" is ONE criterion,
+ * so the Chinese comma must not split it. Only a line break starts a new one.
+ * @param value - raw argument.
+ * @returns trimmed, non-empty lines.
+ */
+export function splitLines(value) {
+  if (typeof value !== 'string') return []
+  return value
+    .split(/\n/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== '')
 }
 
 /**
