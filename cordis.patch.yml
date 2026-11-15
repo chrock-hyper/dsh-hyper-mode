@@ -30,6 +30,11 @@
     # 来自同一个包。
     - id: hyper-roles
       name: ./plugins/hyper-roles/index.js
+    # 公司层：工单 + 在制上限 + 验收签字。它复用 hyper-roles 的身份绑定投影
+    # （同一 projection key 由两家共享同一个单元）、岗位库与作用域解析，所以
+    # 必须排在 hyper-roles 之后挂载，但不需要重启：相对路径锚定在本文件旁。
+    - id: hyper-org
+      name: ./plugins/hyper-org/index.js
     # Wiki：同样是本 bundle 的一行。它的浏览器半边挂在
     # plugins/hyper-wiki/package.json（独立嵌套包），原因与岗位相同：
     # client-modules 不允许同一个包出现多个活跃来源。

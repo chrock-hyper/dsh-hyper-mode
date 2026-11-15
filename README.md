@@ -21,6 +21,7 @@
 | **tool-catalog**（检视修复） | `@chrock-studio/dsh-hyper-mode/tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
 | **hyper-skills**（`/hyper-skill` 命令） | `@chrock-studio/dsh-hyper-mode/hyper-skills`（补丁行用相对路径 `./plugins/hyper-skills/index.js`） | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
 | **hyper-roles**（岗位） | `@chrock-studio/dsh-hyper-mode/hyper-roles`（补丁行用相对路径 `./plugins/hyper-roles/index.js`） | 顶层行 + 会话级「岗位」标签页：可编辑角色卡、会话级绑定、`role` / `role_spawn` / `role_edit`；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
+| **hyper-org**（公司层） | `@chrock-studio/dsh-hyper-mode/hyper-org`（补丁行用相对路径 `./plugins/hyper-org/index.js`） | 顶层行：在岗位制之上加工单——`org_order`（建单 / 改单 / 签收）、`org_board`（看板），以及在制上限与「M/L 无验收标准不能进 active」的门禁；数据在 `~/.dsh/org` 与 `<项目>/.dsh/org` |
 | **hyper-wiki**（Wiki） | `@chrock-studio/dsh-hyper-mode/hyper-wiki`（补丁行用相对路径 `./plugins/hyper-wiki/index.js`） | 顶层行 + 会话级「Wiki」标签页：约定优先的 Markdown 页面、镜像草稿与人工批准、反链、标题/标签检索、全局库自动 git 提交 |
 
 ## 结构
@@ -36,6 +37,7 @@ dsh-hyper-mode/
 │  ├─ hyper-skills/      /hyper-skill 命令插件（按需安装随包 skill）
 │  ├─ hyper-roles/       岗位标签页（角色卡 / 绑定 / 工具 / 面板）
 │  │  └─ package.json    嵌套包：只声明岗位标签页的 dsh.client
+│  ├─ hyper-org/         公司层（工单 / 在制上限 / 验收签字，依赖 hyper-roles）
 │  ├─ hyper-wiki/        Wiki 标签页（页面 / 草稿 / 链接 / 检索 / git / 工具 / 面板）
 │  │  └─ package.json    嵌套包：只声明 Wiki 标签页的 dsh.client
 │  ├─ tool-catalog/      检视修复插件（ToolCatalog provider）
@@ -165,6 +167,45 @@ can: edit-roles
 `dsh-client-modules` 对**同一个包出现多个活跃 Loader 来源**会直接报错。本 bundle 已有四行来自同一个包，所以面板的 `dsh.client` 必须挂在独立清单上：`plugins/hyper-roles/package.json`（包名 `@chrock-studio/dsh-hyper-roles`）。`locatePkgJson` 会从行模块向上取最近的 `package.json`，因此只有 `hyper-roles` 这一行认领它。
 
 验收步骤见 `plugins/hyper-roles/VERIFY.md`。
+
+## 公司层（hyper-org）
+
+岗位回答「谁是什么样的人」，工单回答「现在有什么活、归谁、怎么算完」。这一层把两者接起来，是**自用**的最小公司形态：扁平两层，没有中层，权力不是「能派活」，而是「能签收」。
+
+**依赖是真的**：`hyper-org` 直接复用 hyper-roles 的身份绑定投影（同一个 projection key 由两家共享同一个单元，不重复折叠）、岗位库（DRI 必须是已存在的岗位）与作用域解析（一个项目只有一个根，工单不会和岗位分家）。
+
+### 工单
+
+`<作用域>/org/orders/<id>.json`，`<作用域>/org/CHANGELOG.md` 是审计线。id 形如 `wo-20261115-1`，按天递增。
+
+阶段：`intake` 排队 → `active` 在制 → `review` 待验收 → `done` 已签收；另有 `blocked` 与 `dropped`。规模 `S` / `M` / `L`。
+
+### 三条门禁
+
+| 门禁 | 行为 | 为什么 |
+|---|---|---|
+| 在制上限 | 在制（active/review/blocked）达到 `wipLimit`（默认 2）后，新单**强制排队进 intake**，无论调用方要求什么阶段 | 不能排队就不能拒单，不能拒单的组织只会变慢 |
+| 验收标准 | M/L 规模没有 `acceptance` 不能进 `active`，也不能被签收 | 判不了的活签不了字，签不了字的活只是多了几个字的对话 |
+| 签收 | `done` 只能由 `org_order` 的 `action=sign` 产生；签收必须写 `note`；**领取人不能给自己签字** | 生产者与验收者同源时，验收会退化成自我确认 |
+
+### 工具
+
+| 工具 | 用途 |
+|---|---|
+| `org_order` | `create` / `read` / `update` / `sign`。`update` 只改阶段、领取人、验收标准与交付物；`done` 不在可选阶段里 |
+| `org_board` | `status` 是决策用短摘要，`list` 是完整看板（含超龄天数与解析失败的文件） |
+
+两个工具都只写工单，**不代替 `role_spawn`**：建单 → 看板确认在制 → `role_spawn` 派活 → 交付物挂回工单 → `review` → 别人签字。
+
+### 配置
+
+没有导出 `Config`（链接安装的 bundle 无法静态 import schemastery），可调项在 `<DSH_HOME>/org/config.json`：
+
+```json
+{ "wipLimit": 2, "pulseRows": 3, "boardSection": true }
+```
+
+`boardSection` 控制主代理系统提示里那一段「在制工单」脉冲；绑定岗位的子代理看不到它，它们收到的是自己的岗位卡与任务。
 
 ## 会话内 Wiki（hyper-wiki）
 
