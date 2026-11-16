@@ -1,29 +1,23 @@
 /**
- * Artifact previews for the order board.
+ * Artifact status for the order board.
  *
- * The browser half cannot open a file: it has no shell, no file manager, and a
- * `file://` URL is blocked from an http page. So "open the deliverable" means
- * "read its text through the Host and copy the path for the human".
+ * The panel no longer reads files: a deliverable opens in DSH's own right
+ * sidebar, which renders Markdown, code, images, PDF, Office and HTML itself.
+ * All the browser half needs is *where* the file is, so this module answers one
+ * question — "is this declared path a readable file inside the project?" — and
+ * hands back the absolute path when the answer is yes.
  *
- * That makes this module a read surface over the project tree, and a read
- * surface needs guards. A path arrives from a URL and the declared list comes
- * from a field a model can write, so every request walks the same five checks
- * in order: shape, declaration, lexical containment, symlink containment, type
- * and size — then a binary sniff.
+ * The declared path comes from a field a model can write (`artifacts`), so the
+ * two containment checks stay: a lexical check that the resolved path stays
+ * inside the project, and a symlink check that its real path still does. A path
+ * that escapes is reported as `escape` instead of being opened.
  *
  * @module @chrock-studio/dsh-hyper-mode/hyper-org/artifacts
  */
-import { closeSync, openSync, readSync, realpathSync, statSync } from 'node:fs'
+import { realpathSync, statSync } from 'node:fs'
 import { isAbsolute, normalize, resolve } from 'node:path'
 
 import { isInside } from '../../shared/paths.js'
-
-/** Soft preview ceiling: a longer file is truncated, not refused. */
-export const MAX_BYTES = 256 * 1024
-/** Hard ceiling: a larger file is refused outright. */
-export const HARD_MAX_BYTES = 2 * 1024 * 1024
-/** Bytes sniffed for NUL when deciding "this is not a text file". */
-const BINARY_PROBE = 8 * 1024
 
 /**
  * The directory artifact paths are resolved against.
@@ -36,13 +30,17 @@ export function artifactBase(options = {}) {
 }
 
 /**
- * One artifact's status, for the detail column.
+ * One artifact's status, for the detail inspector.
  *
  * Never throws: a broken declaration renders as a status instead of failing the
- * whole order, because the rest of the card is still worth reading.
+ * whole order, because the rest of the card is still worth reading. A file or a
+ * directory also carries `absolutePath`, which is what the browser half turns
+ * into a `dsh-resource://file/session/…` address; `missing` and `escape` carry
+ * no path on purpose, so a dead row cannot be opened by construction.
  * @param base - project root, when known.
  * @param path - the declared path.
- * @returns `{ path, kind, bytes? }` with kind `file`, `dir`, `missing` or `escape`.
+ * @returns `{ path, kind, absolutePath?, bytes? }` with kind `file`, `dir`,
+ *   `missing` or `escape`.
  */
 export function describeArtifact(base, path) {
   const shown = { path: String(path ?? '') }
@@ -62,103 +60,37 @@ export function describeArtifact(base, path) {
   if (!isInside(root, real)) return { ...shown, kind: 'escape' }
   try {
     const info = statSync(real)
-    if (info.isDirectory()) return { ...shown, kind: 'dir' }
+    if (info.isDirectory()) return { ...shown, kind: 'dir', absolutePath: target }
     if (!info.isFile()) return { ...shown, kind: 'missing' }
-    return { ...shown, kind: 'file', bytes: info.size }
+    return { ...shown, kind: 'file', bytes: info.size, absolutePath: target }
   } catch {
     return { ...shown, kind: 'missing' }
   }
 }
 
 /**
- * Read one declared artifact as text.
- *
- * Guards run in order and the first refusal wins; each refusal carries the HTTP
- * `status` and a stable `code`, so the panel shows the Host's sentence instead
- * of inventing one.
- * @param options - base directory, declared paths, requested path and soft limit.
- * @returns `{ ok: true, path, bytes, truncated, text }`.
- * @throws Error with `status` and `code` when a guard refuses the request.
- */
-export function readArtifactText(options) {
-  const { base, declaredPaths } = options
-  const requested = declaredPath(options.path)
-  const declared = (Array.isArray(declaredPaths) ? declaredPaths : [])
-    .map((entry) => candidatePath(entry))
-    .filter((entry) => entry !== undefined)
-  if (!declared.includes(requested)) {
-    throw failure(400, 'not_declared', `交付物没有在工单里声明：${requested}；先 update 挂上它`)
-  }
-  if (base === undefined) {
-    throw failure(400, 'no_project', '这个会话没有项目根，交付物只能在项目里预览；复制路径后手动打开')
-  }
-  const candidate = resolve(base, requested)
-  if (!isInside(base, candidate)) {
-    throw failure(400, 'path_escape', `交付物路径越出了项目：${requested}`)
-  }
-  let root
-  let target
-  try {
-    root = realpathSync(base)
-    target = realpathSync(candidate)
-  } catch {
-    throw failure(404, 'missing', `交付物不存在：${requested}`)
-  }
-  if (!isInside(root, target)) {
-    throw failure(400, 'path_escape', `交付物经符号链接指向了项目之外：${requested}`)
-  }
-  const info = statSync(target)
-  if (info.isDirectory()) {
-    throw failure(409, 'is_directory', `交付物是目录，不能预览：${requested}`)
-  }
-  if (!info.isFile()) {
-    throw failure(409, 'is_directory', `交付物不是常规文件，不能预览：${requested}`)
-  }
-  if (info.size > HARD_MAX_BYTES) {
-    throw failure(413, 'too_large', `交付物超过 ${HARD_MAX_BYTES / 1024 / 1024} MiB，不预览：${requested}`)
-  }
-  const limit = Math.min(options.maxBytes ?? MAX_BYTES, HARD_MAX_BYTES, info.size)
-  const buffer = Buffer.alloc(limit)
-  const fd = openSync(target, 'r')
-  try {
-    readSync(fd, buffer, 0, limit, 0)
-  } finally {
-    closeSync(fd)
-  }
-  if (buffer.subarray(0, BINARY_PROBE).includes(0)) {
-    throw failure(415, 'binary', `交付物看起来是二进制文件，不能预览：${requested}；用编辑器打开，或复制路径`)
-  }
-  return {
-    ok: true,
-    path: requested,
-    bytes: info.size,
-    truncated: info.size > limit,
-    text: buffer.toString('utf8'),
-  }
-}
-
-/**
- * Validate and normalize a requested path (guard 1).
+ * Validate and normalize a declared path.
  *
  * The URL layer already percent-decodes once, but a declared path may also
- * arrive encoded from a fixture or a script, so decode again before judging —
- * `..%2F..` must not slip past the absolute-path and containment checks.
+ * arrive encoded from a fixture or a hand-edited file, so decode again before
+ * judging — `..%2F..` must not slip past the absolute-path and containment
+ * checks.
  * @param raw - raw path.
  * @returns the normalized relative path.
  * @throws Error with code `path_escape` for anything unusable.
  */
 function declaredPath(raw) {
-  if (typeof raw !== 'string') throw failure(400, 'path_escape', '交付物路径不合法：需要相对路径')
+  if (typeof raw !== 'string') throw refusal('交付物路径不合法：需要相对路径')
   let decoded
   try {
     decoded = decodeURIComponent(raw)
   } catch {
-    throw failure(400, 'path_escape', `交付物路径不是合法的 URL 编码：${raw}`)
+    throw refusal(`交付物路径不是合法的 URL 编码：${raw}`)
   }
   const value = decoded.trim()
-  if (value === '') throw failure(400, 'path_escape', '交付物路径不合法：需要相对路径')
-  if (value.includes('\0')) throw failure(400, 'path_escape', '交付物路径含 NUL 字节')
-  if (isAbsolute(value)) throw failure(400, 'path_escape', `交付物路径必须是相对路径：${value}`)
+  if (value === '') throw refusal('交付物路径不合法：需要相对路径')
+  if (value.includes('\0')) throw refusal('交付物路径含 NUL 字节')
+  if (isAbsolute(value)) throw refusal(`交付物路径必须是相对路径：${value}`)
   return normalize(value)
 }
 
@@ -177,14 +109,11 @@ function candidatePath(raw) {
 
 /**
  * Build one refusal.
- * @param status - HTTP status.
- * @param code - stable error code.
  * @param message - sentence shown to the human.
  * @returns the error.
  */
-function failure(status, code, message) {
+function refusal(message) {
   const error = new Error(message)
-  error.status = status
-  error.code = code
+  error.code = 'path_escape'
   return error
 }

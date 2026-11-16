@@ -1,0 +1,3390 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原型 · 工单看板 A/B/C — Kanban + DSH 文档预览</title>
+<!--
+  原型，用来回答 3 个看板方案选哪个，不进入生产。
+  ------------------------------------------------------------
+  · 单文件、无外部资源、双击可开（file://）。
+  · ?variant=A|B|C 切换结构；底部浮动条与 ←/→ 也能切。
+  · ?demo=normal|empty|loading|error|noproject 直接看状态。
+  · ?theme=light|dark 亮/暗主题。
+  · 数据：两张真实工单 wo-20261115-1/-2（均 done）+ 本单 wo-20261116-1（active）
+    + 7 张合成卡片。在制上限设为 5（真实 config 是 2），让「满员降级 intake」可达。
+  · 右侧栏是视觉 mock；真实实现调 ctx.get('sidebarRight').openResource(addr)，
+    地址由 sessionFileAddress(sessionId, path) 构造。demo 不读文件、不写任何状态。
+-->
+<style>
+/* ============================================================
+   1. 设计令牌（沿用上一版面板同款 --dsw-alias-* 兜底色值）
+   ============================================================ */
+:root {
+  color-scheme: light;
+  --dsw-alias-bg-base:#f4f5f7;
+  --dsw-alias-bg-layer-1:#ffffff;
+  --dsw-alias-bg-layer-2:#f8f9fb;
+  --dsw-alias-border-l1:#e5e7eb;
+  --dsw-alias-border-l2:#d6dae1;
+  --dsw-alias-label-primary:#1f2328;
+  --dsw-alias-label-secondary:#6b7280;
+  --dsw-alias-brand-primary:#2563eb;
+  --dsw-alias-state-error-primary:#dc2626;
+  --dsw-alias-state-warn-primary:#b45309;
+  --dsw-alias-state-success-primary:#16a34a;
+
+  /* demo-only：阶段色、软底、阴影、等宽字体 */
+  --k-mute:#9aa1ab;
+  --k-soft:#eef1f5;
+  --k-soft-2:#f6f8fa;
+  --k-chip:#f1f3f7;
+  --k-hover:#f3f4f6;
+  --k-st-intake:#64748b;
+  --k-st-active:#2563eb;
+  --k-st-review:#d97706;
+  --k-st-blocked:#dc2626;
+  --k-st-done:#16803c;
+  --k-st-dropped:#9ca3af;
+  --k-shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  --k-shadow-lg:0 10px 30px rgba(16,24,40,.14),0 2px 8px rgba(16,24,40,.08);
+  --k-radius:10px;
+  --k-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --k-sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Segoe UI",system-ui,sans-serif;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --dsw-alias-bg-base:#15171b;
+  --dsw-alias-bg-layer-1:#1c1f24;
+  --dsw-alias-bg-layer-2:#22262c;
+  --dsw-alias-border-l1:#2b3037;
+  --dsw-alias-border-l2:#3a4048;
+  --dsw-alias-label-primary:#e6e8eb;
+  --dsw-alias-label-secondary:#9aa1ab;
+  --dsw-alias-brand-primary:#6d9bff;
+  --dsw-alias-state-error-primary:#f87171;
+  --dsw-alias-state-warn-primary:#fbbf24;
+  --dsw-alias-state-success-primary:#4ade80;
+
+  --k-mute:#7d858f;
+  --k-soft:#2a2f36;
+  --k-soft-2:#24282e;
+  --k-chip:#2a2f36;
+  --k-hover:#282d34;
+  --k-st-intake:#94a3b8;
+  --k-st-active:#6d9bff;
+  --k-st-review:#fbbf24;
+  --k-st-blocked:#f87171;
+  --k-st-done:#4ade80;
+  --k-st-dropped:#6b7280;
+  --k-shadow:0 1px 2px rgba(0,0,0,.3);
+  --k-shadow-lg:0 14px 34px rgba(0,0,0,.5);
+}
+
+* { box-sizing:border-box; }
+html, body { height:100%; }
+body {
+  margin:0; overflow:hidden;
+  background:var(--dsw-alias-bg-base); color:var(--dsw-alias-label-primary);
+  font:13px/1.55 var(--k-sans);
+  -webkit-font-smoothing:antialiased;
+}
+button, input, select, textarea { font:inherit; color:inherit; }
+button { cursor:pointer; }
+::selection { background:color-mix(in srgb, var(--dsw-alias-brand-primary) 26%, transparent); }
+.k-mono { font-family:var(--k-mono); }
+.k-mut { color:var(--dsw-alias-label-secondary); }
+.k-faint { color:var(--k-mute); }
+.k-annot {
+  margin:6px 0 0; padding:4px 7px; border-left:2px solid var(--dsw-alias-border-l2);
+  font-size:10.5px; line-height:1.5; color:var(--dsw-alias-label-secondary);
+  background:var(--k-soft-2); border-radius:0 5px 5px 0;
+}
+.k-annot b { color:var(--dsw-alias-label-primary); font-weight:600; }
+
+/* ============================================================
+   2. 宿主外壳：应用栏 / 会话列表 / 会话头 / 标签栏
+   ============================================================ */
+.app {
+  display:grid;
+  grid-template-columns:52px 220px minmax(0,1fr) auto;
+  height:100vh; height:100dvh;
+  background:var(--dsw-alias-bg-base);
+  transition:grid-template-columns .2s ease;
+}
+.rail {
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:10px 0; background:var(--dsw-alias-bg-layer-2);
+  border-right:1px solid var(--dsw-alias-border-l1);
+}
+.rail-logo {
+  width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
+  background:var(--dsw-alias-brand-primary); color:#fff; font-weight:700; font-size:13px;
+  box-shadow:0 2px 6px color-mix(in srgb, var(--dsw-alias-brand-primary) 40%, transparent);
+}
+.rail-item {
+  width:32px; height:32px; border-radius:8px; display:grid; place-items:center;
+  color:var(--dsw-alias-label-secondary); font-size:14px; line-height:1;
+}
+.rail-item.is-on {
+  background:var(--dsw-alias-bg-layer-1); color:var(--dsw-alias-label-primary);
+  box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l1);
+}
+.rail-spacer { flex:1; }
+.side {
+  display:flex; flex-direction:column; min-height:0; padding:12px 10px 10px;
+  background:var(--dsw-alias-bg-layer-2);
+  border-right:1px solid var(--dsw-alias-border-l1);
+}
+.side-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 4px 9px; font-size:11px; font-weight:600; letter-spacing:.08em;
+  color:var(--dsw-alias-label-secondary); text-transform:uppercase;
+}
+.side-plus { font-size:14px; font-weight:400; color:var(--k-mute); }
+.side-search {
+  display:flex; align-items:center; height:27px; padding:0 8px; margin-bottom:10px;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:7px;
+  background:var(--dsw-alias-bg-layer-1); color:var(--k-mute); font-size:11.5px;
+}
+.side-group { padding:6px 4px 4px; font-size:10px; letter-spacing:.08em; color:var(--k-mute); }
+.side-row {
+  display:flex; flex-direction:column; gap:1px; padding:7px 8px; border-radius:7px;
+  color:var(--dsw-alias-label-secondary); cursor:default;
+}
+.side-row b {
+  font-size:12px; font-weight:550; color:var(--dsw-alias-label-primary);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.side-row span { font-size:10.5px; color:var(--k-mute); }
+.side-row.is-on { background:var(--k-chip); box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary); }
+.side-row.is-on b { color:var(--dsw-alias-label-primary); }
+.side-foot {
+  margin-top:auto; padding:9px 6px 2px; border-top:1px solid var(--dsw-alias-border-l1);
+  font-size:10.5px; line-height:1.5; color:var(--dsw-alias-label-secondary);
+}
+.side-foot span { color:var(--k-mute); font-size:10px; }
+
+.main { display:flex; flex-direction:column; min-width:0; min-height:0; }
+.sesshead {
+  flex:none; padding:13px 18px 0; background:var(--dsw-alias-bg-layer-1);
+  border-bottom:1px solid var(--dsw-alias-border-l1);
+}
+.sessline { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.sess-id { min-width:0; }
+.sess-title {
+  font-size:14.5px; font-weight:600; line-height:1.35; letter-spacing:.005em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.sess-meta {
+  display:flex; align-items:center; gap:6px; margin-top:3px;
+  font-size:10.5px; color:var(--dsw-alias-label-secondary);
+}
+.sess-meta .dot { color:var(--k-mute); }
+.sess-actions { display:flex; align-items:center; gap:6px; flex:none; padding-top:1px; }
+.pill {
+  display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-2);
+  font-size:10.5px; color:var(--dsw-alias-label-secondary);
+}
+.pill::before {
+  content:""; width:5px; height:5px; border-radius:50%;
+  background:var(--dsw-alias-state-warn-primary);
+}
+.tabs { display:flex; align-items:flex-end; gap:2px; margin-top:10px; }
+.tab {
+  position:relative; padding:8px 11px 9px; font-size:12.5px; line-height:1;
+  color:var(--dsw-alias-label-secondary); border-bottom:2px solid transparent;
+  white-space:nowrap; cursor:default;
+}
+.tab.is-on {
+  color:var(--dsw-alias-label-primary); font-weight:600;
+  border-bottom-color:var(--dsw-alias-brand-primary);
+}
+.tab-spacer { flex:1; }
+.tab-hint { padding-bottom:9px; font-size:10.5px; color:var(--k-mute); }
+
+/* 视图区 */
+.view {
+  flex:1 1 auto; display:flex; flex-direction:column; min-height:0;
+  background:var(--dsw-alias-bg-base);
+}
+.viewhead {
+  flex:none; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  flex-wrap:wrap; padding:9px 14px;
+  background:var(--dsw-alias-bg-layer-1);
+  border-bottom:1px solid var(--dsw-alias-border-l1);
+}
+.viewtitle { display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap; }
+.viewtitle h1 {
+  margin:0; font-size:15px; font-weight:650; letter-spacing:.005em; line-height:1.2;
+}
+.viewsub { font-size:10.5px; color:var(--k-mute); }
+.stats { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-left:2px; }
+.stat {
+  display:inline-flex; align-items:baseline; gap:4px; padding:1px 7px; border-radius:999px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-2);
+  font-size:10px; color:var(--dsw-alias-label-secondary); white-space:nowrap;
+}
+.stat b { font-size:11.5px; font-weight:650; color:var(--dsw-alias-label-primary); font-variant-numeric:tabular-nums; }
+.stat.is-warn { border-color:color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, var(--dsw-alias-border-l1)); }
+.stat.is-warn b { color:var(--dsw-alias-state-warn-primary); }
+.stat.is-danger { border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, var(--dsw-alias-border-l1)); }
+.stat.is-danger b { color:var(--dsw-alias-state-error-primary); }
+.stat.is-ok b { color:var(--dsw-alias-state-success-primary); }
+.tools { display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
+.demo-strip {
+  display:flex; align-items:center; gap:5px; padding:2px 6px; border-radius:8px;
+  border:1px dashed color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, var(--dsw-alias-border-l1));
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, var(--dsw-alias-bg-layer-1));
+}
+.demo-tag {
+  font-size:8.5px; letter-spacing:.08em; font-weight:700; line-height:1.5;
+  color:var(--dsw-alias-brand-primary); border:1px solid currentColor;
+  border-radius:3px; padding:0 3px;
+}
+.demo-label { font-size:10px; color:var(--dsw-alias-label-secondary); }
+.seg {
+  display:flex; gap:2px; padding:2px; border-radius:8px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-2);
+}
+.seg-btn {
+  border:0; background:none; padding:2px 8px; border-radius:6px;
+  font-size:11.5px; color:var(--dsw-alias-label-secondary); white-space:nowrap;
+}
+.seg-btn:hover { color:var(--dsw-alias-label-primary); }
+.seg-btn.is-on {
+  background:var(--dsw-alias-bg-layer-1); color:var(--dsw-alias-label-primary);
+  font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+.k-btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:4px;
+  padding:4px 10px; border-radius:7px; border:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-1); color:var(--dsw-alias-label-primary);
+  font-size:12px; line-height:1.5; white-space:nowrap;
+}
+.k-btn:hover:not(:disabled) {
+  border-color:var(--dsw-alias-border-l2);
+  background:color-mix(in srgb, var(--dsw-alias-label-primary) 3%, var(--dsw-alias-bg-layer-1));
+}
+.k-btn:disabled { opacity:.45; cursor:default; }
+.k-btn-sm { padding:2px 8px; font-size:11.5px; }
+.k-btn-primary {
+  background:var(--dsw-alias-brand-primary); border-color:var(--dsw-alias-brand-primary);
+  color:#fff;
+}
+.k-btn-primary:hover:not(:disabled) {
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 88%, #000);
+  border-color:color-mix(in srgb, var(--dsw-alias-brand-primary) 88%, #000);
+}
+.k-btn-danger {
+  color:var(--dsw-alias-state-error-primary);
+  border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, var(--dsw-alias-border-l1));
+}
+.k-btn-ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary); }
+.k-btn-ghost:hover:not(:disabled) { background:var(--k-hover); }
+.k-select, .k-input, .k-textarea {
+  border:1px solid var(--dsw-alias-border-l1); border-radius:7px;
+  background:var(--dsw-alias-bg-layer-1); color:inherit; font-size:12px;
+  padding:4px 7px; outline:none; min-width:0;
+}
+.k-select { padding-right:20px; }
+.k-select:focus, .k-input:focus, .k-textarea:focus {
+  border-color:var(--dsw-alias-brand-primary);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent);
+}
+.k-textarea {
+  width:100%; resize:vertical; min-height:58px; line-height:1.5;
+  font-family:var(--k-mono); font-size:11.5px;
+}
+.k-input { width:100%; }
+
+.banner-layer { flex:none; display:flex; flex-direction:column; gap:5px; }
+.banner {
+  display:flex; align-items:flex-start; gap:8px; margin:7px 14px 0;
+  padding:6px 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-1); font-size:11.5px; line-height:1.5;
+}
+.banner.is-info { border-color:color-mix(in srgb, var(--dsw-alias-brand-primary) 38%, var(--dsw-alias-border-l1)); background:color-mix(in srgb, var(--dsw-alias-brand-primary) 6%, var(--dsw-alias-bg-layer-1)); }
+.banner.is-warn { border-color:color-mix(in srgb, var(--dsw-alias-state-warn-primary) 42%, var(--dsw-alias-border-l1)); background:color-mix(in srgb, var(--dsw-alias-state-warn-primary) 7%, var(--dsw-alias-bg-layer-1)); }
+.banner.is-error { border-color:var(--dsw-alias-state-error-primary); background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 7%, var(--dsw-alias-bg-layer-1)); }
+.banner.is-success { border-color:color-mix(in srgb, var(--dsw-alias-state-success-primary) 42%, var(--dsw-alias-border-l1)); background:color-mix(in srgb, var(--dsw-alias-state-success-primary) 7%, var(--dsw-alias-bg-layer-1)); }
+.banner-ic { flex:none; font-size:12px; line-height:1.5; }
+.banner-main { flex:1 1 auto; min-width:0; }
+.banner-title { font-weight:600; }
+.banner-body { margin:1px 0 0; white-space:pre-line; color:var(--dsw-alias-label-secondary); }
+.banner-code {
+  display:inline-block; margin-top:2px; padding:0 4px; border-radius:4px;
+  font-family:var(--k-mono); font-size:9.5px; color:var(--dsw-alias-label-secondary);
+  background:var(--k-chip);
+}
+.banner-close {
+  flex:none; border:0; background:none; color:var(--k-mute); font-size:14px;
+  line-height:1; padding:0 2px;
+}
+.banner-close:hover { color:var(--dsw-alias-label-primary); }
+
+.variant-root { flex:1 1 auto; display:flex; flex-direction:column; min-height:0; padding-bottom:52px; }
+.v { flex:1 1 auto; display:flex; min-height:0; }
+.v-a, .v-b { flex-direction:column; }
+
+/* ============================================================
+   3. 通用卡片 / 详情 / 交付物 / 日志 / 签收
+   ============================================================ */
+.k-card {
+  position:relative; display:flex; flex-direction:column; gap:5px;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:8px;
+  background:var(--dsw-alias-bg-layer-1); box-shadow:var(--k-shadow);
+  padding:8px 9px; cursor:pointer; text-align:left; color:inherit;
+  transition:border-color .12s ease, box-shadow .12s ease, transform .12s ease;
+}
+.k-card:hover { border-color:var(--dsw-alias-border-l2); transform:translateY(-1px); }
+.k-card.is-on {
+  border-color:var(--dsw-alias-brand-primary);
+  box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary), var(--k-shadow);
+}
+.k-card.is-dragging { opacity:.45; }
+.k-card.is-bounce { animation:bounceBack .34s ease; }
+.k-card-title {
+  font-size:12.5px; font-weight:550; line-height:1.42; letter-spacing:.002em;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; word-break:break-word;
+}
+.k-card-meta {
+  display:flex; align-items:center; flex-wrap:wrap; gap:4px;
+  font-size:10px; color:var(--dsw-alias-label-secondary);
+}
+.k-card-warns { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+.k-card-foot {
+  display:flex; align-items:center; justify-content:space-between; gap:6px;
+  margin-top:1px; font-size:9.5px; color:var(--k-mute); font-variant-numeric:tabular-nums;
+}
+.k-chip {
+  display:inline-flex; align-items:center; gap:3px; max-width:100%;
+  padding:0 5px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1);
+  background:var(--k-chip); color:var(--dsw-alias-label-secondary);
+  font-size:9.5px; line-height:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.k-chip-size {
+  font-family:var(--k-mono); font-weight:650; color:var(--dsw-alias-label-primary);
+  border-color:var(--dsw-alias-border-l2); background:transparent;
+}
+.k-chip-warn {
+  color:var(--dsw-alias-state-warn-primary);
+  border-color:color-mix(in srgb, var(--dsw-alias-state-warn-primary) 42%, var(--dsw-alias-border-l1));
+  background:color-mix(in srgb, var(--dsw-alias-state-warn-primary) 9%, var(--dsw-alias-bg-layer-1));
+}
+.k-chip-danger {
+  color:var(--dsw-alias-state-error-primary);
+  border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, var(--dsw-alias-border-l1));
+  background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 9%, var(--dsw-alias-bg-layer-1));
+}
+.k-chip-ok {
+  color:var(--dsw-alias-state-success-primary);
+  border-color:color-mix(in srgb, var(--dsw-alias-state-success-primary) 40%, var(--dsw-alias-border-l1));
+  background:color-mix(in srgb, var(--dsw-alias-state-success-primary) 8%, var(--dsw-alias-bg-layer-1));
+}
+.k-chip-global { border-style:dashed; color:var(--k-mute); background:transparent; }
+.stage-dot {
+  flex:none; width:7px; height:7px; border-radius:50%;
+  background:var(--k-st-intake);
+}
+.is-intake { --k-st:var(--k-st-intake); }
+.is-active { --k-st:var(--k-st-active); }
+.is-review { --k-st:var(--k-st-review); }
+.is-blocked { --k-st:var(--k-st-blocked); }
+.is-done { --k-st:var(--k-st-done); }
+.is-dropped { --k-st:var(--k-st-dropped); }
+.stage-dot.is-intake { background:var(--k-st-intake); }
+.stage-dot.is-active { background:var(--k-st-active); }
+.stage-dot.is-review { background:var(--k-st-review); }
+.stage-dot.is-blocked { background:var(--k-st-blocked); }
+.stage-dot.is-done { background:var(--k-st-done); }
+.stage-dot.is-dropped { background:var(--k-st-dropped); }
+.k-stage-text { font-family:var(--k-mono); font-size:11px; letter-spacing:.02em; }
+
+/* 详情区块 */
+.d-head { display:flex; align-items:flex-start; gap:8px; }
+.d-headmain { min-width:0; flex:1 1 auto; }
+.d-title { margin:0; font-size:14px; font-weight:600; line-height:1.4; word-break:break-word; }
+.d-idline {
+  display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:3px;
+  font-size:10px; color:var(--k-mute);
+}
+.d-close {
+  flex:none; width:24px; height:24px; border-radius:6px; border:1px solid transparent;
+  background:none; color:var(--k-mute); font-size:15px; line-height:1;
+}
+.d-close:hover { background:var(--k-hover); color:var(--dsw-alias-label-primary); }
+.d-sec { border-top:1px solid var(--dsw-alias-border-l1); padding:8px 0 1px; }
+.d-sec:first-of-type { border-top:0; padding-top:2px; }
+.d-label {
+  margin:0 0 4px; font-size:9.5px; font-weight:650; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--k-mute);
+}
+.d-stage { display:flex; align-items:center; gap:6px; font-weight:600; font-size:13px; }
+.d-stage .k-stage-text { font-size:12.5px; }
+.d-sub { margin:2px 0 0; font-size:11px; color:var(--dsw-alias-label-secondary); }
+.d-list { margin:0; padding:0 0 0 15px; font-size:11.5px; line-height:1.55; }
+.d-list li { margin:1px 0; word-break:break-word; }
+.d-warnbox {
+  margin:2px 0 0; padding:5px 7px; border-radius:6px; border:1px solid;
+  font-size:10.5px; line-height:1.5;
+}
+.d-warnbox.is-warn {
+  border-color:color-mix(in srgb, var(--dsw-alias-state-warn-primary) 45%, var(--dsw-alias-border-l1));
+  color:var(--dsw-alias-state-warn-primary);
+  background:color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, var(--dsw-alias-bg-layer-1));
+}
+.d-warnbox.is-danger {
+  border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, var(--dsw-alias-border-l1));
+  color:var(--dsw-alias-state-error-primary);
+  background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 7%, var(--dsw-alias-bg-layer-1));
+}
+.d-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:3px; }
+.d-actions .k-select { font-size:11px; padding:3px 6px; }
+.d-actions .hint { font-size:9.5px; color:var(--k-mute); }
+
+/* 交付物 */
+.art-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.art-row {
+  display:flex; flex-direction:column; gap:3px; padding:5px 6px;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:6px;
+  background:var(--dsw-alias-bg-layer-2);
+}
+.art-row.is-missing {
+  border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary) 55%, var(--dsw-alias-border-l1));
+  background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 6%, var(--dsw-alias-bg-layer-1));
+}
+.art-top { display:flex; align-items:flex-start; gap:5px; min-width:0; }
+.art-path {
+  flex:1 1 auto; min-width:0; font-family:var(--k-mono); font-size:10px;
+  line-height:1.5; word-break:break-all; color:var(--dsw-alias-label-primary);
+}
+.art-row.is-missing .art-path { color:var(--dsw-alias-state-error-primary); }
+.art-kind { flex:none; font-size:9px; color:var(--k-mute); }
+.art-status { flex:none; font-size:9px; color:var(--dsw-alias-state-error-primary); }
+.art-open {
+  align-self:flex-start; border:0; background:none; padding:0 1px;
+  color:var(--dsw-alias-brand-primary); font-size:10.5px; line-height:1.6;
+}
+.art-open:hover:not(:disabled) { text-decoration:underline; }
+.art-open:disabled { color:var(--k-mute); cursor:default; }
+.art-reason { font-size:9.5px; color:var(--k-mute); }
+.art-reason.is-danger { color:var(--dsw-alias-state-error-primary); }
+
+/* 日志 */
+.log { display:flex; flex-direction:column; gap:6px; }
+.log-scroll { max-height:240px; overflow:auto; padding-right:2px; }
+.log-row { border-left:2px solid var(--dsw-alias-border-l2); padding-left:7px; }
+.log-meta {
+  display:flex; align-items:center; gap:5px; font-size:9.5px; color:var(--k-mute);
+  font-family:var(--k-mono);
+}
+.log-by { color:var(--dsw-alias-label-secondary); font-family:var(--k-sans); }
+.log-note {
+  margin:1px 0 0; font-size:11px; line-height:1.55; white-space:pre-wrap;
+  word-break:break-word; color:var(--dsw-alias-label-primary);
+}
+.log-count { font-size:9.5px; color:var(--k-mute); }
+
+/* 签收 */
+.sign {
+  margin-top:8px; padding:7px 8px 8px; border-radius:8px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-2);
+}
+.sign-head { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:5px; }
+.sign-head h4 { margin:0; font-size:11px; font-weight:650; }
+.sign-actor {
+  font-size:9.5px; color:var(--dsw-alias-label-secondary); white-space:nowrap;
+  padding:0 5px; border-radius:999px; border:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-1);
+}
+.sign-note { min-height:52px; }
+.sign-hint { margin:3px 0 0; font-size:9.5px; color:var(--dsw-alias-state-warn-primary); }
+.sign-hint.is-ok { color:var(--dsw-alias-state-success-primary); }
+.sign-blk { list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.sign-blk li { font-size:9.5px; line-height:1.45; color:var(--dsw-alias-state-warn-primary); }
+.sign-blk li .code {
+  font-family:var(--k-mono); font-size:8.5px; margin-right:3px; opacity:.85;
+}
+.sign-blk li.is-danger { color:var(--dsw-alias-state-error-primary); }
+.sign-btns { display:flex; gap:5px; justify-content:flex-end; margin-top:6px; }
+.sign-btns .k-btn { padding:3px 8px; font-size:10.5px; }
+.sign-locked {
+  margin:0; padding:5px 7px; border-radius:6px; background:var(--dsw-alias-bg-layer-1);
+  border:1px dashed var(--dsw-alias-border-l1); font-size:10.5px; color:var(--dsw-alias-label-secondary);
+}
+
+/* ============================================================
+   4. A 方案：经典阶段列 + 右侧抽屉
+   ============================================================ */
+.v-a { flex-direction:column; gap:8px; padding:9px 12px 4px; }
+.a-main { display:flex; flex:1 1 auto; min-height:0; gap:9px; }
+.a-board {
+  flex:1 1 auto; min-width:0; display:grid;
+  grid-template-columns:repeat(5,minmax(202px,1fr));
+  gap:8px; overflow-x:auto; overflow-y:hidden; padding-bottom:2px;
+}
+.a-col {
+  display:flex; flex-direction:column; min-height:0; min-width:0;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:var(--k-radius);
+  background:var(--dsw-alias-bg-layer-1); overflow:hidden;
+  transition:border-color .12s ease, background .12s ease;
+}
+.a-col.is-drag {
+  border-color:var(--dsw-alias-brand-primary);
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, var(--dsw-alias-bg-layer-1));
+  box-shadow:inset 0 0 0 1px var(--dsw-alias-brand-primary);
+}
+.a-col.is-bad { border-color:var(--dsw-alias-state-error-primary); animation:shake .3s ease; }
+.a-colhead {
+  flex:none; display:flex; align-items:center; gap:5px; padding:7px 8px;
+  border-bottom:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-2); border-top:2px solid var(--k-st);
+  font-size:11px; min-width:0;
+}
+.a-colhead .stage-key { font-family:var(--k-mono); font-weight:650; letter-spacing:.01em; }
+.a-colhead .stage-sub { font-size:9.5px; color:var(--k-mute); white-space:nowrap; }
+.a-count {
+  margin-left:auto; flex:none; min-width:17px; text-align:center;
+  padding:0 5px; border-radius:999px; background:var(--k-chip);
+  border:1px solid var(--dsw-alias-border-l1);
+  font-size:9.5px; color:var(--dsw-alias-label-secondary); font-variant-numeric:tabular-nums;
+}
+.a-colbody {
+  flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;
+  padding:6px; display:flex; flex-direction:column; gap:6px;
+}
+.a-colfoot {
+  flex:none; display:flex; align-items:center; justify-content:space-between; gap:5px;
+  padding:5px 7px; border-top:1px solid var(--dsw-alias-border-l1);
+  font-size:9px; color:var(--k-mute); background:var(--dsw-alias-bg-layer-2);
+}
+.a-colnone {
+  display:grid; place-items:center; min-height:46px; border-radius:7px;
+  border:1px dashed var(--dsw-alias-border-l1); color:var(--k-mute); font-size:10px;
+  text-align:center; padding:6px;
+}
+.a-drawer {
+  flex:none; width:382px; min-height:0; display:flex; flex-direction:column;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:var(--k-radius);
+  background:var(--dsw-alias-bg-layer-1); overflow:hidden;
+  animation:drawerIn .18s ease-out; box-shadow:var(--k-shadow);
+}
+.a-drawer-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; padding:11px 12px 14px; }
+.a-drawer .d-head { margin-bottom:6px; }
+.a-archive {
+  flex:none; display:flex; align-items:center; gap:8px; min-height:30px;
+  padding:3px 8px; border:1px dashed var(--dsw-alias-border-l1); border-radius:8px;
+  background:var(--dsw-alias-bg-layer-2); font-size:10px; color:var(--k-mute);
+  transition:border-color .12s ease, background .12s ease;
+}
+.a-archive.is-drag {
+  border-color:var(--dsw-alias-state-error-primary);
+  color:var(--dsw-alias-state-error-primary);
+  background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 6%, var(--dsw-alias-bg-layer-1));
+}
+.a-archive-btn {
+  display:flex; align-items:center; gap:6px; border:0; background:none;
+  color:inherit; font-size:10px; padding:0; max-width:100%;
+}
+.a-arch-list { display:flex; gap:6px; align-items:center; overflow-x:auto; padding-bottom:2px; }
+.a-arch-card {
+  flex:none; width:250px; padding:5px 7px; border-radius:9px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-1);
+}
+.a-arch-card .k-card-title { font-size:11px; -webkit-line-clamp:1; color:var(--dsw-alias-label-secondary); }
+.a-arch-card .k-card-meta { font-size:9px; }
+.a-onboard, .b-onboard {
+  flex:none; display:flex; align-items:center; gap:12px; padding:9px 12px;
+  border:1px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 30%, var(--dsw-alias-border-l1));
+  border-radius:var(--k-radius);
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, var(--dsw-alias-bg-layer-1));
+}
+.empty-ic {
+  flex:none; width:30px; height:30px; border-radius:9px; display:grid; place-items:center;
+  border:1px dashed var(--dsw-alias-brand-primary); color:var(--dsw-alias-brand-primary);
+  font-size:16px; background:var(--dsw-alias-bg-layer-1);
+}
+.a-onboard .onboard-main, .b-onboard .onboard-main { flex:1 1 auto; min-width:0; }
+.a-onboard b, .b-onboard b { font-size:12.5px; }
+.a-onboard p, .b-onboard p { margin:1px 0 0; font-size:10.5px; color:var(--dsw-alias-label-secondary); }
+.empty-steps { display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; }
+.empty-steps span {
+  padding:1px 6px; border-radius:999px; background:var(--dsw-alias-bg-layer-1);
+  border:1px solid var(--dsw-alias-border-l1); font-size:9.5px; color:var(--dsw-alias-label-secondary);
+}
+
+/* ============================================================
+   5. B 方案：横向阶段泳道 + 底部 inspector
+   ============================================================ */
+.v-b { flex-direction:column; gap:6px; padding:9px 12px 4px; }
+.b-lanes {
+  flex:1 1 auto; min-height:0; display:grid;
+  grid-template-rows:repeat(5,minmax(0,1fr)); gap:5px;
+}
+.b-lane {
+  display:grid; grid-template-columns:98px minmax(0,1fr); min-height:0;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:9px;
+  background:var(--dsw-alias-bg-layer-1); overflow:hidden;
+  transition:border-color .12s ease, background .12s ease;
+}
+.b-lane.is-drag {
+  border-color:var(--dsw-alias-brand-primary);
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 4%, var(--dsw-alias-bg-layer-1));
+  box-shadow:inset 0 0 0 1px var(--dsw-alias-brand-primary);
+}
+.b-lane.is-bad { border-color:var(--dsw-alias-state-error-primary); animation:shake .3s ease; }
+.b-lanelabel {
+  display:flex; flex-direction:column; justify-content:center; gap:2px; min-width:0;
+  padding:5px 8px; border-right:1px solid var(--dsw-alias-border-l1);
+  border-left:3px solid var(--k-st); background:var(--dsw-alias-bg-layer-2);
+}
+.b-lanelabel .l1 {
+  display:flex; align-items:center; gap:5px; font-family:var(--k-mono);
+  font-size:11px; font-weight:650; min-width:0;
+}
+.b-lanelabel .l2 {
+  display:flex; align-items:center; gap:5px; font-size:9px; color:var(--k-mute);
+  white-space:nowrap; overflow:hidden;
+}
+.b-count {
+  margin-left:auto; padding:0 5px; border-radius:999px; background:var(--k-chip);
+  border:1px solid var(--dsw-alias-border-l1); font-size:9px;
+  color:var(--dsw-alias-label-secondary); font-variant-numeric:tabular-nums;
+}
+.b-lanecards {
+  display:flex; align-items:center; gap:6px; min-width:0;
+  padding:5px 7px; overflow-x:auto; overflow-y:hidden;
+}
+.b-card {
+  flex:none; width:298px; max-height:100%; justify-content:center;
+  padding:6px 8px; gap:3px;
+}
+.b-card .k-card-title { font-size:11.5px; line-height:1.38; }
+.b-card .k-card-meta { font-size:9.5px; gap:3px; }
+.b-card .k-card-warns:empty { display:none; }
+.b-laneempty {
+  display:flex; align-items:center; gap:5px; padding:6px 9px; border-radius:7px;
+  border:1px dashed var(--dsw-alias-border-l1); color:var(--k-mute); font-size:9.5px;
+  white-space:nowrap;
+}
+.b-archive {
+  flex:none; display:flex; align-items:center; gap:7px; min-height:27px;
+  padding:2px 8px; border:1px dashed var(--dsw-alias-border-l1); border-radius:7px;
+  background:var(--dsw-alias-bg-layer-2); font-size:9.5px; color:var(--k-mute);
+}
+.b-archive.is-drag {
+  border-color:var(--dsw-alias-state-error-primary);
+  color:var(--dsw-alias-state-error-primary);
+}
+.b-archive .a-arch-card { width:230px; padding:3px 6px; }
+.b-archive .a-arch-card .k-card-title { font-size:10px; }
+.b-inspector {
+  flex:none; height:52px; border:1px solid var(--dsw-alias-border-l1);
+  border-radius:var(--k-radius); background:var(--dsw-alias-bg-layer-1);
+  overflow:hidden; transition:height .18s ease;
+}
+.b-inspector.is-open { height:224px; }
+.b-ins-head {
+  display:flex; align-items:center; gap:8px; min-height:38px; padding:6px 9px;
+  border-bottom:1px solid var(--dsw-alias-border-l1);
+}
+.b-ins-head .d-head { flex:1 1 auto; min-width:0; align-items:center; }
+.b-ins-head .d-title { font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.b-ins-head .d-idline { margin-top:1px; }
+.b-ins-hint { display:flex; align-items:center; gap:7px; font-size:10px; color:var(--k-mute); }
+.b-ins-hint b { color:var(--dsw-alias-label-primary); font-weight:600; }
+.b-ins-body {
+  display:grid; grid-template-columns:148px minmax(0,1fr) minmax(0,1.12fr) minmax(0,1.35fr);
+  gap:9px; height:calc(100% - 39px); padding:7px 9px 9px; min-height:0;
+}
+.b-ins-col { min-width:0; overflow-y:auto; padding-left:9px; border-left:1px dashed var(--dsw-alias-border-l1); }
+.b-ins-col:first-child { border-left:0; padding-left:0; }
+.b-ins-col > .d-sec { border-top:0; padding:0 0 5px; }
+.b-ins-col .d-label { margin-bottom:2px; }
+.b-ins-col .log-scroll { max-height:none; }
+.b-ins-col .sign { margin-top:6px; }
+.b-ins-empty { display:grid; place-items:center; height:100%; color:var(--k-mute); font-size:10.5px; }
+
+/* ============================================================
+   6. C 方案：竖向阶段轨 + 单阶段聚焦 + 右侧检查器
+   ============================================================ */
+.v-c { gap:9px; padding:9px 12px 4px; }
+.c-rail {
+  flex:none; width:194px; display:flex; flex-direction:column; gap:3px;
+  min-height:0; overflow-y:auto; padding:7px;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:var(--k-radius);
+  background:var(--dsw-alias-bg-layer-1);
+}
+.c-wip {
+  flex:none; margin-bottom:5px; padding:7px 8px; border-radius:8px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-2);
+}
+.c-wip-row {
+  display:flex; align-items:baseline; justify-content:space-between; gap:6px;
+  font-size:10px; color:var(--dsw-alias-label-secondary);
+}
+.c-wip-row b { font-size:12.5px; color:var(--dsw-alias-label-primary); font-variant-numeric:tabular-nums; }
+.c-wip-over { color:var(--dsw-alias-state-warn-primary); }
+.c-gauge { display:flex; gap:3px; margin-top:6px; height:5px; }
+.c-gauge i { flex:1 1 0; border-radius:2px; background:var(--k-soft); display:block; }
+.c-gauge i.is-on { background:var(--dsw-alias-brand-primary); }
+.c-gauge i.is-over { background:var(--dsw-alias-state-error-primary); }
+.c-stagebtn {
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center;
+  gap:6px; padding:7px 7px; border-radius:7px; border:1px solid transparent;
+  background:none; text-align:left; color:var(--dsw-alias-label-secondary); font-size:11px;
+}
+.c-stagebtn:hover { background:var(--k-hover); }
+.c-stagebtn.is-on {
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 10%, var(--dsw-alias-bg-layer-1));
+  border-color:color-mix(in srgb, var(--dsw-alias-brand-primary) 36%, var(--dsw-alias-border-l1));
+  color:var(--dsw-alias-label-primary);
+}
+.c-stagebtn .name { font-family:var(--k-mono); font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.c-stagebtn .sub { grid-column:1 / -1; margin-left:13px; font-size:9px; color:var(--k-mute); }
+.c-stagebtn .n {
+  font-size:9.5px; color:var(--dsw-alias-label-secondary); font-variant-numeric:tabular-nums;
+  padding:0 5px; border-radius:999px; background:var(--k-chip);
+  border:1px solid var(--dsw-alias-border-l1);
+}
+.c-stagebtn.is-dropped { margin-top:auto; opacity:.72; }
+.c-railnote {
+  flex:none; margin-top:4px; padding:4px 5px; font-size:9px; line-height:1.45;
+  color:var(--k-mute); border-top:1px dashed var(--dsw-alias-border-l1);
+}
+.c-center { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:6px; }
+.c-streamhead {
+  flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  padding:7px 9px; border:1px solid var(--dsw-alias-border-l1);
+  border-radius:9px; background:var(--dsw-alias-bg-layer-1); font-size:10px;
+  color:var(--dsw-alias-label-secondary);
+}
+.c-streamhead b { font-family:var(--k-mono); font-size:12.5px; color:var(--dsw-alias-label-primary); }
+.c-streamhead .sep { color:var(--k-mute); }
+.c-streamhead .spacer { flex:1 1 auto; }
+.c-streamhead .hint { font-size:9px; color:var(--k-mute); white-space:nowrap; }
+.c-stream { flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:2px; }
+.c-card { gap:4px; padding:8px 9px; }
+.c-card .k-card-title { -webkit-line-clamp:2; font-size:12.5px; }
+.c-card-snippet {
+  font-size:9.5px; color:var(--k-mute); white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; border-top:1px dashed var(--dsw-alias-border-l1); padding-top:3px;
+}
+.c-inspector {
+  flex:none; width:306px; display:flex; flex-direction:column; min-height:0;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:var(--k-radius);
+  background:var(--dsw-alias-bg-layer-1); overflow:hidden;
+}
+.c-detail { flex:1 1 auto; min-height:0; overflow-y:auto; padding:10px 11px 14px; }
+.c-placeholder {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; padding:20px 14px; text-align:center; color:var(--k-mute); font-size:10.5px;
+}
+.c-placeholder .big { font-size:22px; color:var(--dsw-alias-border-l2); }
+.c-empty-main {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; padding:26px 18px; text-align:center; border:1px dashed var(--dsw-alias-border-l1);
+  border-radius:var(--k-radius); background:var(--dsw-alias-bg-layer-1);
+}
+.c-empty-main b { font-size:13px; }
+.c-empty-main p { margin:0; max-width:380px; font-size:10.5px; color:var(--dsw-alias-label-secondary); }
+
+/* ============================================================
+   7. 加载 / 错误 / 骨架
+   ============================================================ */
+.skel {
+  border-radius:6px; display:block;
+  background:linear-gradient(90deg, var(--k-soft) 25%, var(--k-soft-2) 37%, var(--k-soft) 63%);
+  background-size:400% 100%; animation:shimmer 1.5s ease infinite;
+}
+.skel-card { height:74px; border:1px solid var(--dsw-alias-border-l1); background-color:var(--dsw-alias-bg-layer-1); }
+.skel-line { height:8px; margin:7px 0; }
+.skel-line.w60 { width:60%; }
+.skel-line.w85 { width:85%; }
+.skel-line.w40 { width:40%; }
+.load-strip {
+  flex:none; display:flex; align-items:center; gap:7px; margin:7px 14px 0;
+  padding:6px 9px; border:1px solid var(--dsw-alias-border-l1); border-radius:8px;
+  background:var(--dsw-alias-bg-layer-1); font-size:11px; color:var(--dsw-alias-label-secondary);
+}
+.load-strip .spacer { flex:1; }
+.spin {
+  width:11px; height:11px; border-radius:50%; flex:none;
+  border:2px solid var(--dsw-alias-border-l2);
+  border-top-color:var(--dsw-alias-brand-primary);
+  animation:spin .8s linear infinite;
+}
+.err-panel {
+  flex:none; display:flex; align-items:flex-start; gap:10px; margin:7px 14px 0;
+  padding:9px 11px; border:1px solid var(--dsw-alias-state-error-primary);
+  border-radius:9px; background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 6%, var(--dsw-alias-bg-layer-1));
+}
+.err-panel .ic {
+  flex:none; width:22px; height:22px; display:grid; place-items:center;
+  border-radius:50%; color:#fff; background:var(--dsw-alias-state-error-primary);
+  font-size:13px; font-weight:700; line-height:1;
+}
+.err-panel .body { flex:1; min-width:0; }
+.err-panel b { font-size:12px; }
+.err-panel pre {
+  margin:4px 0 0; padding:5px 7px; border-radius:6px; overflow:auto;
+  background:var(--dsw-alias-bg-layer-1); border:1px solid var(--dsw-alias-border-l1);
+  font-family:var(--k-mono); font-size:9.5px; line-height:1.55; color:var(--dsw-alias-label-secondary);
+}
+.err-panel .actions { display:flex; gap:6px; align-items:center; padding-top:1px; }
+.err-cell {
+  display:grid; place-items:center; gap:3px; min-height:60px; padding:8px;
+  border:1px dashed color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, var(--dsw-alias-border-l1));
+  border-radius:7px; color:var(--dsw-alias-state-error-primary); font-size:9.5px; text-align:center;
+}
+.a-board.is-err, .b-lanes.is-err { opacity:.72; }
+.v-a.is-err .a-colbody, .v-b.is-err .b-lanecards { pointer-events:none; }
+
+/* ============================================================
+   8. 右侧栏预览 mock + 底部切换条 + 弹窗 + toast
+   ============================================================ */
+.preview-col {
+  position:relative; width:0; min-width:0; overflow:hidden;
+  background:var(--dsw-alias-bg-layer-1);
+  border-left:1px solid var(--dsw-alias-border-l1);
+  transition:width .2s ease;
+}
+.app:not(.pv-open) .preview-col { border-left-color:transparent; }
+.app.pv-open .preview-col { width:min(424px, 42vw); }
+.pv-inner {
+  position:absolute; top:0; right:0; bottom:0; width:min(424px, 42vw);
+  display:flex; flex-direction:column; min-height:0;
+  background:var(--dsw-alias-bg-layer-1);
+  transform:translateX(16px); opacity:0;
+  transition:transform .2s ease, opacity .2s ease;
+}
+.app.pv-open .pv-inner { transform:none; opacity:1; }
+.pv-top {
+  flex:none; display:flex; align-items:center; gap:6px;
+  padding:9px 11px; border-bottom:1px solid var(--dsw-alias-border-l1);
+}
+.pv-title { font-size:12px; font-weight:650; letter-spacing:.01em; }
+.pv-mocktag {
+  font-size:8.5px; letter-spacing:.05em; padding:0 4px; border-radius:3px;
+  border:1px dashed var(--dsw-alias-state-warn-primary);
+  color:var(--dsw-alias-state-warn-primary); white-space:nowrap;
+}
+.pv-spacer { flex:1 1 auto; }
+.pv-top .k-btn { padding:1px 6px; font-size:9.5px; }
+.pv-file {
+  flex:none; display:flex; align-items:center; gap:6px;
+  padding:6px 11px; border-bottom:1px solid var(--dsw-alias-border-l1);
+}
+.pv-kind {
+  flex:none; display:inline-grid; place-items:center; width:26px; height:20px;
+  border-radius:4px; border:1px solid var(--dsw-alias-border-l1);
+  background:var(--k-chip); font-family:var(--k-mono); font-size:8.5px;
+  font-weight:700; color:var(--dsw-alias-label-secondary);
+}
+.pv-path {
+  flex:1 1 auto; min-width:0; font-family:var(--k-mono); font-size:10px;
+  color:var(--dsw-alias-label-secondary); overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; direction:ltr;
+}
+.pv-controls {
+  flex:none; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:5px 11px; border-bottom:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-2); font-size:9.5px; color:var(--dsw-alias-label-secondary);
+}
+.pv-controls .k-select { font-size:9.5px; padding:1px 16px 1px 5px; border-radius:5px; }
+.pv-switch {
+  display:inline-flex; align-items:center; gap:4px; padding:1px 5px; border-radius:5px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-1);
+  font-size:9.5px; color:var(--dsw-alias-label-secondary);
+}
+.pv-switch i {
+  width:15px; height:8px; border-radius:999px; background:var(--k-soft);
+  position:relative; display:inline-block; transition:background .12s;
+}
+.pv-switch i::after {
+  content:""; position:absolute; top:1px; left:1px; width:6px; height:6px;
+  border-radius:50%; background:var(--dsw-alias-label-secondary); transition:left .12s;
+}
+.pv-switch.is-on i { background:var(--dsw-alias-brand-primary); }
+.pv-switch.is-on i::after { left:8px; background:#fff; }
+.pv-switch:disabled { opacity:.45; cursor:default; }
+.pv-reload { margin-left:auto; display:inline-flex; align-items:center; gap:4px; }
+.pv-reload.is-busy .ic { animation:spin .8s linear infinite; }
+.pv-body { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:12px 13px 16px; }
+.pv-footer {
+  flex:none; border-top:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-2); padding:7px 10px 8px;
+}
+.pv-addr-head {
+  display:flex; align-items:center; justify-content:space-between; gap:6px;
+  font-size:9px; color:var(--k-mute); margin-bottom:3px;
+  letter-spacing:.04em; text-transform:uppercase;
+}
+.pv-addr {
+  display:block; max-height:60px; overflow:auto; padding:4px 6px; border-radius:5px;
+  border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-1);
+  font-family:var(--k-mono); font-size:8.5px; line-height:1.5;
+  word-break:break-all; color:var(--dsw-alias-label-secondary);
+}
+.pv-real {
+  display:flex; align-items:flex-start; gap:5px; margin-top:5px;
+  font-size:9px; line-height:1.45; color:var(--k-mute);
+}
+.pv-real-tag {
+  flex:none; padding:0 4px; border-radius:3px;
+  border:1px solid var(--dsw-alias-brand-primary);
+  color:var(--dsw-alias-brand-primary); font-size:8px; line-height:1.5;
+}
+.pv-real code { font-family:var(--k-mono); font-size:8.5px; color:var(--dsw-alias-label-secondary); }
+.pv-empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; gap:5px; text-align:center; color:var(--k-mute); font-size:10.5px;
+}
+.pv-empty .big { font-size:26px; color:var(--dsw-alias-border-l2); }
+.pv-missing {
+  border:1px solid var(--dsw-alias-state-error-primary); border-radius:8px;
+  padding:10px; background:color-mix(in srgb, var(--dsw-alias-state-error-primary) 6%, var(--dsw-alias-bg-layer-1));
+}
+.pv-missing b { font-size:12px; color:var(--dsw-alias-state-error-primary); }
+.pv-missing p { margin:4px 0 0; font-size:10.5px; color:var(--dsw-alias-label-secondary); }
+.pv-missing code {
+  display:inline-block; margin-top:5px; font-family:var(--k-mono); font-size:9.5px;
+  color:var(--dsw-alias-state-error-primary);
+}
+
+/* Markdown */
+.md { font-size:12px; line-height:1.62; color:var(--dsw-alias-label-primary); overflow-wrap:anywhere; }
+.md p, .md li, .md blockquote, .md h1, .md h2, .md h3 { overflow-wrap:anywhere; }
+.md code { overflow-wrap:anywhere; word-break:break-word; }
+.md h1 { font-size:16px; line-height:1.35; margin:0 0 8px; letter-spacing:.005em; }
+.md h2 { font-size:13.5px; margin:14px 0 5px; padding-bottom:3px; border-bottom:1px solid var(--dsw-alias-border-l1); }
+.md h3 { font-size:12.5px; margin:10px 0 4px; }
+.md p { margin:5px 0; }
+.md ul, .md ol { margin:5px 0; padding-left:18px; }
+.md li { margin:1px 0; }
+.md code {
+  font-family:var(--k-mono); font-size:10.5px; padding:0 3px; border-radius:3px;
+  background:var(--k-chip); border:1px solid var(--dsw-alias-border-l1);
+}
+.md pre.md-pre {
+  margin:7px 0; padding:7px; border-radius:6px; overflow:auto;
+  background:var(--dsw-alias-bg-layer-2); border:1px solid var(--dsw-alias-border-l1);
+}
+.md pre code { padding:0; border:0; background:none; font-size:10px; }
+.md blockquote {
+  margin:6px 0; padding:4px 8px; border-left:2px solid var(--dsw-alias-brand-primary);
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 5%, transparent);
+  color:var(--dsw-alias-label-secondary); font-size:11px;
+}
+.md hr { border:0; border-top:1px solid var(--dsw-alias-border-l1); margin:9px 0; }
+.md strong { font-weight:650; }
+.md-link { color:var(--dsw-alias-brand-primary); text-decoration:underline dotted; }
+
+/* 源码 */
+.src { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:9px; font-family:var(--k-mono); }
+.src .ln { color:var(--k-mute); text-align:right; font-size:9.5px; line-height:1.7; user-select:none; }
+.src .cl { font-size:10px; line-height:1.7; white-space:pre; color:var(--dsw-alias-label-primary); }
+.src.is-wrap .cl { white-space:pre-wrap; word-break:break-word; }
+.tok-str { color:#0a7a4b; } html[data-theme="dark"] .tok-str { color:#7ee2a8; }
+.tok-kw { color:#8b3fd6; } html[data-theme="dark"] .tok-kw { color:#c4a2ff; }
+.tok-num { color:#b45309; } html[data-theme="dark"] .tok-num { color:#fbbf24; }
+.tok-com { color:var(--k-mute); font-style:italic; }
+
+/* HTML 预览示意 */
+.htmlmock-head {
+  display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:9.5px; color:var(--k-mute);
+}
+.htmlmock-head b { color:var(--dsw-alias-label-primary); font-size:11px; }
+.board {
+  width:100%; aspect-ratio:1/1; max-width:300px; margin:0 auto;
+  display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
+  border:2px solid #e6edfb; border-radius:10px; overflow:hidden;
+  box-shadow:0 6px 18px rgba(27,37,64,.16); background:#f7faff;
+}
+.sq { position:relative; }
+.sq.a { background:#ffffff; }
+.sq.b { background:#eaf1ff; }
+.sq i {
+  position:absolute; inset:22%; border-radius:50%;
+  box-shadow:inset -1px -2px 0 rgba(0,0,0,.18), 0 1px 2px rgba(27,37,64,.25);
+}
+.sq i.c0 { background:#ff5c7a; } .sq i.c1 { background:#ffb020; }
+.sq i.c2 { background:#22c8a0; } .sq i.c3 { background:#3d8bff; }
+.htmlmock-foot {
+  margin-top:8px; display:flex; align-items:center; justify-content:center; gap:6px;
+  font-size:9.5px; color:var(--k-mute);
+}
+.htmlmock-foot span {
+  padding:2px 9px; border-radius:999px; background:#3d8bff; color:#fff; font-size:10px;
+}
+.htmlmock-note { margin-top:8px; font-size:9px; line-height:1.5; color:var(--k-mute); text-align:center; }
+
+/* 底部浮动切换条 */
+.switcher {
+  position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+  z-index:90; display:flex; align-items:center; gap:4px;
+  padding:4px 6px; border-radius:999px;
+  background:#111827; color:#f9fafb;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 12px 30px rgba(17,24,39,.35), 0 2px 8px rgba(17,24,39,.25);
+  font-size:11px; user-select:none;
+}
+.switcher button {
+  width:26px; height:26px; border:0; border-radius:50%;
+  background:rgba(255,255,255,.10); color:#f9fafb; font-size:13px; line-height:1;
+}
+.switcher button:hover { background:rgba(255,255,255,.22); }
+.sw-label {
+  display:inline-flex; align-items:center; gap:6px; min-width:136px;
+  justify-content:center; padding:0 4px; white-space:nowrap;
+}
+.sw-label b {
+  display:inline-grid; place-items:center; width:18px; height:18px; border-radius:5px;
+  background:rgba(255,255,255,.16); font-size:10px; font-weight:700;
+}
+.sw-label .sw-name { color:#e5e7eb; letter-spacing:.01em; }
+.sw-hint { padding:0 6px 0 2px; font-size:9px; color:rgba(255,255,255,.45); }
+@media (max-width:760px) { .sw-hint { display:none; } .sw-label { min-width:112px; } }
+
+/* toast */
+.toast-layer {
+  position:fixed; top:112px; left:50%; transform:translateX(-50%);
+  z-index:95; width:min(620px, calc(100vw - 40px));
+  display:flex; flex-direction:column; gap:6px; pointer-events:none;
+}
+.toast {
+  display:flex; align-items:flex-start; gap:8px; padding:8px 10px;
+  border-radius:9px; border:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-1); box-shadow:var(--k-shadow-lg);
+  font-size:11.5px; line-height:1.5; animation:toastIn .18s ease-out;
+  pointer-events:auto;
+}
+.toast.is-error { border-color:var(--dsw-alias-state-error-primary); }
+.toast.is-warn { border-color:var(--dsw-alias-state-warn-primary); }
+.toast.is-success { border-color:var(--dsw-alias-state-success-primary); }
+.toast .ic { flex:none; font-size:13px; line-height:1.4; }
+.toast .body { flex:1; min-width:0; }
+.toast .title { font-weight:650; }
+.toast .desc { margin:1px 0 0; color:var(--dsw-alias-label-secondary); white-space:pre-line; }
+.toast .code {
+  display:inline-block; margin-top:2px; padding:0 4px; border-radius:4px;
+  background:var(--k-chip); font-family:var(--k-mono); font-size:9px; color:var(--dsw-alias-label-secondary);
+}
+.toast .close { border:0; background:none; color:var(--k-mute); font-size:13px; line-height:1; padding:0 2px; }
+
+/* 弹窗 */
+.modal-backdrop {
+  position:fixed; inset:0; z-index:100; display:grid; place-items:center;
+  padding:20px; background:rgba(15,23,42,.46); backdrop-filter:blur(1px);
+}
+.modal {
+  width:min(540px, 100%); max-height:88vh; overflow:auto;
+  border:1px solid var(--dsw-alias-border-l1); border-radius:12px;
+  background:var(--dsw-alias-bg-layer-1); box-shadow:var(--k-shadow-lg);
+  animation:modalIn .16s ease-out;
+}
+.modal-head {
+  display:flex; align-items:flex-start; gap:10px; padding:12px 14px 8px;
+  border-bottom:1px solid var(--dsw-alias-border-l1);
+}
+.modal-head h3 { margin:0; font-size:13.5px; font-weight:650; }
+.modal-head p { margin:2px 0 0; font-size:10.5px; color:var(--dsw-alias-label-secondary); }
+.modal-head .d-close { margin-left:auto; }
+.modal-body { padding:11px 14px 4px; display:flex; flex-direction:column; gap:9px; }
+.field { display:flex; flex-direction:column; gap:3px; }
+.field > label, .field > .flabel { font-size:10.5px; color:var(--dsw-alias-label-secondary); }
+.field .hint { font-size:9.5px; color:var(--k-mute); }
+.field .err { font-size:10px; color:var(--dsw-alias-state-error-primary); }
+.field-row { display:flex; gap:9px; flex-wrap:wrap; }
+.field-row .field { flex:1 1 150px; }
+.modal-foot {
+  display:flex; align-items:center; gap:8px; justify-content:flex-end;
+  padding:10px 14px 12px; border-top:1px solid var(--dsw-alias-border-l1);
+  margin-top:9px;
+}
+.modal-foot .spacer { flex:1; }
+.modal-foot .note { font-size:9.5px; color:var(--k-mute); }
+.size-seg { display:flex; gap:4px; }
+.size-seg button {
+  flex:1; padding:4px 8px; border-radius:6px; border:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-layer-1); font-size:11px; color:var(--dsw-alias-label-secondary);
+}
+.size-seg button.is-on {
+  border-color:var(--dsw-alias-brand-primary); color:var(--dsw-alias-brand-primary);
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary) 9%, var(--dsw-alias-bg-layer-1));
+  font-weight:600;
+}
+.create-notes {
+  margin:0; padding:5px 7px; border-radius:6px; font-size:10px; line-height:1.5;
+  border:1px dashed var(--dsw-alias-border-l1); color:var(--dsw-alias-label-secondary);
+  background:var(--dsw-alias-bg-layer-2);
+}
+.global-badge {
+  display:inline-flex; align-items:center; padding:0 5px; border-radius:999px;
+  border:1px dashed var(--dsw-alias-border-l2); font-size:9px; color:var(--k-mute);
+}
+
+/* ============================================================
+   9. 动画
+   ============================================================ */
+@keyframes shimmer { 0% { background-position:100% 0; } 100% { background-position:-100% 0; } }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes shake {
+  0%,100% { transform:translateX(0); }
+  25% { transform:translateX(-3px); } 75% { transform:translateX(3px); }
+}
+@keyframes bounceBack {
+  0% { transform:translateX(0); } 30% { transform:translateX(-5px); }
+  60% { transform:translateX(4px); } 100% { transform:translateX(0); }
+}
+@keyframes drawerIn { from { transform:translateX(14px); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes toastIn { from { transform:translateY(-6px); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes modalIn { from { transform:translateY(8px) scale(.99); opacity:0; } to { transform:none; opacity:1; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.001ms !important; transition-duration:.001ms !important; }
+}
+
+/* ============================================================
+   10. 响应式
+   ============================================================ */
+@media (max-width:1279px) {
+  .app { grid-template-columns:48px minmax(0,1fr) auto; }
+  .side { display:none; }
+  .rail { padding-top:9px; }
+  .rail-logo { width:28px; height:28px; }
+}
+@media (max-width:1150px) {
+  .v-c .c-inspector { width:280px; }
+  .v-a .a-drawer { width:344px; }
+  .b-ins-body { grid-template-columns:132px minmax(0,1fr) minmax(0,1.1fr) minmax(0,1.3fr); }
+}
+@media (max-width:1360px) {
+  .app.pv-open .v-c .c-inspector { display:none; }
+}
+@media (max-width:1100px) {
+  .viewhead { align-items:flex-start; }
+  .v-a .a-board { grid-template-columns:repeat(5,minmax(196px,1fr)); }
+  .a-onboard, .b-onboard { flex-wrap:wrap; }
+  .b-ins-body { grid-template-columns:130px minmax(0,1fr) minmax(0,1.2fr); }
+  .b-ins-body .b-ins-col:nth-child(4) { display:none; }
+  .b-inspector.is-open { height:248px; }
+  .v-c { gap:7px; padding:8px 10px 4px; }
+  .c-rail { width:174px; }
+  .v-c .c-inspector { width:266px; }
+}
+@media (max-width:900px) {
+  .sess-title { font-size:13px; }
+  .tools { gap:4px; }
+  .demo-label { display:none; }
+  .viewsub { display:none; }
+  .v-a .a-drawer { position:absolute; right:12px; top:9px; bottom:9px; z-index:5; width:min(360px, calc(100vw - 90px)); box-shadow:var(--k-shadow-lg); }
+  .v-a { position:relative; }
+  .b-ins-body { grid-template-columns:124px minmax(0,1fr); }
+  .b-ins-body .b-ins-col:nth-child(3) { display:none; }
+  .v-c .c-inspector { display:none; }
+  .c-rail { width:160px; }
+  .switcher { bottom:10px; }
+  .variant-root { padding-bottom:50px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="rail" aria-label="应用栏">
+    <div class="rail-logo" title="DeepSeek Harness">D</div>
+    <div class="rail-item is-on" title="会话">◫</div>
+    <div class="rail-item" title="终端">▤</div>
+    <div class="rail-item" title="插件">◇</div>
+    <div class="rail-spacer"></div>
+    <div class="rail-item" title="设置">⚙</div>
+  </aside>
+  <aside class="side" aria-label="会话列表">
+    <div class="side-head"><span>会话</span><span class="side-plus">＋</span></div>
+    <div class="side-search">搜索会话</div>
+    <div class="side-group">今天</div>
+    <div class="side-row is-on">
+      <b>工单看板改版</b><span>5 个在制 · 刚刚</span>
+    </div>
+    <div class="side-row"><b>Wiki 草稿审批</b><span>昨天</span></div>
+    <div class="side-row"><b>飞行棋验收</b><span>11-15</span></div>
+    <div class="side-group">更早</div>
+    <div class="side-row"><b>岗位卡评审</b><span>11-14</span></div>
+    <div class="side-foot">dsh-hyper-mode<br><span>deepseek-v4.1 · 增强创造模式</span></div>
+  </aside>
+  <main class="main">
+    <header class="sesshead">
+      <div class="sessline">
+        <div class="sess-id">
+          <div class="sess-title">工单看板改版：Kanban 布局 + 复用 DSH 文档预览</div>
+          <div class="sess-meta">
+            <span>deepseek-v4.1</span><span class="dot">·</span>
+            <span>增强创造模式</span><span class="dot">·</span>
+            <span class="k-mono">sess_01j9k3m2q7</span>
+          </div>
+        </div>
+        <div class="sess-actions">
+          <span class="pill">原型 demo · 不写状态</span>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="会话视图">
+        <span class="tab">对话</span>
+        <span class="tab">轨迹</span>
+        <span class="tab">统计</span>
+        <span class="tab">岗位</span>
+        <span class="tab">Wiki</span>
+        <span class="tab is-on" aria-current="page">工单</span>
+        <span class="tab-spacer"></span>
+        <span class="tab-hint">conversation.view · order 70</span>
+      </nav>
+    </header>
+    <section class="view" id="view">
+      <div class="viewhead">
+        <div class="viewtitle">
+          <h1>工单</h1>
+          <span class="viewsub">会话内看板</span>
+          <div class="stats" id="stats"></div>
+        </div>
+        <div class="tools" id="tools">
+          <label class="demo-strip" title="原型脚手架：真实面板没有这一条">
+            <span class="demo-tag">DEMO</span>
+            <span class="demo-label">演示状态</span>
+            <select id="demoState" class="k-select" aria-label="演示状态">
+              <option value="normal">正常</option>
+              <option value="empty">空看板</option>
+              <option value="loading">加载中</option>
+              <option value="error">请求错误</option>
+              <option value="noproject">无项目根</option>
+            </select>
+          </label>
+          <div class="seg" role="group" aria-label="演示身份（真实实现取会话岗位绑定）">
+            <button type="button" class="seg-btn is-on" data-act="identity" data-id="lead"
+              title="真实实现：roleOfSession(sessionId) ?? 'lead'">主代理</button>
+            <button type="button" class="seg-btn" data-act="identity" data-id="engineer"
+              title="切到工程师：review 单若 DRI 是 engineer，自签会被 blocker 拦住">工程师</button>
+          </div>
+          <button type="button" class="k-btn k-btn-sm" id="themeBtn" data-act="theme" title="亮色 / 暗色">暗色</button>
+          <button type="button" class="k-btn k-btn-sm" id="refreshBtn" data-act="refresh">刷新</button>
+          <button type="button" class="k-btn k-btn-sm k-btn-primary" id="newBtn" data-act="new">＋ 新建工单</button>
+        </div>
+      </div>
+      <div class="banner-layer" id="bannerLayer"></div>
+      <div class="variant-root" id="variantRoot"></div>
+    </section>
+  </main>
+  <aside class="preview-col" id="previewCol" aria-label="DSH 右侧栏预览（mock）"></aside>
+</div>
+<div class="toast-layer" id="toastLayer" aria-live="polite"></div>
+<div id="modalLayer"></div>
+<div class="switcher" id="switcher" role="group" aria-label="原型方案切换">
+  <button type="button" id="swPrev" aria-label="上一个方案">←</button>
+  <span class="sw-label"><b id="swKey">A</b><span class="sw-dash">—</span><span class="sw-name" id="swName">Columns</span></span>
+  <button type="button" id="swNext" aria-label="下一个方案">→</button>
+  <span class="sw-hint">← → 切换</span>
+</div>
+
+<!-- 预览用的真实文档片段（单文件内嵌，不 fetch；只是截图用的节选） -->
+<script type="text/plain" id="src-md">
+# 工单看板（会话内「工单」标签页）· 开工方案
+
+- 工单：`wo-20261115-2`「工单看板：会话内『工单』标签页」（M 规模，DRI `engineer`）
+- 状态：方案，可直接开工；实现不由本文档承担
+
+---
+
+## 0. 结论摘要
+
+1. **路由前缀用 `/hyper-org/api`**，Host 路由写在 `plugins/hyper-org/lib/api.js`（新增），由 `plugins/hyper-org/index.js` 里 `ctx.inject(['webServer'], …)` 挂载。
+2. **标签页 `order` 必须用 70，不是 60**。`岗位` 是 `order: 50`，`Wiki` 是 `order: 60`。
+3. **规则复用的落法**：新增 `plugins/hyper-org/lib/rules.js`，把「note 必填」「领取人不能自签」两条校验下沉成纯函数 + 三个组合函数。
+4. **面板不写任何规则判断**，只渲染 Host 返回的 `canSign.blockers` 与 `create.notes`。
+
+> 与交接文档的两处偏差，以本文档为准：标签页 `order` 60 → **70**；路由前缀与客户端 `API` 常量统一为 `/hyper-org/api`。
+
+## 2. 不变量（实现期间不得违反）
+
+- **I1** `.dsh/org` 是唯一数据源；面板不建第二份存储、不做缓存层
+- **I3** 门禁判定只有一处实现：`store.js`（阶段/验收/在制）+ `rules.js`（note/自签/DRI）
+- **I9** 一次请求只读一次盘，写后重读（不做客户端乐观更新）
+
+## 9.4 预览交互（本次改版要替换掉的旧方案）
+
+1. 点交付物行 → `GET /hyper-org/api/artifact`（即将删除）
+2. 中栏切到预览模式：头部路径 + `复制路径` + `返回详情`
+3. 正文 `<pre>`，可切换「软换行」；HTML 不渲染
+
+**改版结论**：面板不再自绘文本预览，改为调用 `ctx.get('sidebarRight').openResource(sessionFileAddress(sessionId, path))`，文件交给 DSH 右侧栏渲染。
+</script>
+
+<script type="text/plain" id="src-js">
+/**
+ * 工单标签页：会话里的「工单」看板。
+ *
+ * 挂载在 `conversation.view`（与「岗位」「Wiki」同一排），拿到 `sessionId`，
+ * 所以项目作用域直接取当前会话的工作目录，不需要选目录。纯浏览器模块：
+ * React 来自模块表，数据只走 `/hyper-org/api`。
+ *
+ * 这个面板**不实现任何门禁判断**：`sign.blockers`、`create.notes` 与错误文案
+ * 都由 Host 算好下发，客户端只渲染。「禁用按钮」是 UX，真正的拒绝在 Host。
+ *
+ * 三条硬规则（与岗位面板一致，踩过的坑）：
+ * 1. 不用 window.prompt / confirm / alert —— Electron 不支持 prompt，点了静默抛错；
+ * 2. 请求失败一定落到可见的错误条上，不允许「点了没反应」；
+ * 3. 文案全部走 locale，样式只用 --dsw-alias-* 且带兜底。
+ */
+window.__ModuleLoader__.load({
+  id: '@chrock-studio/dsh-hyper-org',
+  factory(require) {
+    const React = require('react')
+    const h = React.createElement
+    const { useCallback, useEffect, useState } = React
+
+    const NS = 'hyperOrg'
+    const TAB_ID = 'orders'
+    const API = '/hyper-org/api'
+    /** Board groups in reading order; dropped is appended so nothing vanishes. */
+    const DEFAULT_STAGES = ['intake', 'active', 'review', 'blocked', 'done']
+    /** Stages a human may pick in the edit form; done only comes from sign. */
+    const WRITABLE_STAGES = ['intake', 'active', 'review', 'blocked', 'dropped']
+    /** Log entries rendered before the "show all" link appears. */
+    const LOG_SHOWN = 100
+  },
+})
+</script>
+
+<script type="text/plain" id="src-html">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>飞行棋 · Canvas</title>
+<!--
+  单文件飞行棋（Aeroplane Chess）
+  - 纯静态：内联 CSS + 一个经典 <script>，无 type="module"、无相对 import、无外部资源
+  - 规则是纯函数（applyMove 只算数据、吐 GameEvent[]），动画层照事件排队播放
+  - 棋盘静态层缓存到离屏 canvas，只在 resize 时重建
+  分区：§1 CONFIG / §2 GEOMETRY / §3 RULES / §4 TIMELINE / §5 RENDER / §6 INPUT / §7 UI / §8 BOOT
+-->
+<style>
+  :root {
+    --ink: #1B2540;
+    --sub: #6B7A99;
+    --card: #FFFFFF;
+    --edge: #E6EDFB;
+    --bg: #F7FAFF;
+    --hl-a: #FFB020;
+    --hl-b: #FF5C7A;
+    --f0: #FF5C7A; --f0s: #FFE3E9;
+    --f1: #FFB020; --f1s: #FFF0D6;
+    --f2: #22C8A0; --f2s: #DBF7EF;
+    --f3: #3D8BFF; --f3s: #DDEBFF;
+  }
+</style>
+</head>
+<body>
+<canvas id="board"></canvas>
+</body>
+</html>
+</script>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================================================
+   0. 常量
+   ============================================================ */
+const STAGES = ['intake', 'active', 'review', 'blocked', 'done'];
+const ALL_STAGES = STAGES.concat(['dropped']);
+const STAGE_INFO = {
+  intake:  { key: 'intake',  sub: '排队',   long: '排队中，还没开工；新单被降级时落在这里' },
+  active:  { key: 'active',  sub: '在制',   long: '在制，已派活；占一个在制名额' },
+  review:  { key: 'review',  sub: '待验收', long: '等别人验收；只有 review 可以签收' },
+  blocked: { key: 'blocked', sub: '受阻',   long: '被外部条件卡住；原因看最新一条日志' },
+  done:    { key: 'done',    sub: '已签收', long: '已签收；只能由 sign 产生，不能直接拖进来' },
+  dropped: { key: 'dropped', sub: '已撤单', long: '已撤单；保留记录不删除' },
+};
+const SIZE_INFO = { S: '单兵', M: '三岗', L: '全链路' };
+const ROLES = [
+  { id: 'lead', title: '主代理' },
+  { id: 'engineer', title: '工程师' },
+  { id: 'architect', title: '架构师' },
+  { id: 'reviewer', title: '评审员' },
+  { id: 'prototype-designer', title: '原型设计师' },
+  { id: 'product-manager', title: '产品经理' },
+  { id: 'secretary', title: '秘书' },
+];
+const SESSION_ID = 'sess_01j9k3m2q7';
+const REPO_ROOT = '/Users/juergenie/Projects/Workspaces/dsh-hyper-mode/';
+/* demo 用 5（真实 config 是 2），让「满员降级 intake」在不改数据的情况下可达。 */
+const WIP_LIMIT = 5;
+const VARIANTS = [
+  { key: 'A', name: 'Columns',    desc: '经典阶段列 · 右侧抽屉' },
+  { key: 'B', name: 'Lanes',      desc: '横向阶段泳道 · 底部 inspector' },
+  { key: 'C', name: 'Stage rail', desc: '阶段轨 + 单阶段聚焦 · 右侧检查器' },
+];
+/* 真实仓库里存在的交付物；不在集合里的按 missing 渲染（demo 不读盘）。 */
+const EXISTING = new Set([
+  'docs/design/orders-tab.md',
+  'docs/demo/preview-orders.html',
+  'docs/HANDOFF.md',
+  'README.md',
+  'examples/flying-chess/index.html',
+  'plugins/hyper-org/client/client.js',
+  'plugins/hyper-org/lib/rules.js',
+  'plugins/hyper-org/lib/api.js',
+  'plugins/hyper-org/lib/artifacts.js',
+  'plugins/hyper-org/package.json',
+  'plugins/hyper-org/test/rules.test.js',
+  'plugins/hyper-org/test/api.test.js',
+  'plugins/hyper-org/test/artifacts.test.js',
+  'plugins/hyper-org/test/client.test.js',
+]);
+
+/* ============================================================
+   1. 数据：两张真实 done 单 + 本单 active + 合成卡片
+   ============================================================ */
+const ORDERS = [
+  {
+    id: 'wo-20261116-1',
+    title: '工单看板改版：Kanban 布局 + 复用 DSH 文档预览（demo 先行）',
+    stage: 'active', size: 'M', dri: 'prototype-designer', scope: 'project',
+    ageHours: 8, age: '8 小时',
+    acceptance: [
+      '先产出单文件可交互 demo（双击可开，?variant= 切换 3 个结构不同的看板方案），用户确认后才改插件实现',
+      '看板按阶段分列或分道：intake / active / review / blocked / done，列头显示数量与在制 x/wipLimit，卡片显示标题、规模、DRI 岗位名、超龄、验收/交付物数量',
+      '卡片可点开六项详情；建单、改阶段、签收/打回可操作，且 M/L 无验收不进 active、在制满落 intake、签收要 note、领取人不能自签的门禁提示可见',
+      '交付物详情改为「在 DSH 中预览」：真实实现调用 ctx.get(\'sidebarRight\').openResource(...)，面板不再自绘文本预览、不再保留自定义文件读取路由；demo 用右侧栏 mock 表达入口与位置',
+      '不改变数据格式：.dsh/org 仍是唯一数据源，老工单文件不用迁移；无会话不显示，标签页仍与岗位、Wiki 同排',
+      'demo 覆盖空态、加载态、错误态、无项目根、长标题/长日志、窄屏，并标注哪些是真实能力、哪些是示意',
+    ],
+    artifacts: [],
+    log: [
+      { at: '2026-11-16T10:12:05.930Z', by: 'lead',
+        note: '用户反馈两点：①交付物详情应复用 DSH 自带文件预览，不自绘；②工单应改为类似看板的结构，且此类新界面必须先出 demo 确认。本轮只做 demo，不动插件实现；确认后再派 engineer。' },
+    ],
+  },
+  {
+    id: 'wo-20261115-2',
+    title: '工单看板：会话内「工单」标签页',
+    stage: 'done', size: 'M', dri: 'engineer', scope: 'project',
+    ageHours: 24, age: '1 天',
+    acceptance: [
+      '会话内出现「工单」标签页，与「岗位」「Wiki」同排；没有会话时不显示',
+      '看板按阶段分组：intake / active / review / blocked / done，显示在制 x/wipLimit、超龄时长、领取人岗位名',
+      '点开一张单能看到六项：验收标准、完整日志、交付物路径（可点开）、规模、DRI、当前阶段',
+      '面板可建单（标题 / 规模 / DRI / 验收标准），且受同一套门禁约束：M/L 无验收标准不能进 active、在制满时落 intake',
+      '签收必须写 note，且领取人不能给自己签；面板与 org_order 用同一套规则，不是两套',
+      '不改变数据格式：.dsh/org 仍是唯一数据源，老工单文件不用迁移',
+    ],
+    artifacts: [
+      'plugins/hyper-org/lib/rules.js', 'plugins/hyper-org/lib/api.js',
+      'plugins/hyper-org/lib/artifacts.js', 'plugins/hyper-org/client/client.js',
+      'plugins/hyper-org/package.json', 'plugins/hyper-org/test/rules.test.js',
+      'plugins/hyper-org/test/api.test.js', 'plugins/hyper-org/test/artifacts.test.js',
+      'plugins/hyper-org/test/client.test.js', 'docs/design/orders-tab.md',
+      'docs/demo/preview-orders.html', 'docs/HANDOFF.md', 'README.md',
+    ],
+    log: [
+      { at: '2026-11-15T15:37:44.269Z', by: 'lead',
+        note: '用户要求按 docs/HANDOFF.md 开单：做会话内「工单」标签页（工单看板 UI）。交接文档已核实落点：host 路由仿 hyper-roles/api.js，client 半边独立嵌套包，门禁复用 hyper-org/lib/store.js。' },
+      { at: '2026-11-15T17:21:03.074Z', by: 'lead',
+        note: 'stage active → review: 实现完成并转 review：新增 rules/api/artifacts/client 与嵌套包，tools/marker 小改，store 与数据格式零改动；hyper-org 102 tests、全仓 350 tests 全绿；bundle 重载 applied，路由 200（项目作用域 1/2、driTitle 正确），conversation.view 已有 orders(70)。运行态未建/签真实工单；写门禁由 api.test.js 临时目录矩阵覆盖。' },
+      { at: '2026-11-15T17:28:44.291Z', by: 'reviewer',
+        note: 'signed off: 验收通过（reviewer 独立复核，2026-11-16 01:2x）。逐条证据：\n1) 标签页：client.js:1057-1062 以 name=conversation.view / id=orders / order=70 / locale=hyperOrg 注册；client.test.js 断言 order=70、label=工单、inject=conversation.view；预览 1440/1200 中「岗位(50) Wiki(60) 工单(70)」同排；无会话时 client.js:320/355/889 不 fetch 并显示「没有会话上下文」，client.test.js 断言 fetch 未发生。\n2) 分组：client.js:237 groupByStage 按 state.stages 顺序并追加 dropped；展示 n、在制 x/wipLimit、行内 size/driTitle/age/全局标；测试断言组序与 oldest-first；运行态 state=200，projectRoot=本仓库，occupied=1/wipLimit=2，两张单均带 driTitle=工程师、age、scope=project。\n3) 六项：api.js:312-326 orderPayload 返回 order（acceptance/log/artifacts 全量）+driTitle+age+artifacts 描述+sign；client.js:60-69 渲染 当前阶段/规模/领取人/验收标准/交付物/完整日志；api.test.js「returns the whole log」（9 条不截断）；运行态 GET /order=200，六项齐全，13 个交付物均 kind=file，日志 2 条全文。\n4) 建单：createWithRules 显式传 wipLimit（rules.js:182-201，漏传直接抛错）；api.test.js 覆盖 在制满→200+reason=wip+intake、M 无验收→reason=acceptance+intake、S→active；面板表单含 title/size/dri/acceptance/scope/note（client.js:558-591），notes 以信息条展示（client.js:415-429），不自己判断降级。\n5) 同一套规则：note 必填、自签只看真实 role（rules.js:82-107）、DRI 校验、降级解释只在 rules.js 一份；tools.js 与 api.js 均只调 rules.*WithRules，api.js 仅 import store 的 listOrders/orgDirs/readOrder（无 createOrder/saveOrder/signOrder）；api.test.js 覆盖 note_required 400、self_sign 403、not_review/no_acceptance 409；客户端只渲染 Host 下发的 sign.blockers，按钮禁用仅为 UX（client.js:749-787）；org-flow.test.js 与 store.js diff 为空，hyper-org 102 pass/0 fail、全仓 350 pass/0 fail。\n6) 数据格式：schemaVersion 仍为 1（运行态两单），store.js/order-doc.js/config.js 未改（git diff 为空），api.test.js:611-644 断言老工单读取前后字节完全相等；.dsh/org 仍是唯一数据源，本次未新增任何工单文件。\n残余风险（已知/明确不在范围）：\n- 真实 GUI 目视未由自动化确认：证据为预览页/两张 PNG + 插槽注册；本子会话所有 client Inspect 查询（含最小 Builtin）均 10s 超时，无法独立重跑 conversation.view occupants，主代理 01:18 的运行态记录显示 orders(70)/roles(50)/wiki(60) 同排。\n- Safari/Firefox 未实测；并发写无乐观锁（本次明确不做）。\n- 运行态 sign.blockers 为空是因为工单当前已是 review（active 时仅 not_review 的情形由 api.test.js:248/577 覆盖），非缺陷。' },
+    ],
+  },
+  {
+    id: 'wo-20261115-1',
+    title: 'Canvas 飞行棋：明亮动感的静态页游戏',
+    stage: 'done', size: 'M', dri: 'engineer', scope: 'project',
+    ageHours: 25, age: '1 天',
+    acceptance: [
+      '纯静态：双击 index.html 即可在浏览器打开，无构建步骤、无外部网络请求，断网可玩',
+      '规则完整：4 个阵营，掷骰起飞（6 点）、按点数走格、同格撞子回营、连掷与胜负判定都已实现',
+      'Canvas 渲染：棋盘与棋子由 canvas 绘制，适配 devicePixelRatio，1080p 下不模糊',
+      '动感：掷骰、逐格移动、撞子、回合切换各有独立动画，不出现瞬移或闪烁',
+      '视觉：统一的明亮色板与圆角/阴影/渐变语言，无浏览器默认控件外观，现代感明确',
+      '可操作：开始/重开、当前回合与骰子结果展示、胜负结算面板齐全',
+    ],
+    artifacts: ['examples/flying-chess/index.html'],
+    log: [
+      { at: '2026-11-15T03:02:21.505Z', by: 'lead',
+        note: '用户原话提交：使用 canvas+html 编写一个静态页面飞行棋游戏，画面要明亮、精美且富含动感，充满现代气息' },
+      { at: '2026-11-15T03:16:28.545Z', by: 'lead',
+        note: 'updated: 修正验收标准切分：中文逗号曾被当作分隔符切成 14 条，现已按行还原为 6 条' },
+      { at: '2026-11-15T03:40:23.240Z', by: 'lead',
+        note: 'updated: 架构师（architect）进场出方案；方案回来后直接派工程师实现' },
+      { at: '2026-11-15T03:45:11.341Z', by: 'lead',
+        note: 'updated: 方案已出（52 格环参数化 + 规则纯函数 + 事件流驱动动画）；裁决 R6：跳格/飞行规则不纳入本次范围，以六条验收标准为准；直接派工程师实现' },
+      { at: '2026-11-15T04:35:05.433Z', by: 'engineer',
+        note: 'updated: 实现完成。验法：双击 examples/flying-chess/index.html（file:// 直接打开）→ 点「开始游戏」→「掷骰子」；控制台执行 FlyingChess.selfTest() 应返回 {pass:true,total:38}。已用 headless Chrome（file://、--strict 零报错）验证 1080p 下 backing=1555 对 CSS 777.59（比率 1.9998）、真实鼠标点击 canvas 起飞/掷骰/重开/再来一局全通，另跑 60 局 22422 步随机对局 0 冲突 0 异常。三处偏离方案已在报告说明（撞子按主环绝对格判同格、逐格用 330px/s 而非固定 90ms/格、开始遮罩去 backdrop-filter）。' },
+      { at: '2026-11-15T04:37:23.451Z', by: 'lead',
+        note: 'stage active → review: 交付物已核：单文件 2411 行、无外部请求；转评审，engineer 报的三处偏离要逐条验' },
+      { at: '2026-11-15T04:53:59.659Z', by: 'reviewer',
+        note: 'signed off: 逐条通过：①离线 file://（navigator.onLine=false）加载，仅 1 条 file:// Document 请求、0 条 http/外部资源，FlyingChess.selfTest()={pass:true,total:38}，整局交互均在离线态完成；②自造 20 项规则场景全过：6 点起飞/非 6 不起飞、按点走格、p+dice>57 拒绝、异家不同 p 同环格撞回营、同 p 不同环格不误撞（ringIndex 修复正确）、多家同格全回营、归航安全、6 连掷、四子到点判胜；30 局 12810 掷 0 异常、637 撞子、四家均有胜场；③Canvas 2D：1080p CSS 777.59，dpr1 backing 778、dpr2 backing 1555（比率 1.9998），resize 后跟随，棋盘缓存按 backing 构建，3x 裁切边缘清晰；④四类动画独立：掷骰 620ms（采样到 6 个点数轮换）、逐格 628ms（38 个中间位置，最大步进 0.218 格，无瞬移）、撞子 420ms（18 个中间位置＋震屏＋双冲击环）、回合切换 300ms 色洗；动画中真实双击掷骰仅产生 1 次移动/1 条掷骰日志；⑤1920 与 420 宽截图色板/圆角/阴影/渐变统一，按钮 appearance:none、无原生控件，无横向溢出；⑥开始/重开/再来一局、当前回合、点数展示（点数 6/上轮 6 点）、结算面板（红方获胜、4/4、彩纸）均实测可用。三处偏离均接受：ringIndex 为正确性修复；330px/s≈157ms/格只影响节奏不违反验收；遮罩去 backdrop-filter 后视觉仍完整。' },
+    ],
+  },
+  {
+    id: 'wo-20261114-3',
+    title: '工单看板改版：卡片拖拽与 DSH 预览联调',
+    stage: 'review', size: 'M', dri: 'engineer', scope: 'project',
+    ageHours: 72, age: '3 天',
+    acceptance: [
+      '卡片可拖到五个阶段列；M/L 无验收拖进 active 必须回弹并给出 acceptance_gate 提示',
+      '拖进 done 必须被拒，并解释「done 只能由签收产生」',
+      '交付物行只有「在 DSH 预览中打开」一个入口；点击后右侧栏打开 dsh-resource 地址',
+      '签收 note 为空时按钮禁用；以工程师身份查看时，自己名下的单不可签收',
+      '窄屏（1200）下看板可横向滚动，右侧栏不遮挡签收按钮',
+    ],
+    artifacts: [
+      'docs/design/orders-tab.md',
+      'plugins/hyper-org/client/client.js',
+      'examples/flying-chess/index.html',
+      'missing/screenshot.png',
+    ],
+    log: [
+      { at: '2026-11-13T01:12:00.000Z', by: 'lead',
+        note: 'created: 用户确认看板方向后开工：卡片拖拽 + 交付物改走 DSH 右侧栏预览。' },
+      { at: '2026-11-14T10:20:00.000Z', by: 'prototype-designer',
+        note: 'demo 已完成：docs/demo/orders-kanban-prototype.html。\n三条待确认：\n· A 经典列 / B 横向泳道 / C 阶段轨；\n· 拖拽是否保留，还是只留阶段菜单；\n· done 与 dropped 怎么展示。\n交付物里 missing/screenshot.png 故意不存在，用来看预览失败态。' },
+      { at: '2026-11-16T01:40:00.000Z', by: 'lead',
+        note: 'stage active → review: 三个变体都能点；门禁回弹、自签 blocker、降级信息条已按真实规则模拟。等用户选结构，再派 engineer 改插件。' },
+    ],
+  },
+  {
+    id: 'wo-20261115-4',
+    title: '键盘导航：会话内快捷键与焦点环',
+    stage: 'review', size: 'S', dri: 'reviewer', scope: 'project',
+    ageHours: 5, age: '5 小时',
+    acceptance: [
+      'Tab 顺序与视觉顺序一致，焦点环在亮/暗主题下对比度都 ≥ 3:1',
+      '←/→ 在输入框聚焦时不拦截方案切换',
+    ],
+    artifacts: ['plugins/hyper-org/client/client.js'],
+    log: [
+      { at: '2026-11-15T19:05:00.000Z', by: 'lead',
+        note: 'created: 把 demo 里的键盘行为收成可验收的两条；S 规模，单兵。' },
+      { at: '2026-11-16T00:30:00.000Z', by: 'engineer',
+        note: 'stage active → review: 1440 / 1200 下逐项走了一遍 Tab 与 ←/→；焦点环暗色下用 brand-primary 加 2px outline。' },
+    ],
+  },
+  {
+    id: 'wo-20261115-5',
+    title: '岗位脉冲：主代理系统提示里的在制摘要',
+    stage: 'active', size: 'M', dri: 'architect', scope: 'global',
+    ageHours: 26, age: '1 天',
+    acceptance: [
+      '主代理系统提示里只保留 N 行在制摘要，绑定岗位的子代理看不到',
+      '行内包含 id、阶段、DRI 岗位名、超龄天数',
+      'boardSection=false 时整段消失，不留下空标题',
+      '摘要不超过 400 token，超了按最老优先截断',
+    ],
+    artifacts: ['docs/design/orders-tab.md'],
+    log: [
+      { at: '2026-11-14T14:10:00.000Z', by: 'lead',
+        note: 'created: 从看板讨论里拆出来的全局单：脉冲是给模型看的，不是给人看的。' },
+      { at: '2026-11-15T05:00:00.000Z', by: 'architect',
+        note: 'stage intake → active: 验收 4 条齐；先量 token，再决定截断策略。' },
+    ],
+  },
+  {
+    id: 'wo-20261115-6',
+    title: 'Safari 下右侧栏预览的滚动条与吸顶偏移',
+    stage: 'blocked', size: 'S', dri: 'engineer', scope: 'project',
+    ageHours: 49, age: '2 天',
+    acceptance: [
+      'Safari 15.4+ 中预览正文滚动到顶部时，路径头不跟着滚走',
+      '滚动条不覆盖最后一列代码的右边缘',
+      'Chrome / Safari 下换行开关行为一致',
+    ],
+    artifacts: ['plugins/hyper-org/client/client.js'],
+    log: [
+      { at: '2026-11-14T02:00:00.000Z', by: 'lead',
+        note: 'created: 用户在评审里提到 Safari 的 sticky 行为可能和 Chrome 不一样，先挂一张 S 单。' },
+      { at: '2026-11-14T03:30:00.000Z', by: 'engineer',
+        note: 'blocked: 等真机 Safari 实测：本机只有 Chrome，无法确认 15.4 的 sticky 定位。' },
+      { at: '2026-11-15T09:10:00.000Z', by: 'lead',
+        note: '已请用户借一台 Mac 复现；暂不降级成 bug 单，保持 blocked。' },
+    ],
+  },
+  {
+    id: 'wo-20261113-7',
+    title: '把工单脉冲写进系统提示：只给主代理看的那一段',
+    stage: 'intake', size: 'M', dri: '', scope: 'global',
+    ageHours: 50, age: '2 天',
+    acceptance: [],
+    artifacts: [],
+    log: [
+      { at: '2026-11-13T09:20:00.000Z', by: 'lead',
+        note: 'created: 从交接文档拆出来的一段提示词改造，验收标准还没写，先占 intake。' },
+    ],
+  },
+  {
+    id: 'wo-20261116-2',
+    title: 'Wiki 草稿审批面板：空态引导、反链折叠，以及草稿被拒绝后的修订入口（这条标题故意写长，用来看卡片的两行截断与 title 属性）',
+    stage: 'intake', size: 'S', dri: '', scope: 'project',
+    ageHours: 4, age: '4 小时',
+    acceptance: ['空态时给出「写第一页 / 从模板开始」两条路径', '反链超过 5 条时折叠，点开不跳页'],
+    artifacts: ['docs/design/orders-tab.md'],
+    log: [
+      { at: '2026-11-16T10:05:00.000Z', by: 'lead',
+        note: 'created: 用户提的空态引导需求；S 规模，先不指派，等看板结构定了再派。' },
+    ],
+  },
+  {
+    id: 'wo-20261110-2',
+    title: '旧看板的三栏布局',
+    stage: 'dropped', size: 'S', dri: 'engineer', scope: 'project',
+    ageHours: 96, age: '4 天',
+    acceptance: ['左栏按阶段分组，中栏六项，右栏签收'],
+    artifacts: ['docs/demo/preview-orders.html'],
+    log: [
+      { at: '2026-11-10T02:00:00.000Z', by: 'lead',
+        note: 'created: 上一版三栏面板的样式与交互基线。' },
+      { at: '2026-11-12T08:30:00.000Z', by: 'lead',
+        note: 'dropped: 改版方向已定：三栏换成看板，旧稿保留在 docs/demo/preview-orders.html，不再迭代。' },
+    ],
+  },
+];
+
+/* ============================================================
+   2. 运行时状态（全部在内存，刷新即还原）
+   ============================================================ */
+const state = {
+  variant: 'A',
+  theme: 'light',
+  demo: 'normal',
+  identity: 'lead',
+  selectedId: null,
+  drawerOpen: false,
+  focusStage: 'review',
+  archiveOpen: false,
+  signNotes: {},
+  sendBackArmed: null,
+  preview: { open: false, orderId: null, path: null, mode: 'auto', wrap: false, reloading: false },
+  banner: null,
+  toast: null,
+  modal: null,
+  createSize: 'M',
+  createError: '',
+  dropError: '',
+  bounceId: null,
+  dragId: null,
+  seq: 2,
+  version: 0,
+};
+
+/* ============================================================
+   3. 工具函数
+   ============================================================ */
+function esc(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function pad2(n) { return n < 10 ? '0' + n : String(n); }
+function fmtTime(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+function nowIso() { return new Date().toISOString(); }
+function findOrder(id) { return ORDERS.find((o) => o.id === id); }
+function roleTitle(id) {
+  const role = ROLES.find((r) => r.id === id);
+  return role ? role.title : (id || '');
+}
+function actor() {
+  return state.identity === 'engineer'
+    ? { id: 'engineer', label: '工程师' }
+    : { id: 'lead', label: '主代理' };
+}
+function stageInfo(stage) { return STAGE_INFO[stage] || { key: stage, sub: '', long: '' }; }
+function hasProject() { return state.demo !== 'noproject'; }
+function visibleOrders() {
+  if (state.demo === 'empty' || state.demo === 'loading' || state.demo === 'error') return [];
+  if (state.demo === 'noproject') return ORDERS.filter((o) => o.scope === 'global');
+  return ORDERS;
+}
+function sortOldestFirst(list) {
+  return list.slice().sort((a, b) => (b.ageHours || 0) - (a.ageHours || 0));
+}
+function ordersOfStage(stage) { return sortOldestFirst(visibleOrders().filter((o) => o.stage === stage)); }
+function occupiedList() {
+  return visibleOrders().filter((o) => o.stage === 'active' || o.stage === 'review' || o.stage === 'blocked');
+}
+function occupiedCount() { return occupiedList().length; }
+function isOverdue(o) { return o.stage === 'review' && (o.ageHours || 0) >= 72; }
+function isNoAcceptance(o) {
+  return (o.size === 'M' || o.size === 'L') && (!o.acceptance || o.acceptance.length === 0);
+}
+function overdueList() { return visibleOrders().filter(isOverdue); }
+function noAcceptanceList() {
+  return visibleOrders().filter((o) => isNoAcceptance(o) && o.stage !== 'done' && o.stage !== 'dropped');
+}
+function logNoteStartingWith(o, prefix) {
+  const hitPrefix = prefix.toLowerCase();
+  for (let i = o.log.length - 1; i >= 0; i -= 1) {
+    const note = String(o.log[i].note || '');
+    if (note.toLowerCase().indexOf(hitPrefix) === 0) {
+      return note.slice(prefix.length).replace(/^:\s*/, '');
+    }
+  }
+  return '';
+}
+function blockedReasonOf(o) { return logNoteStartingWith(o, 'blocked'); }
+function droppedReasonOf(o) { return logNoteStartingWith(o, 'dropped'); }
+function latestNote(o) {
+  if (!o.log.length) return '';
+  return String(o.log[o.log.length - 1].note || '').split('\n')[0];
+}
+function parseLines(text) {
+  return String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+}
+function artifactKind(path) {
+  const ext = (path.split('.').pop() || '').toLowerCase();
+  if (ext === 'md' || ext === 'mdx') return { key: 'md', label: 'Markdown', short: 'MD' };
+  if (ext === 'html' || ext === 'htm') return { key: 'html', label: 'HTML', short: 'HTML' };
+  if (ext === 'js' || ext === 'mjs' || ext === 'ts' || ext === 'css' || ext === 'json') {
+    return { key: 'code', label: '代码', short: ext.toUpperCase().slice(0, 4) };
+  }
+  if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp' || ext === 'gif') {
+    return { key: 'image', label: '图片', short: 'IMG' };
+  }
+  if (ext === 'pdf') return { key: 'pdf', label: 'PDF', short: 'PDF' };
+  if (ext === 'docx' || ext === 'xlsx' || ext === 'pptx') return { key: 'office', label: 'Office', short: ext.toUpperCase().slice(0, 4) };
+  return { key: 'text', label: '文本', short: 'TXT' };
+}
+function artifactStatus(path) {
+  return EXISTING.has(String(path).replace(/^\.\//, '')) ? 'file' : 'missing';
+}
+function absPath(path) { return path.charAt(0) === '/' ? path : REPO_ROOT + path; }
+/* 与 @deepseek-ai/dsh-util-workspace-path 的 sessionFileAddress 同形：
+   dsh-resource://file/session/<encodeURIComponent(sessionId)>/<每段 encodeURIComponent>，%3A 还原成 : */
+function fileAddress(sessionId, path) {
+  const abs = absPath(String(path));
+  const segments = abs.split('/').filter((s) => s !== '');
+  const encoded = segments
+    .map((s) => encodeURIComponent(s).replace(/%3A/gi, ':'))
+    .join('/');
+  return `dsh-resource://file/session/${encodeURIComponent(sessionId)}/${encoded}`;
+}
+function uniqueStageCounts() {
+  const counts = {};
+  ALL_STAGES.forEach((stage) => { counts[stage] = ordersOfStage(stage).length; });
+  return counts;
+}
+
+/* ============================================================
+   4. 门禁（与 lib/store.js + lib/rules.js 的规则一一对应，纯演示）
+   ============================================================ */
+function signBlockers(order, note) {
+  const list = [];
+  if (order.stage !== 'review') {
+    list.push({ code: 'not_review', severity: 'warn',
+      message: `工单 ${order.id} 现在是 ${order.stage}，只有 review 状态可以签收` });
+  }
+  if (!order.acceptance || order.acceptance.length === 0) {
+    list.push({ code: 'no_acceptance', severity: 'danger',
+      message: '没有验收标准：M/L 规模不能签收，先补验收标准' });
+  }
+  if (order.dri && order.dri === state.identity) {
+    list.push({ code: 'self_sign', severity: 'danger',
+      message: '验收不能由领取人自己签：切回主代理，或换一个身份签' });
+  }
+  if (!note || !note.trim()) {
+    list.push({ code: 'note_required', severity: 'warn',
+      message: '签收必须写 note：写清签收依据，或打回时要改哪一条' });
+  }
+  return list;
+}
+function gateForStage(order, target) {
+  if (target === order.stage) return null;
+  if (target === 'done') {
+    return { code: 'done_forbidden',
+      message: 'done 只能由签收产生：先改到 review，写 note 后点「签收 → done」' };
+  }
+  if (target === 'active' && (order.size === 'M' || order.size === 'L') && (!order.acceptance || order.acceptance.length === 0)) {
+    return { code: 'acceptance_gate',
+      message: `${order.size} 规模没有验收标准，不能进 active；先补验收标准（Host 会返回 acceptance_gate）` };
+  }
+  return null;
+}
+function createDowngradeReasons(size, acceptance) {
+  const reasons = [];
+  const occupied = occupiedCount();
+  if (occupied >= WIP_LIMIT) {
+    reasons.push({ code: 'wip',
+      message: `在制已满（${occupied}/${WIP_LIMIT}）：新单先落 intake 排队，等一张在制单签收或撤单后再改阶段` });
+  }
+  if (size !== 'S' && acceptance.length === 0) {
+    reasons.push({ code: 'acceptance_gate',
+      message: `${size} 规模没有验收标准：不能进 active，也不能签收` });
+  }
+  return reasons;
+}
+
+/* ============================================================
+   5. 共享渲染：统计 / 卡片 / 六项 / 交付物 / 日志 / 签收
+   ============================================================ */
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.prototype.slice.call((root || document).querySelectorAll(sel));
+
+function stat(label, value, cls) {
+  return `<span class="stat ${cls || ''}"><span>${label}</span><b>${value}</b></span>`;
+}
+function renderStats() {
+  if (state.demo === 'loading' || state.demo === 'error') {
+    return stat('工单', '—') + stat('在制', '—') + stat('超龄', '—') + stat('无验收', '—');
+  }
+  const list = visibleOrders();
+  const occupied = occupiedCount();
+  const over = overdueList().length;
+  const noacc = noAcceptanceList().length;
+  let html = stat('工单', list.length);
+  html += stat('在制', `${occupied}/${WIP_LIMIT}`, occupied >= WIP_LIMIT ? 'is-warn' : (occupied ? '' : 'is-ok'));
+  html += stat('超龄', over, over ? 'is-danger' : '');
+  html += stat('无验收', noacc, noacc ? 'is-warn' : '');
+  if (state.demo === 'noproject') html += stat('作用域', 'global', 'is-warn');
+  return html;
+}
+function scopeChip(o) {
+  return o.scope === 'global' ? '<span class="k-chip k-chip-global">全局</span>' : '';
+}
+function overdueDays(o) { return Math.max(1, Math.floor((o.ageHours || 0) / 24)); }
+function warnChips(o) {
+  const parts = [];
+  if (isNoAcceptance(o)) {
+    parts.push(`<span class="k-chip k-chip-warn" title="M/L 无验收标准：进 active 会被 acceptance_gate 挡住">无验收</span>`);
+  }
+  if (isOverdue(o)) {
+    parts.push(`<span class="k-chip k-chip-danger" title="review 超过 72 小时，最老的排最上">超龄 ${overdueDays(o)} 天</span>`);
+  }
+  if (o.stage === 'blocked') {
+    parts.push(`<span class="k-chip k-chip-danger" title="${esc(blockedReasonOf(o) || '原因看最新日志')}">受阻</span>`);
+  }
+  return parts.join('');
+}
+function renderCard(o, opts) {
+  const options = opts || {};
+  const variant = options.variant || 'A';
+  const cls = variant === 'A' ? 'a-card' : (variant === 'B' ? 'b-card' : 'c-card');
+  const selected = state.selectedId === o.id ? ' is-on' : '';
+  const bounce = state.bounceId === o.id ? ' is-bounce' : '';
+  const dragging = state.dragId === o.id ? ' is-dragging' : '';
+  const draggable = (options.archived || options.nodrag) ? 'false' : 'true';
+  const titleAttr = `${o.title} · ${o.id}`;
+  const counts = variant === 'B'
+    ? ''
+    : `<div class="k-card-foot"><span>验收 ${o.acceptance.length} · 交付物 ${o.artifacts.length}</span><span>日志 ${o.log.length}</span></div>`;
+  let snippet = '';
+  if (variant === 'C') {
+    const last = latestNote(o);
+    if (last) snippet = `<div class="c-card-snippet" title="${esc(last)}">${esc(last)}</div>`;
+  }
+  if (options.archived) {
+    return `<div class="a-arch-card" data-card data-id="${o.id}" data-act="select" role="button" tabindex="0" title="${esc(titleAttr)}">
+      <div class="k-card-title">${esc(o.title)}</div>
+      <div class="k-card-meta"><span class="k-mono">${o.id}</span><span>·</span><span>${o.age}</span></div>
+    </div>`;
+  }
+  return `<div class="k-card ${cls}${selected}${bounce}${dragging}" data-card data-id="${o.id}" data-act="select"
+    draggable="${draggable}" role="button" tabindex="0" title="${esc(titleAttr)}">
+    <div class="k-card-title">${esc(o.title)}</div>
+    <div class="k-card-meta">
+      <span class="k-chip k-chip-size">${o.size}</span>
+      <span title="${esc(o.dri || '未指派')}">${esc(o.dri ? roleTitle(o.dri) : '未指派')}</span>
+      <span>·</span><span>${esc(o.age)}</span>
+      ${scopeChip(o)}
+    </div>
+    <div class="k-card-warns">${warnChips(o)}</div>
+    ${counts}${snippet}
+  </div>`;
+}
+function renderCards(list, variant, opts) {
+  return list.map((o) => renderCard(o, Object.assign({ variant: variant }, opts || {}))).join('');
+}
+function renderEmptyCell(variant) {
+  if (variant === 'B') return '<span class="b-laneempty">— 这一阶段还没有卡片</span>';
+  return '<div class="a-colnone">— 这一阶段还没有卡片</div>';
+}
+function renderSkeletonCards(variant, n) {
+  const count = n || 2;
+  let html = '';
+  for (let i = 0; i < count; i += 1) {
+    if (variant === 'B') {
+      html += '<span class="skel skel-card" style="width:288px;flex:none"></span>';
+    } else {
+      html += '<span class="skel skel-card"></span>';
+    }
+  }
+  return html;
+}
+function renderErrorCell(variant) {
+  if (variant === 'B') return '<span class="b-laneempty" style="border-color:color-mix(in srgb, var(--dsw-alias-state-error-primary) 45%, var(--dsw-alias-border-l1));color:var(--dsw-alias-state-error-primary)">读取失败</span>';
+  return '<div class="err-cell">读取失败<br><span class="k-mono">/state → 500</span></div>';
+}
+function emptyStepsHtml() {
+  return `<div class="empty-steps">
+    <span>1 · 建单进 intake</span>
+    <span>2 · 补齐验收标准</span>
+    <span>3 · 拖到 active / 改阶段</span>
+  </div>`;
+}
+function renderOnboard(variant) {
+  if (state.demo !== 'empty') return '';
+  return `<div class="${variant === 'B' ? 'b-onboard' : 'a-onboard'}">
+    <div class="empty-ic">＋</div>
+    <div class="onboard-main">
+      <b>还没有工单</b>
+      <p>空看板不是错误：.dsh/org/orders/ 下没有可解析的工单。用「＋ 新建工单」开一张，或回到会话里让主代理 org_order create。</p>
+      ${emptyStepsHtml()}
+    </div>
+    <button type="button" class="k-btn k-btn-sm k-btn-primary" data-act="new">＋ 新建工单</button>
+  </div>`;
+}
+function renderLoadStrip() {
+  return `<div class="load-strip">
+    <span class="spin"></span>
+    <span>读取中… GET /hyper-org/api/state?session=${SESSION_ID}</span>
+    <span class="spacer"></span>
+    <span class="k-faint">演示：真实面板只显示「读取中…」，骨架是这里补的可视化</span>
+    <button type="button" class="k-btn k-btn-sm" data-act="finish-loading">完成加载</button>
+  </div>`;
+}
+function renderErrorPanel() {
+  return `<div class="err-panel">
+    <div class="ic">!</div>
+    <div class="body">
+      <b>读取失败：GET /hyper-org/api/state → 500</b>
+      <pre>GET /hyper-org/api/state?session=${SESSION_ID}
+→ 500 {"ok":false,"code":"internal_error","error":"Host 没有响应（demo 模拟）"}</pre>
+      <p class="k-faint" style="margin:4px 0 0;font-size:10px">看板其余部分照常渲染，不整页报错；重试会回到正常态。</p>
+    </div>
+    <div class="actions"><button type="button" class="k-btn k-btn-sm" data-act="retry">重试</button></div>
+  </div>`;
+}
+function renderBanner() {
+  const b = state.banner;
+  if (!b) return '';
+  const ic = b.kind === 'error' ? '!' : (b.kind === 'warn' ? '!' : (b.kind === 'success' ? '✓' : 'i'));
+  return `<div class="banner is-${b.kind}" data-banner>
+    <span class="banner-ic">${ic}</span>
+    <div class="banner-main">
+      <div class="banner-title">${esc(b.title)}</div>
+      ${b.body ? `<p class="banner-body">${esc(b.body)}</p>` : ''}
+      ${b.code ? `<span class="banner-code">${esc(b.code)}</span>` : ''}
+    </div>
+    <button type="button" class="banner-close" data-act="close-banner" aria-label="关闭">×</button>
+  </div>`;
+}
+function renderToast() {
+  const t = state.toast;
+  if (!t) return '';
+  const ic = t.kind === 'error' ? '!' : (t.kind === 'warn' ? '!' : (t.kind === 'success' ? '✓' : 'i'));
+  return `<div class="toast is-${t.kind}" data-toast>
+    <span class="ic">${ic}</span>
+    <div class="body">
+      <div class="title">${esc(t.title)}</div>
+      ${t.body ? `<p class="desc">${esc(t.body)}</p>` : ''}
+      ${t.code ? `<span class="code">${esc(t.code)}</span>` : ''}
+    </div>
+    <button type="button" class="close" data-act="close-toast" aria-label="关闭">×</button>
+  </div>`;
+}
+
+/* ---------- 六项详情 ---------- */
+function detailSections(o) {
+  const st = stageInfo(o.stage);
+  const stageBody = `<div class="d-stage"><span class="stage-dot is-${o.stage}"></span><span class="k-stage-text">${o.stage}</span><span class="k-mut">· ${st.sub}</span></div>
+    <p class="d-sub">${esc(st.long)}</p>
+    ${o.stage === 'blocked' ? `<div class="d-warnbox is-danger"><b>阻塞原因（取最新 blocked: 日志，真实数据没有独立字段）</b><br>${esc(blockedReasonOf(o) || '未写原因')}</div>` : ''}
+    ${o.stage === 'dropped' ? `<div class="d-warnbox is-danger"><b>撤单理由（写在 dropped: 日志里）</b><br>${esc(droppedReasonOf(o) || '未写理由')}</div>` : ''}
+    ${o.stage === 'done' ? '<p class="k-annot">done 只能由 sign 产生；下拉里的 done 是禁用项，拖拽也会被拒。</p>' : ''}`;
+  const sizeBody = `<div><span class="k-chip k-chip-size">${o.size}</span> <span class="k-mut">${SIZE_INFO[o.size]}</span></div>`;
+  const driBody = o.dri
+    ? `<div><b>${esc(roleTitle(o.dri))}</b> <span class="k-mono k-faint">${esc(o.dri)}</span></div>`
+    : '<div><span class="k-mut">未指派</span> <span class="k-faint">· M/L 建单需要 DRI 才能派活</span></div>';
+  const accBody = o.acceptance.length
+    ? `<ol class="d-list">${o.acceptance.map((a) => `<li>${esc(a)}</li>`).join('')}</ol>`
+    : `<div class="d-warnbox is-warn"><b>无验收标准</b><br>M/L 规模的单不能进 active，也不能签收；补一条即可（一行一条，逗号不拆）。</div>`;
+  const artBody = `${o.artifacts.length
+    ? `<ul class="art-list">${o.artifacts.map((p) => renderArtifactRow(o, p)).join('')}</ul>`
+    : '<p class="k-faint" style="margin:0;font-size:10.5px">没有挂交付物</p>'}
+    <p class="k-annot"><b>改版点</b> 面板不再自绘文本预览，也没有自定义文件读取路由；交付物行只剩一个入口，点击后由 DSH 右侧栏渲染。</p>`;
+  const logBody = `${o.log.length
+    ? `<div class="log-scroll"><div class="log">${renderLogList(o)}</div></div>`
+    : '<p class="k-faint" style="margin:0;font-size:10.5px">还没有日志</p>'}
+    <div class="log-count">共 ${o.log.length} 条 · 最新在上 · 完整展示不截断</div>`;
+  return [
+    { key: 'stage', label: '当前阶段', body: stageBody },
+    { key: 'size', label: '规模', body: sizeBody },
+    { key: 'dri', label: '领取人（DRI）', body: driBody },
+    { key: 'acceptance', label: '验收标准', body: accBody },
+    { key: 'artifacts', label: '交付物', body: artBody },
+    { key: 'log', label: '完整日志', body: logBody },
+  ];
+}
+function renderArtifactRow(o, path) {
+  const kind = artifactKind(path);
+  const missing = artifactStatus(path) === 'missing';
+  const disabled = state.demo === 'noproject' || state.demo === 'loading' || state.demo === 'error';
+  const reason = state.demo === 'noproject'
+    ? '<span class="art-reason">无项目根：无法构造 dsh-resource 地址</span>'
+    : '';
+  return `<li class="art-row${missing ? ' is-missing' : ''}">
+    <div class="art-top">
+      <span class="art-path">${esc(path)}</span>
+      <span class="art-kind">${kind.label}</span>
+      ${missing ? '<span class="art-status">文件不存在</span>' : ''}
+    </div>
+    <button type="button" class="art-open" data-act="preview" data-id="${o.id}" data-path="${esc(path)}"
+      ${disabled ? 'disabled' : ''} title="${disabled ? '无项目根 / 状态不可用' : '真实实现：ctx.sidebarRight.openResource(addr)'}">在 DSH 预览中打开 ↗</button>
+    ${reason}
+  </li>`;
+}
+function renderLogList(o) {
+  return o.log.slice().reverse().map((entry) => `<div class="log-row">
+    <div class="log-meta"><span>${fmtTime(entry.at)}</span><span class="log-by">· ${esc(entry.by)}</span></div>
+    <p class="log-note">${esc(entry.note)}</p>
+  </div>`).join('');
+}
+function renderDetailHead(o, closeAct) {
+  return `<div class="d-head">
+    <div class="d-headmain">
+      <h3 class="d-title">${esc(o.title)}</h3>
+      <div class="d-idline">
+        <span class="k-mono">${o.id}</span><span>·</span><span>${esc(o.age)}</span>
+        <span class="k-chip k-chip-size">${o.size}</span>${scopeChip(o)}
+        ${o.stage === 'done' ? '<span class="k-chip k-chip-ok">signed</span>' : ''}
+      </div>
+    </div>
+    <button type="button" class="d-close" data-act="${closeAct || 'close-detail'}" aria-label="关闭详情">×</button>
+  </div>`;
+}
+function renderStageMenu(o) {
+  const stages = ['intake', 'active', 'review', 'blocked', 'dropped'];
+  const options = stages.map((s) => `<option value="${s}"${o.stage === s ? ' selected' : ''}>${s}${s === 'dropped' ? '（要写理由）' : ''}</option>`).join('')
+    + `<option value="done"${o.stage === 'done' ? ' selected' : ''} disabled>done（只能由签收产生）</option>`;
+  return `<div class="d-actions">
+    <select class="k-select" data-act="stage" data-id="${o.id}" aria-label="改阶段">${options}</select>
+    <span class="hint">${state.variant === 'C' ? 'C 方案用阶段菜单，不拖拽' : (state.variant === 'B' ? '也可以直接拖卡片换道' : '也可以直接拖卡片换列')}</span>
+  </div>`;
+}
+function renderSignSection(o) {
+  const note = state.signNotes[o.id] || '';
+  if (o.stage !== 'review') {
+    return `<div class="sign">
+      <div class="sign-head"><h4>签收 / 打回</h4><span class="sign-actor">以 ${esc(actor().label)} 身份</span></div>
+      <p class="sign-locked">只有 <span class="k-mono">review</span> 可签收；现在是 <span class="k-mono">${o.stage}</span>。先改到 review，再写 note 签收。</p>
+    </div>`;
+  }
+  const blockers = signBlockers(o, note);
+  const disabled = blockers.length > 0;
+  const hostBlockers = blockers.filter((b) => b.code !== 'note_required');
+  const armed = state.sendBackArmed === o.id;
+  const title = disabled ? blockers.map((b) => b.message).join(' / ') : '会写一条 sign 日志';
+  /* note_required 是输入绑定（按钮禁用 + hint 解释），不属于 Host 下发的 sign.blockers。 */
+  const blkHtml = hostBlockers.length
+    ? `<ul class="sign-blk">${hostBlockers.map((b) => `<li class="${b.severity === 'danger' ? 'is-danger' : ''}"><span class="code">${b.code}</span>${esc(b.message)}</li>`).join('')}</ul>`
+    : '';
+  return `<div class="sign">
+    <div class="sign-head"><h4>签收 / 打回</h4><span class="sign-actor">以 ${esc(actor().label)} 身份</span></div>
+    <textarea class="k-textarea sign-note" data-sign-note="${o.id}" placeholder="写清签收依据，或打回时要改哪一条">${esc(note)}</textarea>
+    <p class="sign-hint ${note.trim() ? 'is-ok' : ''}" data-note-hint>${note.trim() ? 'note 已填写 · 会写进日志' : '签收必须写 note'}</p>
+    ${blkHtml}
+    <div class="sign-btns">
+      <button type="button" class="k-btn k-btn-danger" data-act="sign" data-id="${o.id}" data-approve="0"
+        ${disabled ? 'disabled' : ''} title="${esc(title)}">${armed ? '确认打回？' : '打回 → active'}</button>
+      <button type="button" class="k-btn k-btn-primary" data-act="sign" data-id="${o.id}" data-approve="1"
+        ${disabled ? 'disabled' : ''} title="${esc(title)}">签收 → done</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- 预览内容 ---------- */
+function sourceText(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  return String(el.textContent || '').replace(/^\n/, '');
+}
+const MD_SRC = sourceText('src-md');
+const JS_SRC = sourceText('src-js');
+const HTML_SRC = sourceText('src-html');
+
+function mdInline(text) {
+  let out = esc(text);
+  out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="md-link" title="$2">$1</span>');
+  return out;
+}
+function mdToHtml(src) {
+  const lines = String(src).replace(/\r\n/g, '\n').split('\n');
+  const out = [];
+  let inCode = false;
+  let code = [];
+  let list = null;
+  function flushList() {
+    if (list) { out.push(`</${list}>`); list = null; }
+  }
+  lines.forEach((line) => {
+    if (/^\s*```/.test(line)) {
+      if (inCode) {
+        out.push(`<pre class="md-pre"><code>${esc(code.join('\n'))}</code></pre>`);
+        code = []; inCode = false;
+      } else {
+        flushList(); inCode = true;
+      }
+      return;
+    }
+    if (inCode) { code.push(line); return; }
+    if (/^\s*$/.test(line)) { flushList(); return; }
+    if (/^---+$/.test(line)) { flushList(); out.push('<hr>'); return; }
+    let m = line.match(/^(#{1,3})\s+(.*)$/);
+    if (m) {
+      flushList();
+      const level = m[1].length;
+      out.push(`<h${level}>${mdInline(m[2])}</h${level}>`);
+      return;
+    }
+    if (/^>\s?/.test(line)) {
+      flushList();
+      out.push(`<blockquote>${mdInline(line.replace(/^>\s?/, ''))}</blockquote>`);
+      return;
+    }
+    m = line.match(/^\s*[-*]\s+(.*)$/);
+    if (m) {
+      if (list !== 'ul') { flushList(); out.push('<ul>'); list = 'ul'; }
+      out.push(`<li>${mdInline(m[1])}</li>`);
+      return;
+    }
+    m = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (m) {
+      if (list !== 'ol') { flushList(); out.push('<ol>'); list = 'ol'; }
+      out.push(`<li>${mdInline(m[1])}</li>`);
+      return;
+    }
+    flushList();
+    out.push(`<p>${mdInline(line)}</p>`);
+  });
+  flushList();
+  if (inCode) out.push(`<pre class="md-pre"><code>${esc(code.join('\n'))}</code></pre>`);
+  return out.join('\n');
+}
+function highlightLine(line) {
+  const text = esc(line);
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)|(\b(?:const|let|var|function|return|if|else|for|of|in|new|typeof|instanceof|export|import|class|extends|await|async|throw|try|catch|switch|case|break|continue)\b)|(\b\d+(?:\.\d+)?\b)/g;
+  return text.replace(re, (match, str, kw, num) => {
+    if (str) return `<span class="tok-str">${match}</span>`;
+    if (kw) return `<span class="tok-kw">${match}</span>`;
+    return `<span class="tok-num">${match}</span>`;
+  });
+}
+function srcHtml(src) {
+  const wrap = state.preview.wrap ? ' is-wrap' : '';
+  const rows = String(src).replace(/\r\n/g, '\n').split('\n').map((line, i) =>
+    `<div class="ln">${i + 1}</div><div class="cl">${highlightLine(line) || ' '}</div>`);
+  return `<div class="src${wrap}">${rows.join('')}</div>`;
+}
+function htmlMockHtml() {
+  const pieces = { 3: 0, 10: 3, 12: 1, 19: 2, 20: 2, 27: 3, 36: 0, 44: 1, 52: 2, 53: 0, 60: 3, 61: 1 };
+  let squares = '';
+  for (let i = 0; i < 64; i += 1) {
+    const row = Math.floor(i / 8);
+    const col = i % 8;
+    const shade = (row + col) % 2 === 0 ? 'a' : 'b';
+    const color = pieces[i];
+    squares += `<div class="sq ${shade}">${color === undefined ? '' : `<i class="c${color}"></i>`}</div>`;
+  }
+  return `<div class="htmlmock-head"><b>飞行棋 · Canvas</b><span>HTML 渲染器 · demo 示意</span></div>
+    <div class="board">${squares}</div>
+    <div class="htmlmock-foot"><span>开始游戏</span><span class="k-faint">四色阵营 · 示范棋盘</span></div>
+    <p class="htmlmock-note">真实 DSH 用 HTML 渲染器打开交付物；demo 不加载 file:// 文件，用 CSS 棋盘示意渲染位置。</p>`;
+}
+function effectiveMode(p, kind) {
+  if (p.mode && p.mode !== 'auto') {
+    const allowed = kind.key === 'md' ? ['rendered', 'source']
+      : kind.key === 'html' ? ['preview', 'source']
+        : kind.key === 'code' ? ['source']
+          : ['image'];
+    if (allowed.indexOf(p.mode) >= 0) return p.mode;
+  }
+  if (kind.key === 'md') return 'rendered';
+  if (kind.key === 'html') return 'source';
+  return kind.key === 'image' ? 'image' : 'source';
+}
+function previewContent(p, kind) {
+  const missing = artifactStatus(p.path) === 'missing';
+  if (missing) {
+    return `<div class="pv-missing">
+      <b>文件不存在 · missing</b>
+      <p>Host 解析 <span class="k-mono">${esc(p.path)}</span> 失败，右侧栏拿不到内容。真实实现里 openResource 的地址无法解析时，由 DSH 自己显示错误。</p>
+      <code>404 · missing</code>
+      <p style="margin-top:6px">这行在交付物列表里也标红；演示失败态，不阻断其他交付物。</p>
+    </div>`;
+  }
+  const mode = effectiveMode(p, kind);
+  if (kind.key === 'md' && mode === 'rendered') return `<article class="md">${mdToHtml(MD_SRC)}</article>`;
+  if (kind.key === 'html' && mode === 'preview') return htmlMockHtml();
+  if (kind.key === 'code') return srcHtml(JS_SRC);
+  if (kind.key === 'html') return srcHtml(HTML_SRC);
+  if (kind.key === 'md') return srcHtml(MD_SRC);
+  return `<pre class="md-pre"><code>${esc('（demo 只内置 Markdown / 代码 / HTML 的渲染示例）')}</code></pre>`;
+}
+function renderPreviewColumn() {
+  if (!state.preview.open) return '';
+  const p = state.preview;
+  const kind = artifactKind(p.path);
+  const order = findOrder(p.orderId);
+  const addr = fileAddress(SESSION_ID, p.path);
+  const mode = effectiveMode(p, kind);
+  const missing = artifactStatus(p.path) === 'missing';
+  const rendererOptions = (() => {
+    if (missing) return '<option>无法解析</option>';
+    if (kind.key === 'md') {
+      return `<option value="rendered"${mode === 'rendered' ? ' selected' : ''}>Markdown 渲染</option>
+        <option value="source"${mode === 'source' ? ' selected' : ''}>源码</option>`;
+    }
+    if (kind.key === 'html') {
+      return `<option value="preview"${mode === 'preview' ? ' selected' : ''}>HTML 预览</option>
+        <option value="source"${mode === 'source' ? ' selected' : ''}>源码</option>`;
+    }
+    if (kind.key === 'image') return '<option value="image" selected>图片</option>';
+    return `<option value="source"${mode === 'source' ? ' selected' : ''}>代码</option>`;
+  })();
+  const wrapDisabled = missing || mode !== 'source';
+  const canReload = !missing;
+  return `<div class="pv-inner" data-preview>
+    <div class="pv-top">
+      <span class="pv-title">文件预览</span>
+      <span class="pv-mocktag">MOCK · 示意</span>
+      <span class="pv-spacer"></span>
+      <button type="button" class="k-btn" data-act="back-detail">返回详情</button>
+      <button type="button" class="d-close" data-act="close-preview" aria-label="关闭预览">×</button>
+    </div>
+    <div class="pv-file">
+      <span class="pv-kind">${kind.short}</span>
+      <span class="pv-path" title="${esc(absPath(p.path))}">${esc(p.path)}</span>
+      ${order ? `<span class="k-chip">${order.id}</span>` : ''}
+    </div>
+    <div class="pv-controls">
+      <select class="k-select" data-act="renderer" ${missing ? 'disabled' : ''} aria-label="渲染器">${rendererOptions}</select>
+      <button type="button" class="pv-switch${p.wrap && !wrapDisabled ? ' is-on' : ''}" data-act="wrap"
+        ${wrapDisabled ? 'disabled' : ''} title="软换行（只影响源码）">软换行 <i></i></button>
+      <button type="button" class="k-btn pv-reload${p.reloading ? ' is-busy' : ''}" data-act="reload" ${canReload ? '' : 'disabled'}>
+        ${p.reloading ? '<span class="spin"></span>重载中' : '↻ 重载'}
+      </button>
+    </div>
+    <div class="pv-body">${previewContent(p, kind)}</div>
+    <div class="pv-footer">
+      <div class="pv-addr-head"><span>dsh-resource 地址（点击复制）</span>
+        <button type="button" class="k-btn" data-act="copy" data-copy="${esc(addr)}" style="padding:0 6px;font-size:9px">复制</button>
+      </div>
+      <code class="pv-addr">${esc(addr)}</code>
+      <div class="pv-real">
+        <span class="pv-real-tag">真实实现</span>
+        <span><code>ctx.get('sidebarRight').openResource(addr)</code>；addr 由 <code>sessionFileAddress(sessionId, path)</code> 构造（路径段 component 编码，<code>:</code> 还原）。demo 为右侧栏 mock，未真的打开文件。</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 弹窗 ---------- */
+function createModalHtml() {
+  const roleOptions = ROLES.filter((r) => r.id !== 'lead')
+    .map((r) => `<option value="${r.id}">${esc(r.title)}（${r.id}）</option>`).join('');
+  return `<div class="modal-backdrop" data-act="modal-backdrop">
+    <form class="modal" id="createForm">
+      <div class="modal-head">
+        <div>
+          <h3>新建工单</h3>
+          <p>默认请求 active；在制满或 M/L 缺验收时压回 intake（200 + 解释，不是错误）</p>
+        </div>
+        <button type="button" class="d-close" data-act="close-modal" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="c-title">标题 <span class="k-faint">· 一句话说清要交付什么</span></label>
+          <input class="k-input" id="c-title" name="title" autocomplete="off"
+            placeholder="例如：工单看板：列头数量与超龄标记">
+          <span class="err" id="createErr">${esc(state.createError)}</span>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <span class="flabel">规模</span>
+            <div class="size-seg" data-size-seg>
+              ${['S', 'M', 'L'].map((s) => `<button type="button" data-act="create-size" data-size="${s}"
+                class="${state.createSize === s ? 'is-on' : ''}">${s} · ${SIZE_INFO[s]}</button>`).join('')}
+            </div>
+          </div>
+          <div class="field">
+            <label for="c-dri">领取人 DRI</label>
+            <select class="k-select" id="c-dri" name="dri">
+              <option value="">未指派</option>${roleOptions}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="c-acc">验收标准 <span class="k-faint">· 一行一条，逗号不拆</span></label>
+          <textarea class="k-textarea" id="c-acc" name="acceptance" placeholder="一行一条；中文逗号不会被当分隔符"></textarea>
+          <span class="hint" data-size-hint>${state.createSize === 'S'
+            ? 'S 规模免验收，在制未满时可直接进 active'
+            : 'M/L 没有验收标准会被压回 intake，且不能签收'}</span>
+        </div>
+        <div class="field">
+          <span class="flabel">作用域</span>
+          <span class="global-badge">${hasProject() ? '本项目（project）' : '全局（global）· 无项目根'}</span>
+        </div>
+        <p class="create-notes">当前在制 <b>${occupiedCount()}/${WIP_LIMIT}</b>。<b>在制满</b>或 <b>M/L 缺验收</b>都会显示「降级为 intake」信息条；真实实现里这是 200 + <span class="k-mono">notes[]</span>，不是错误条。</p>
+      </div>
+      <div class="modal-foot">
+        <span class="note">真实实现：POST /hyper-org/api/order</span>
+        <button type="button" class="k-btn" data-act="close-modal">取消</button>
+        <button type="submit" class="k-btn k-btn-primary">建单</button>
+      </div>
+    </form>
+  </div>`;
+}
+function dropModalHtml() {
+  const o = state.modal && state.modal.id ? findOrder(state.modal.id) : null;
+  return `<div class="modal-backdrop" data-act="modal-backdrop">
+    <form class="modal" id="dropForm">
+      <div class="modal-head">
+        <div>
+          <h3>撤单${o ? ` · ${o.id}` : ''}</h3>
+          <p>撤单不删除记录：阶段变 dropped，理由写进日志；看板里收进归档条。</p>
+        </div>
+        <button type="button" class="d-close" data-act="close-modal" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="d-reason">撤单理由 <span class="k-faint">· 必填</span></label>
+          <textarea class="k-textarea" id="d-reason" name="reason" placeholder="为什么撤：方向变了 / 重复单 / 需求取消…"></textarea>
+          <span class="err" id="dropErr">${esc(state.dropError)}</span>
+          <span class="hint">真实 store 只校验 note 是字符串（空字符串也能过）；这里的按钮禁用是面板的 UX 兜底，不新增 Host 门禁。</span>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span class="note">真实实现：PATCH stage=dropped + note</span>
+        <button type="button" class="k-btn" data-act="close-modal">取消</button>
+        <button type="submit" class="k-btn k-btn-danger" id="dropConfirmBtn" disabled>确认撤单</button>
+      </div>
+    </form>
+  </div>`;
+}
+function renderModal() {
+  const layer = $('#modalLayer');
+  if (!state.modal) {
+    layer.innerHTML = '';
+    layer.removeAttribute('data-kind');
+    return;
+  }
+  if (layer.getAttribute('data-kind') === state.modal.kind) return;
+  layer.setAttribute('data-kind', state.modal.kind);
+  layer.innerHTML = state.modal.kind === 'create' ? createModalHtml() : dropModalHtml();
+}
+
+/* ============================================================
+   6. 三个方案
+   ============================================================ */
+function selectedOrder() {
+  if (!state.selectedId) return null;
+  const o = findOrder(state.selectedId);
+  if (!o) return null;
+  return visibleOrders().some((v) => v.id === o.id) ? o : null;
+}
+function laneSub(stage) {
+  if (stage === 'active') return `在制 ${occupiedCount()}/${WIP_LIMIT}`;
+  if (stage === 'review') {
+    const over = overdueList().length;
+    return over ? `超龄 ${over} · 可签收` : '可签收';
+  }
+  if (stage === 'done') return '由 sign 产生';
+  if (stage === 'blocked') return '等外部条件';
+  if (stage === 'intake') return '降级落点';
+  return '';
+}
+function colFoot(stage) {
+  if (stage === 'active') {
+    return { left: `在制 ${occupiedCount()}/${WIP_LIMIT}`, right: occupiedCount() >= WIP_LIMIT ? '已满' : '有名额' };
+  }
+  if (stage === 'review') return { left: `超龄 ${overdueList().length}`, right: '只有这里能签收' };
+  if (stage === 'intake') return { left: '降级落点', right: '新单排队' };
+  if (stage === 'blocked') return { left: '需外部条件', right: '看最新日志' };
+  return { left: '由 sign 产生', right: '只读' };
+}
+function droppedVisible() {
+  return sortOldestFirst(visibleOrders().filter((o) => o.stage === 'dropped'));
+}
+
+/* ---------- A · 经典阶段列 ---------- */
+function renderADrawer(o) {
+  const sections = detailSections(o).map((s) =>
+    `<section class="d-sec"><h4 class="d-label">${s.label}</h4>${s.body}</section>`).join('');
+  return `<aside class="a-drawer" data-drawer aria-label="工单详情">
+    <div class="a-drawer-scroll">
+      ${renderDetailHead(o, 'close-detail')}
+      ${renderStageMenu(o)}
+      ${renderSignSection(o)}
+      ${sections}
+    </div>
+  </aside>`;
+}
+function renderArchiveA(list) {
+  const open = state.archiveOpen;
+  return `<div class="a-archive${open ? ' is-open' : ''}" data-drop="dropped" style="${open ? 'flex-wrap:wrap' : ''}">
+    <button type="button" class="a-archive-btn" data-act="archive-toggle">
+      <span>${open ? '▾' : '▸'}</span>
+      <span>dropped · ${list.length} 张</span>
+      <span class="k-faint">${open ? '收起归档' : '展开归档 · 拖卡片到这里撤单（要写理由）'}</span>
+    </button>
+    ${open && list.length ? `<div class="a-arch-list" style="flex-basis:100%">${list.map((o) => renderCard(o, { archived: true })).join('')}</div>` : ''}
+  </div>`;
+}
+function renderVariantA() {
+  const isLoading = state.demo === 'loading';
+  const isErr = state.demo === 'error';
+  const counts = uniqueStageCounts();
+  const cols = STAGES.map((stage) => {
+    const list = ordersOfStage(stage);
+    let body;
+    if (isLoading) body = renderSkeletonCards('A', 2);
+    else if (isErr) body = renderErrorCell('A');
+    else body = list.length ? renderCards(list, 'A') : renderEmptyCell('A');
+    const foot = colFoot(stage);
+    return `<section class="a-col is-${stage}${state.flashStage === stage ? ' is-bad' : ''}" data-col="${stage}" data-drop="${stage}">
+      <header class="a-colhead">
+        <span class="stage-dot is-${stage}"></span>
+        <span class="stage-key">${stage}</span>
+        <span class="stage-sub">${STAGE_INFO[stage].sub}</span>
+        <span class="a-count">${isLoading || isErr ? '–' : counts[stage]}</span>
+      </header>
+      <div class="a-colbody">${body}</div>
+      <div class="a-colfoot"><span>${foot.left}</span><span>${foot.right}</span></div>
+    </section>`;
+  }).join('');
+  const sel = selectedOrder();
+  const drawer = (state.drawerOpen && sel && !isLoading && !isErr) ? renderADrawer(sel) : '';
+  return `<div class="v v-a${isErr ? ' is-err' : ''}" data-view="A">
+    ${renderOnboard('A')}
+    <div class="a-main">
+      <div class="a-board${isErr ? ' is-err' : ''}" data-board>${cols}</div>
+      ${drawer}
+    </div>
+    ${renderArchiveA(droppedVisible())}
+  </div>`;
+}
+
+/* ---------- B · 横向阶段泳道 ---------- */
+function renderBInspector(o) {
+  const sections = detailSections(o);
+  const map = {};
+  sections.forEach((s) => { map[s.key] = s; });
+  const sec = (s) => `<section class="d-sec"><h4 class="d-label">${s.label}</h4>${s.body}</section>`;
+  return `<aside class="b-inspector is-open" data-inspector aria-label="工单详情">
+    <div class="b-ins-head">${renderDetailHead(o, 'close-detail')}</div>
+    <div class="b-ins-body">
+      <div class="b-ins-col">${sec(map.stage)}${sec(map.size)}${sec(map.dri)}${renderStageMenu(o)}</div>
+      <div class="b-ins-col">${sec(map.acceptance)}</div>
+      <div class="b-ins-col">${sec(map.artifacts)}</div>
+      <div class="b-ins-col">${renderSignSection(o)}${sec(map.log)}</div>
+    </div>
+  </aside>`;
+}
+function renderBInspectorHint() {
+  return `<aside class="b-inspector" data-inspector aria-label="底部 inspector">
+    <div class="b-ins-head"><span class="b-ins-hint"><b>底部 inspector</b> · 点一张卡片查看六项；交付物从最右侧 DSH 预览栏打开</span></div>
+  </aside>`;
+}
+function renderArchiveB(list) {
+  const open = state.archiveOpen;
+  return `<div class="b-archive" data-drop="dropped" style="${open ? 'flex-wrap:wrap' : ''}">
+    <span>${open ? '▾' : '▸'} dropped · ${list.length} 张</span>
+    ${open
+      ? list.map((o) => renderCard(o, { archived: true })).join('')
+      : '<span class="k-faint">拖卡片到这里撤单（要写理由）</span>'}
+    ${list.length ? `<button type="button" class="k-btn k-btn-sm" data-act="archive-toggle" style="margin-left:auto;padding:0 6px;font-size:9px">${open ? '收起' : '展开'}</button>` : ''}
+  </div>`;
+}
+function renderVariantB() {
+  const isLoading = state.demo === 'loading';
+  const isErr = state.demo === 'error';
+  const counts = uniqueStageCounts();
+  const lanes = STAGES.map((stage) => {
+    const list = ordersOfStage(stage);
+    let cards;
+    if (isLoading) cards = renderSkeletonCards('B', 2);
+    else if (isErr) cards = renderErrorCell('B');
+    else cards = list.length ? renderCards(list, 'B') : renderEmptyCell('B');
+    return `<section class="b-lane is-${stage}${state.flashStage === stage ? ' is-bad' : ''}" data-lane="${stage}" data-drop="${stage}">
+      <div class="b-lanelabel">
+        <div class="l1"><span class="stage-dot is-${stage}"></span><span>${stage}</span><span class="b-count">${isLoading || isErr ? '–' : counts[stage]}</span></div>
+        <div class="l2">${laneSub(stage)}</div>
+      </div>
+      <div class="b-lanecards">${cards}</div>
+    </section>`;
+  }).join('');
+  const sel = selectedOrder();
+  const open = !!sel && !isLoading && !isErr;
+  return `<div class="v v-b${isErr ? ' is-err' : ''}" data-view="B">
+    ${renderOnboard('B')}
+    <div class="b-lanes${isErr ? ' is-err' : ''}" data-board>${lanes}</div>
+    ${renderArchiveB(droppedVisible())}
+    ${open ? renderBInspector(sel) : renderBInspectorHint()}
+  </div>`;
+}
+
+/* ---------- C · 阶段轨 + 单阶段聚焦 ---------- */
+function renderCStageBtn(stage, counts, isLoading, isErr, dropped) {
+  const on = state.focusStage === stage ? ' is-on' : '';
+  const cls = `c-stagebtn${on}${dropped ? ' is-dropped' : ''}`;
+  return `<button type="button" class="${cls}" data-rail-stage="${stage}" data-act="focus-stage" data-stage="${stage}">
+    <span class="stage-dot is-${stage}"></span>
+    <span class="name">${stage}</span>
+    <span class="n">${isLoading || isErr ? '–' : counts[stage]}</span>
+    <span class="sub">${STAGE_INFO[stage].sub}${stage === 'active' ? ` · 在制 ${occupiedCount()}/${WIP_LIMIT}` : ''}</span>
+  </button>`;
+}
+function renderCDetail(o) {
+  const sections = detailSections(o).map((s) =>
+    `<section class="d-sec"><h4 class="d-label">${s.label}</h4>${s.body}</section>`).join('');
+  return `<div class="c-detail">
+    ${renderDetailHead(o, 'close-detail')}
+    ${renderStageMenu(o)}
+    ${renderSignSection(o)}
+    ${sections}
+  </div>`;
+}
+function renderCPlaceholder() {
+  let title = '选一张工单';
+  let sub = '点中间的卡片；右侧栏只显示六项，不重复渲染文件';
+  if (state.demo === 'loading') { title = '读取中…'; sub = 'GET /hyper-org/api/state'; }
+  if (state.demo === 'error') { title = '读取失败'; sub = 'GET /state → 500，可在顶部重试'; }
+  if (state.demo === 'empty') { title = '空看板'; sub = '「＋ 新建工单」开一张'; }
+  return `<div class="c-placeholder"><span class="big">◇</span><b>${title}</b><span>${sub}</span></div>`;
+}
+function renderVariantC() {
+  const isLoading = state.demo === 'loading';
+  const isErr = state.demo === 'error';
+  const counts = uniqueStageCounts();
+  const focused = state.focusStage || 'review';
+  const focusedList = focused === 'dropped' ? droppedVisible() : ordersOfStage(focused);
+  const occ = occupiedCount();
+  const gauge = Array.from({ length: WIP_LIMIT }).map((_, i) =>
+    `<i class="${i < Math.min(occ, WIP_LIMIT) ? 'is-on' : ''}"></i>`).join('');
+  const rail = `<aside class="c-rail" aria-label="阶段轨">
+    <div class="c-wip">
+      <div class="c-wip-row"><span>在制</span><b>${isLoading || isErr ? '–' : `${occ}/${WIP_LIMIT}`}</b></div>
+      <div class="c-gauge">${gauge}</div>
+      <div class="c-wip-row" style="margin-top:4px"><span class="k-faint">active + review + blocked</span><span class="${occ >= WIP_LIMIT ? 'c-wip-over' : 'k-faint'}">${occ >= WIP_LIMIT ? '已满' : '有名额'}</span></div>
+    </div>
+    ${STAGES.map((stage) => renderCStageBtn(stage, counts, isLoading, isErr, false)).join('')}
+    ${renderCStageBtn('dropped', counts, isLoading, isErr, true)}
+    <p class="c-railnote">阶段轨是筛选器：C 方案不拖拽，改阶段走右侧菜单。</p>
+  </aside>`;
+  const oldest = focusedList.length ? Math.max.apply(null, focusedList.map((o) => o.ageHours || 0)) : 0;
+  const oldestText = oldest >= 72
+    ? `最老超龄 ${Math.floor(oldest / 24)} 天`
+    : (oldest >= 24 ? `最老 ${Math.floor(oldest / 24)} 天` : `最老 ${Math.max(1, Math.round(oldest))} 小时`);
+  const head = `<div class="c-streamhead" data-c-streamhead>
+    <b>${focused}</b>
+    <span class="k-mut">${isLoading || isErr ? '—' : `${focusedList.length} 张`}</span>
+    <span class="sep">·</span>
+    <span>${isLoading || isErr ? '读取中…' : (focusedList.length ? oldestText : '没有卡片')}</span>
+    <span class="spacer"></span>
+    <span class="hint">主交互：选阶段 → 点卡片 → 右侧六项</span>
+  </div>`;
+  let stream;
+  if (isLoading) {
+    stream = `<span class="skel skel-card"></span><span class="skel skel-card"></span><span class="skel skel-card"></span>`;
+  } else if (isErr) {
+    stream = `${renderErrorPanel()}<div class="err-cell" style="min-height:120px">这一阶段的卡片没有加载出来<br><span class="k-mono">GET /state → 500</span><br><button type="button" class="k-btn k-btn-sm" data-act="retry" style="margin-top:5px">重试</button></div>`;
+  } else if (state.demo === 'empty') {
+    stream = `<div class="c-empty-main">
+      <div class="empty-ic">＋</div>
+      <b>还没有工单</b>
+      <p>空看板不是错误：.dsh/org/orders/ 下没有可解析的工单。用「＋ 新建工单」开一张，或回到会话里让主代理 org_order create。</p>
+      ${emptyStepsHtml()}
+      <button type="button" class="k-btn k-btn-primary k-btn-sm" data-act="new" style="margin-top:3px">＋ 新建工单</button>
+    </div>`;
+  } else if (!focusedList.length) {
+    stream = `<div class="c-empty-main">
+      <b>${focused} 阶段没有卡片</b>
+      <p>${focused === 'review' ? '没有待验收的单；去 active 看正在做的事。' : '这个阶段暂时是空的。'}</p>
+      ${focused === 'intake' ? '<button type="button" class="k-btn k-btn-primary k-btn-sm" data-act="new">＋ 新建工单</button>' : ''}
+    </div>`;
+  } else {
+    stream = renderCards(focusedList, 'C', { nodrag: true });
+  }
+  const sel = selectedOrder();
+  const inspector = (sel && !isLoading && !isErr) ? renderCDetail(sel) : renderCPlaceholder();
+  return `<div class="v v-c${isErr ? ' is-err' : ''}" data-view="C">
+    ${rail}
+    <main class="c-center">
+      ${head}
+      <div class="c-stream" data-stream>${stream}</div>
+    </main>
+    <aside class="c-inspector" data-inspector>${inspector}</aside>
+  </div>`;
+}
+function renderVariant() {
+  if (state.variant === 'B') return renderVariantB();
+  if (state.variant === 'C') return renderVariantC();
+  return renderVariantA();
+}
+
+/* ============================================================
+   7. 总渲染
+   ============================================================ */
+function updateSwitcher() {
+  const meta = VARIANTS.filter((v) => v.key === state.variant)[0] || VARIANTS[0];
+  const key = $('#swKey');
+  const name = $('#swName');
+  if (key) key.textContent = meta.key;
+  if (name) name.textContent = meta.name;
+}
+function renderPreviewOnly() {
+  const app = $('#app');
+  if (app) app.classList.toggle('pv-open', !!state.preview.open);
+  const col = $('#previewCol');
+  if (col) col.innerHTML = renderPreviewColumn();
+}
+function render() {
+  state.version += 1;
+  document.documentElement.setAttribute('data-theme', state.theme);
+  document.documentElement.setAttribute('data-variant', state.variant);
+  const app = $('#app');
+  if (app) app.classList.toggle('pv-open', !!state.preview.open);
+  const stats = $('#stats');
+  if (stats) stats.innerHTML = renderStats();
+  $$('#tools .seg-btn').forEach((btn) => {
+    btn.classList.toggle('is-on', btn.dataset.id === state.identity);
+  });
+  const themeBtn = $('#themeBtn');
+  if (themeBtn) themeBtn.textContent = state.theme === 'dark' ? '亮色' : '暗色';
+  const newBtn = $('#newBtn');
+  if (newBtn) newBtn.disabled = state.demo === 'loading' || state.demo === 'error';
+  const refreshBtn = $('#refreshBtn');
+  if (refreshBtn) refreshBtn.disabled = state.demo === 'loading';
+  const demoSelect = $('#demoState');
+  if (demoSelect) demoSelect.value = state.demo;
+  const banners = $('#bannerLayer');
+  if (banners) {
+    banners.innerHTML = (state.demo === 'loading' ? renderLoadStrip() : '')
+      + (state.demo === 'error' ? renderErrorPanel() : '')
+      + renderBanner();
+  }
+  const root = $('#variantRoot');
+  if (root) root.innerHTML = renderVariant();
+  const col = $('#previewCol');
+  if (col) col.innerHTML = renderPreviewColumn();
+  const toastLayer = $('#toastLayer');
+  if (toastLayer) toastLayer.innerHTML = renderToast();
+  renderModal();
+  updateSwitcher();
+}
+
+/* ============================================================
+   8. 交互动作
+   ============================================================ */
+state.loadToken = 0;
+let toastTimer = null;
+
+function showToast(t) {
+  state.toast = t;
+  const layer = $('#toastLayer');
+  if (layer) layer.innerHTML = renderToast();
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    state.toast = null;
+    const el = $('#toastLayer');
+    if (el) el.innerHTML = '';
+  }, 5600);
+}
+function hideToast() {
+  state.toast = null;
+  if (toastTimer) clearTimeout(toastTimer);
+  const el = $('#toastLayer');
+  if (el) el.innerHTML = '';
+}
+function demoBanner(demo) {
+  if (demo === 'empty') {
+    return { kind: 'info', title: '空看板：没有可解析的工单',
+      body: '这是正常状态，不是错误：「＋ 新建工单」仍然可用，建完会切回正常演示数据。', code: 'orders: []' };
+  }
+  if (demo === 'noproject') {
+    return { kind: 'warn', title: '这个会话没有项目根：只能看全局工单',
+      body: '新建会落在全局作用域；交付物无法解析 dsh-resource 地址，预览入口禁用。真实实现：state.projectRoot === null。',
+      code: 'projectRoot: null' };
+  }
+  if (demo === 'error') {
+    return { kind: 'error', title: 'GET /hyper-org/api/state → 500',
+      body: 'Host 没有响应；看板保留结构并给出重试入口，不整页白屏、不允许点了没反应。',
+      code: 'internal_error' };
+  }
+  return null;
+}
+function setDemoState(demo) {
+  state.demo = demo;
+  state.loadToken += 1;
+  state.selectedId = null;
+  state.drawerOpen = false;
+  state.preview.open = false;
+  state.modal = null;
+  state.archiveOpen = false;
+  state.focusStage = 'review';
+  state.sendBackArmed = null;
+  hideToast();
+  state.banner = demoBanner(demo);
+  renderModal();
+  render();
+  syncUrl();
+}
+function syncUrl() {
+  try {
+    const params = new URLSearchParams(location.search);
+    params.set('variant', state.variant);
+    if (state.theme === 'dark') params.set('theme', 'dark'); else params.delete('theme');
+    if (state.demo !== 'normal') params.set('demo', state.demo); else params.delete('demo');
+    const next = location.pathname + '?' + params.toString() + location.hash;
+    history.replaceState(null, '', next);
+  } catch (err) { /* file:// 某些浏览器不允许改 query，忽略 */ }
+}
+function applyVariant(key) {
+  if (!VARIANTS.some((v) => v.key === key)) return;
+  state.variant = key;
+  state.preview.open = false;
+  if (key === 'C') {
+    const cur = findOrder(state.selectedId);
+    if (cur && visibleOrders().some((o) => o.id === cur.id)) {
+      state.focusStage = cur.stage;
+    } else {
+      const first = ordersOfStage(state.focusStage)[0] || ordersOfStage('review')[0];
+      state.selectedId = first ? first.id : null;
+      state.focusStage = first ? first.stage : 'review';
+    }
+  }
+  render();
+  syncUrl();
+}
+function cycleVariant(dir) {
+  const idx = VARIANTS.map((v) => v.key).indexOf(state.variant);
+  const next = VARIANTS[(idx + dir + VARIANTS.length) % VARIANTS.length];
+  applyVariant(next.key);
+}
+function setIdentity(id) {
+  state.identity = id;
+  render();
+}
+function toggleTheme() {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  render();
+  syncUrl();
+}
+function selectOrder(id) {
+  if (state.demo !== 'normal' && state.demo !== 'noproject') return;
+  const o = findOrder(id);
+  if (!o) return;
+  state.selectedId = id;
+  state.sendBackArmed = null;
+  if (state.variant === 'A') state.drawerOpen = true;
+  if (state.variant === 'C') state.focusStage = o.stage;
+  if (state.preview.open && state.preview.orderId !== id) state.preview.open = false;
+  render();
+  if (state.variant === 'A') {
+    const drawer = $('.a-drawer');
+    if (drawer) drawer.scrollTop = 0;
+  }
+}
+function closeDetail() {
+  state.selectedId = null;
+  state.drawerOpen = false;
+  state.sendBackArmed = null;
+  render();
+}
+function setFocusStage(stage) {
+  state.focusStage = stage;
+  const first = stage === 'dropped' ? droppedVisible()[0] : ordersOfStage(stage)[0];
+  state.selectedId = first ? first.id : null;
+  state.sendBackArmed = null;
+  state.preview.open = false;
+  render();
+}
+function gateReject(id, target, gate) {
+  state.flashStage = target;
+  state.bounceId = id;
+  showToast({ kind: 'error', title: `门禁拒绝 · ${gate.code}`, body: gate.message, code: 'Host 会返回 4xx · 卡片已回弹' });
+  render();
+  setTimeout(() => {
+    state.flashStage = null;
+    state.bounceId = null;
+    $$('.is-bad').forEach((el) => el.classList.remove('is-bad'));
+    $$('.is-bounce').forEach((el) => el.classList.remove('is-bounce'));
+  }, 430);
+}
+function tryMove(id, target) {
+  if (state.demo !== 'normal') {
+    showToast({ kind: 'warn', title: '演示状态不可写', body: '切回「正常」再改阶段；加载 / 错误 / 无项目根状态只展示。', code: state.demo });
+    return;
+  }
+  const o = findOrder(id);
+  if (!o) return;
+  if (target === o.stage) { render(); return; }
+  if (target === 'dropped') { openDropModal(id); return; }
+  const gate = gateForStage(o, target);
+  if (gate) { gateReject(id, target, gate); return; }
+  const from = o.stage;
+  o.stage = target;
+  o.ageHours = 0.1;
+  o.age = '刚刚';
+  o.log.push({ at: nowIso(), by: actor().id, note: `stage ${from} → ${target}` });
+  state.selectedId = id;
+  state.sendBackArmed = null;
+  if (state.variant === 'A') state.drawerOpen = true;
+  if (state.variant === 'C') state.focusStage = target;
+  state.banner = {
+    kind: 'success',
+    title: `${id}：${from} → ${target}`,
+    body: '真实实现：PATCH /hyper-org/api/order/:id → 写后重读；前端不做乐观更新。',
+    code: '200 ok',
+  };
+  render();
+}
+function doSign(id, approve) {
+  const o = findOrder(id);
+  if (!o) return;
+  const note = (state.signNotes[id] || '').trim();
+  const blockers = signBlockers(o, note);
+  if (blockers.length) {
+    showToast({
+      kind: 'error',
+      title: `门禁拒绝 · ${blockers.map((b) => b.code).join(' + ')}`,
+      body: blockers.map((b) => b.message).join('\n'),
+      code: 'Host 会返回 4xx',
+    });
+    return;
+  }
+  if (!approve && state.sendBackArmed !== id) {
+    state.sendBackArmed = id;
+    render();
+    return;
+  }
+  const from = o.stage;
+  o.stage = approve ? 'done' : 'active';
+  o.ageHours = 0.1;
+  o.age = '刚刚';
+  o.log.push({ at: nowIso(), by: actor().id, note: `${approve ? 'signed off' : 'sent back'}: ${note}` });
+  state.signNotes[id] = '';
+  state.sendBackArmed = null;
+  if (state.variant === 'C') state.focusStage = approve ? 'done' : 'active';
+  state.banner = approve
+    ? { kind: 'success', title: `已签收 ${id}`, body: '阶段变 done；真实实现 POST /order/:id/sign，note 已写进日志；done 不可直接改回。', code: '200 ok' }
+    : { kind: 'info', title: `已打回 ${id}`, body: '阶段回到 active，note 已写进日志（两段式按钮，无 window.confirm）。', code: '200 ok' };
+  render();
+}
+function updateSignControls(id) {
+  const ta = document.querySelector(`[data-sign-note="${id}"]`);
+  if (!ta) return;
+  const o = findOrder(id);
+  if (!o) return;
+  const value = ta.value;
+  state.signNotes[id] = value;
+  const blockers = signBlockers(o, value);
+  const root = ta.closest('.sign');
+  if (!root) return;
+  root.querySelectorAll('[data-act="sign"]').forEach((btn) => {
+    btn.disabled = blockers.length > 0;
+    btn.title = blockers.length ? blockers.map((b) => b.message).join(' / ') : '会写一条 sign 日志';
+  });
+  const hint = root.querySelector('[data-note-hint]');
+  if (hint) {
+    hint.textContent = value.trim() ? 'note 已填写 · 会写进日志' : '签收必须写 note';
+    hint.classList.toggle('is-ok', !!value.trim());
+  }
+}
+function openCreateModal() {
+  if (state.demo === 'loading' || state.demo === 'error') {
+    showToast({ kind: 'warn', title: '当前演示状态不可建单', body: '切回「正常」再建；错误态只保留重试入口。', code: state.demo });
+    return;
+  }
+  state.modal = { kind: 'create' };
+  state.createError = '';
+  state.createSize = 'M';
+  renderModal();
+  setTimeout(() => { const f = $('#c-title'); if (f) f.focus(); }, 0);
+}
+function openDropModal(id) {
+  state.modal = { kind: 'drop', id };
+  state.dropError = '';
+  renderModal();
+  setTimeout(() => { const f = $('#d-reason'); if (f) f.focus(); }, 0);
+}
+function closeModal() {
+  state.modal = null;
+  state.createError = '';
+  state.dropError = '';
+  renderModal();
+}
+function setCreateSize(size, btn) {
+  state.createSize = size;
+  const seg = btn.closest('[data-size-seg]');
+  if (seg) {
+    $$('button[data-act="create-size"]', seg).forEach((b) => {
+      b.classList.toggle('is-on', b.dataset.size === size);
+    });
+  }
+  const hint = document.querySelector('[data-size-hint]');
+  if (hint) {
+    hint.textContent = size === 'S'
+      ? 'S 规模免验收，在制未满时可直接进 active'
+      : 'M/L 没有验收标准会被压回 intake，且不能签收';
+  }
+}
+function createOrderFromInput(input) {
+  const title = String(input.title || '').trim();
+  if (!title) return { ok: false, code: 'bad_title', error: '标题不能为空' };
+  const size = ['S', 'M', 'L'].indexOf(input.size) >= 0 ? input.size : 'M';
+  const acceptance = Array.isArray(input.acceptance)
+    ? input.acceptance.map((s) => String(s).trim()).filter(Boolean)
+    : parseLines(input.acceptance);
+  const dri = input.dri || '';
+  const reasons = createDowngradeReasons(size, acceptance);
+  const stage = reasons.length ? 'intake' : 'active';
+  state.seq += 1;
+  const id = `wo-20261116-${state.seq}`;
+  const order = {
+    id, title, stage, size, dri,
+    scope: hasProject() ? 'project' : 'global',
+    ageHours: 0.1, age: '刚刚',
+    acceptance, artifacts: [],
+    log: [{
+      at: nowIso(),
+      by: actor().id,
+      note: `created: ${title}${dri ? `，DRI ${dri}` : ''}${acceptance.length ? `，验收 ${acceptance.length} 条` : '，无验收标准'}`,
+    }],
+  };
+  ORDERS.unshift(order);
+  if (state.demo === 'empty') state.demo = 'normal';
+  state.selectedId = id;
+  if (state.variant === 'A') state.drawerOpen = true;
+  if (state.variant === 'C') state.focusStage = stage;
+  return { ok: true, id, order, downgraded: reasons.length > 0, reasons, stage };
+}
+function bannerForCreate(res, wasEmpty) {
+  const extra = wasEmpty ? '\n演示：空看板建单后切回正常数据，新单已出现在 intake。' : '';
+  if (res.reasons.length) {
+    return {
+      kind: 'warn',
+      title: `已建单 ${res.id}，但被压回 intake`,
+      body: '· ' + res.reasons.map((r) => r.message).join('\n· ') + extra,
+      code: '200 · downgraded: true',
+    };
+  }
+  return {
+    kind: 'success',
+    title: `已建单 ${res.id}，进入 active`,
+    body: (res.order.size === 'S' ? 'S 规模免验收，在制未满，直接进 active。' : '验收标准与在制名额都满足，直接进 active。') + extra,
+    code: '200 ok',
+  };
+}
+function submitCreate(form) {
+  const titleField = form.querySelector('[name="title"]');
+  const title = titleField ? titleField.value : '';
+  if (!title.trim()) {
+    state.createError = '标题不能为空（Host 会返回 bad_title）';
+    const err = $('#createErr');
+    if (err) err.textContent = state.createError;
+    if (titleField) titleField.focus();
+    return;
+  }
+  const wasEmpty = state.demo === 'empty';
+  const res = createOrderFromInput({
+    title,
+    size: state.createSize,
+    dri: form.querySelector('[name="dri"]').value,
+    acceptance: form.querySelector('[name="acceptance"]').value,
+  });
+  if (!res.ok) {
+    state.createError = res.error;
+    const err = $('#createErr');
+    if (err) err.textContent = state.createError;
+    return;
+  }
+  state.modal = null;
+  state.createError = '';
+  state.dropError = '';
+  renderModal();
+  state.banner = bannerForCreate(res, wasEmpty);
+  render();
+}
+function submitDrop(form) {
+  const field = form.querySelector('[name="reason"]');
+  const reason = field ? field.value.trim() : '';
+  if (!reason) {
+    state.dropError = '撤单要写理由（Host 现状允许空字符串，面板做 UX 兜底）';
+    const err = $('#dropErr');
+    if (err) err.textContent = state.dropError;
+    if (field) field.focus();
+    return;
+  }
+  const id = state.modal ? state.modal.id : null;
+  const o = id ? findOrder(id) : null;
+  if (!o) return;
+  const from = o.stage;
+  o.stage = 'dropped';
+  o.ageHours = 0.1;
+  o.age = '刚刚';
+  o.log.push({ at: nowIso(), by: actor().id, note: `dropped: ${reason}` });
+  state.modal = null;
+  state.dropError = '';
+  renderModal();
+  state.selectedId = o.id;
+  state.archiveOpen = true;
+  if (state.variant === 'C') state.focusStage = 'dropped';
+  state.banner = {
+    kind: 'info',
+    title: `已撤单 ${o.id}`,
+    body: `${from} → dropped；理由已写进日志，记录保留在归档，没有删除文件。`,
+    code: '200 ok',
+  };
+  render();
+}
+function openPreview(orderId, path) {
+  if (state.demo === 'noproject') {
+    showToast({
+      kind: 'warn',
+      title: '无项目根：预览不可用',
+      body: '真实实现里 projectRoot 为 null 时无法构造 dsh-resource 地址，交付物入口禁用。',
+      code: 'no_project',
+    });
+    return;
+  }
+  if (state.demo !== 'normal') {
+    showToast({ kind: 'warn', title: '当前演示状态不可预览', body: '只有正常态能构造地址；加载 / 错误态没有工单详情。', code: state.demo });
+    return;
+  }
+  const o = findOrder(orderId);
+  if (!o) return;
+  state.selectedId = orderId;
+  state.preview = { open: true, orderId, path, mode: 'auto', wrap: false, reloading: false };
+  if (state.variant === 'A') state.drawerOpen = false;
+  if (state.variant === 'C') state.focusStage = o.stage;
+  render();
+}
+function closePreview() {
+  state.preview.open = false;
+  render();
+}
+function backDetail() {
+  const id = state.preview.orderId;
+  state.preview.open = false;
+  if (id) {
+    state.selectedId = id;
+    if (state.variant === 'A') state.drawerOpen = true;
+  }
+  render();
+}
+function reloadPreview() {
+  if (!state.preview.open) return;
+  state.preview.reloading = true;
+  renderPreviewOnly();
+  setTimeout(() => {
+    if (!state.preview.open) return;
+    state.preview.reloading = false;
+    renderPreviewOnly();
+    showToast({
+      kind: 'success',
+      title: '已重载（demo）',
+      body: '真实实现由 DSH 右侧栏自己重新读文件；这里只是重放内嵌节选。',
+      code: state.preview.path,
+    });
+  }, 720);
+}
+function copyText(text, btn) {
+  const done = () => {
+    if (btn) {
+      const old = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = old; }, 1400);
+    }
+  };
+  const fallback = () => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      done();
+    } catch (err) {
+      showToast({ kind: 'warn', title: '复制失败', body: 'file:// 下浏览器可能禁用剪贴板，请手动选中地址。', code: 'clipboard' });
+    }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+function refreshBoard() {
+  if (state.demo === 'loading') return;
+  state.loadToken += 1;
+  const token = state.loadToken;
+  state.demo = 'loading';
+  state.banner = null;
+  hideToast();
+  render();
+  setTimeout(() => {
+    if (token !== state.loadToken) return;
+    state.demo = 'normal';
+    state.banner = {
+      kind: 'success',
+      title: '已刷新：GET /hyper-org/api/state → 200',
+      body: `${ORDERS.length} 张工单 · 在制 ${occupiedCount()}/${WIP_LIMIT} · 超龄 ${overdueList().length}`,
+      code: '200 ok',
+    };
+    render();
+  }, 700);
+}
+function finishLoading() {
+  state.loadToken += 1;
+  state.demo = 'normal';
+  state.banner = {
+    kind: 'success',
+    title: '加载完成（演示）',
+    body: `${ORDERS.length} 张工单 · 在制 ${occupiedCount()}/${WIP_LIMIT}`,
+    code: '200 ok · GET /state',
+  };
+  render();
+  syncUrl();
+}
+function retryBoard() {
+  state.loadToken += 1;
+  state.demo = 'normal';
+  state.banner = {
+    kind: 'success',
+    title: '重试成功：GET /hyper-org/api/state → 200',
+    body: '错误条清空，看板恢复；真实实现这里会重新拉 /state 与当前 /order。',
+    code: '200 ok',
+  };
+  render();
+  syncUrl();
+}
+function demoCreate(input) {
+  const wasEmpty = state.demo === 'empty';
+  const res = createOrderFromInput(input);
+  if (!res.ok) {
+    showToast({ kind: 'error', title: `建单失败 · ${res.code}`, body: res.error, code: '400 bad_title' });
+    return res;
+  }
+  state.modal = null;
+  renderModal();
+  state.banner = bannerForCreate(res, wasEmpty);
+  render();
+  return res;
+}
+function cleanupDrag() {
+  state.dragId = null;
+  $$('[data-drop]').forEach((zone) => zone.classList.remove('is-drag'));
+  $$('.is-dragging').forEach((el) => el.classList.remove('is-dragging'));
+}
+
+/* ============================================================
+   9. 事件绑定
+   ============================================================ */
+document.addEventListener('click', (e) => {
+  const target = e.target;
+  const el = target.closest ? target.closest('[data-act]') : null;
+  if (!el) return;
+  const act = el.dataset.act;
+  if (act === 'modal-backdrop') {
+    if (target === el) closeModal();
+    return;
+  }
+  if (act === 'select') { e.preventDefault(); selectOrder(el.dataset.id); return; }
+  if (act === 'close-detail') { closeDetail(); return; }
+  if (act === 'close-preview') { closePreview(); return; }
+  if (act === 'back-detail') { backDetail(); return; }
+  if (act === 'preview') { e.preventDefault(); openPreview(el.dataset.id, el.dataset.path); return; }
+  if (act === 'stage') return; /* change 事件处理 */
+  if (act === 'sign') { doSign(el.dataset.id, el.dataset.approve === '1'); return; }
+  if (act === 'identity') { setIdentity(el.dataset.id); return; }
+  if (act === 'theme') { toggleTheme(); return; }
+  if (act === 'refresh') { refreshBoard(); return; }
+  if (act === 'retry') { retryBoard(); return; }
+  if (act === 'finish-loading') { finishLoading(); return; }
+  if (act === 'new') { openCreateModal(); return; }
+  if (act === 'close-modal') { closeModal(); return; }
+  if (act === 'create-size') { setCreateSize(el.dataset.size, el); return; }
+  if (act === 'close-banner') { state.banner = null; render(); return; }
+  if (act === 'close-toast') { hideToast(); return; }
+  if (act === 'archive-toggle') { state.archiveOpen = !state.archiveOpen; render(); return; }
+  if (act === 'focus-stage') { setFocusStage(el.dataset.stage); return; }
+  if (act === 'wrap') { state.preview.wrap = !state.preview.wrap; renderPreviewOnly(); return; }
+  if (act === 'reload') { reloadPreview(); return; }
+  if (act === 'copy') { copyText(el.dataset.copy || '', el); return; }
+});
+
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.id === 'demoState') { setDemoState(t.value); return; }
+  const el = t.closest ? t.closest('[data-act]') : null;
+  if (!el) return;
+  if (el.dataset.act === 'stage') { tryMove(el.dataset.id, el.value); return; }
+  if (el.dataset.act === 'renderer') {
+    state.preview.mode = el.value;
+    if (el.value !== 'source') state.preview.wrap = false;
+    renderPreviewOnly();
+  }
+});
+
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.matches && t.matches('[data-sign-note]')) {
+    updateSignControls(t.dataset.signNote);
+    return;
+  }
+  if (t.id === 'd-reason') {
+    const btn = $('#dropConfirmBtn');
+    if (btn) btn.disabled = !t.value.trim();
+    const err = $('#dropErr');
+    if (err) err.textContent = '';
+    state.dropError = '';
+    return;
+  }
+  if (t.id === 'c-title' && state.createError) {
+    state.createError = '';
+    const err = $('#createErr');
+    if (err) err.textContent = '';
+  }
+});
+
+document.addEventListener('submit', (e) => {
+  if (e.target.id === 'createForm') { e.preventDefault(); submitCreate(e.target); return; }
+  if (e.target.id === 'dropForm') { e.preventDefault(); submitDrop(e.target); }
+});
+
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA'
+    || t.tagName === 'SELECT' || t.isContentEditable);
+  if (e.key === 'Escape') {
+    if (state.modal) { closeModal(); return; }
+    if (state.preview.open) { closePreview(); return; }
+    if (state.variant === 'A' && state.drawerOpen) { closeDetail(); return; }
+    if ((state.variant === 'B' || state.variant === 'C') && state.selectedId) { closeDetail(); }
+    return;
+  }
+  if (typing) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); cycleVariant(-1); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); cycleVariant(1); return; }
+  if ((e.key === 'Enter' || e.key === ' ') && t && t.matches && t.matches('[data-card]')) {
+    e.preventDefault();
+    selectOrder(t.dataset.id);
+  }
+});
+
+document.addEventListener('dragstart', (e) => {
+  const card = e.target.closest ? e.target.closest('[data-card]') : null;
+  if (!card) return;
+  if (card.getAttribute('draggable') !== 'true') return;
+  state.dragId = card.dataset.id;
+  card.classList.add('is-dragging');
+  try {
+    e.dataTransfer.setData('text/plain', card.dataset.id);
+    e.dataTransfer.effectAllowed = 'move';
+  } catch (err) { /* 忽略 */ }
+});
+document.addEventListener('dragend', () => { cleanupDrag(); });
+document.addEventListener('dragover', (e) => {
+  const zone = e.target.closest ? e.target.closest('[data-drop]') : null;
+  if (!zone || !state.dragId) return;
+  e.preventDefault();
+  try { e.dataTransfer.dropEffect = 'move'; } catch (err) { /* 忽略 */ }
+  $$('[data-drop]').forEach((z) => z.classList.toggle('is-drag', z === zone));
+});
+document.addEventListener('dragleave', (e) => {
+  const zone = e.target.closest ? e.target.closest('[data-drop]') : null;
+  if (!zone) return;
+  if (e.relatedTarget && zone.contains(e.relatedTarget)) return;
+  zone.classList.remove('is-drag');
+});
+document.addEventListener('drop', (e) => {
+  const zone = e.target.closest ? e.target.closest('[data-drop]') : null;
+  if (!zone) return;
+  e.preventDefault();
+  const id = state.dragId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : '');
+  cleanupDrag();
+  if (id) tryMove(id, zone.dataset.drop);
+});
+
+$('#swPrev').addEventListener('click', () => cycleVariant(-1));
+$('#swNext').addEventListener('click', () => cycleVariant(1));
+
+/* ============================================================
+   10. 启动
+   ============================================================ */
+function initFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const variant = String(params.get('variant') || 'A').toUpperCase();
+  if (VARIANTS.some((v) => v.key === variant)) state.variant = variant;
+  const theme = String(params.get('theme') || 'light').toLowerCase();
+  if (theme === 'dark' || theme === 'light') state.theme = theme;
+  const demo = String(params.get('demo') || 'normal').toLowerCase();
+  if (['normal', 'empty', 'loading', 'error', 'noproject'].indexOf(demo) >= 0) {
+    state.demo = demo;
+    state.banner = demoBanner(demo);
+  }
+  if (state.variant === 'C') {
+    const first = ordersOfStage(state.focusStage)[0] || ordersOfStage('review')[0];
+    if (first) {
+      state.selectedId = first.id;
+      state.focusStage = first.stage;
+    }
+  }
+}
+
+/* 调试口：给无头验证与手工玩用；不是生产 API。 */
+window.__kanban = {
+  state,
+  get orders() { return ORDERS; },
+  render,
+  setVariant: applyVariant,
+  setDemoState,
+  selectOrder,
+  openPreview,
+  closePreview,
+  backDetail,
+  tryMove,
+  sign: doSign,
+  create: demoCreate,
+  addSignNote(id, text) {
+    const ta = document.querySelector(`[data-sign-note="${id}"]`);
+    if (ta) { ta.value = text; updateSignControls(id); }
+    else { state.signNotes[id] = text; }
+  },
+  fileAddress,
+  mdToHtml,
+  visibleOrders,
+  occupiedCount,
+  signBlockers,
+};
+
+initFromUrl();
+render();
+window.__protoReady = true;
+})();
+</script>
+</body>
+</html>

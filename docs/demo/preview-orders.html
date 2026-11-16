@@ -17,7 +17,7 @@
   .rail { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); }
   .side { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); padding:12px 10px; }
   .side div { height:28px; margin:4px 0; border-radius:6px; background:var(--dsw-alias-bg-layer-1); opacity:.6; }
-  .main { display:flex; flex-direction:column; min-width:0; }
+  .main { display:flex; flex-direction:column; min-width:0; min-height:0; }
   .sesshead { background:var(--dsw-alias-bg-layer-1); border-bottom:1px solid var(--dsw-alias-border-l1); padding:14px 20px 0; }
   .sesstop { display:flex; justify-content:space-between; color:var(--dsw-alias-label-secondary); font-size:11.5px; }
   .sesstop b { color:var(--dsw-alias-label-primary); font-size:14px; font-weight:600; }
@@ -25,126 +25,203 @@
   .tabs span { padding:8px 10px 9px; border-bottom:2px solid transparent; }
   .tabs .on { color:var(--dsw-alias-label-primary); border-bottom-color:var(--dsw-alias-brand-primary); font-weight:550; }
   .viewArea { display:flex; flex:1; flex-direction:column; min-height:0; }
+  [hidden] { display:none !important; }
+  .pv-head { display:flex; flex-wrap:wrap; gap:4px 14px; align-items:baseline; padding:6px 14px;
+    border-bottom:1px dashed var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2);
+    font-size:11px; color:var(--dsw-alias-label-secondary); flex:none; }
+  .pv-head b { color:var(--dsw-alias-label-primary); font-size:11.5px; }
+  .pv-head a { color:var(--dsw-alias-brand-primary); text-decoration:none; }
+  .pv-head a:hover { text-decoration:underline; }
+  .pv-mut { color:var(--dsw-alias-label-secondary); }
+  .pv-main { display:flex; flex:1 1 auto; min-width:0; min-height:0; }
+  .pv-main .pv-mount { display:flex; flex:1 1 auto; min-width:0; flex-direction:column; min-height:0; }
+  .pv-state { position:fixed; inset:70px 0 0 0; display:flex; flex-direction:column; padding:14px;
+    background:var(--dsw-alias-bg-base); z-index:40; }
+  .pv-state-head { display:flex; gap:12px; align-items:baseline; padding:0 4px 8px; font-size:12px;
+    color:var(--dsw-alias-label-secondary); flex:none; }
+  .pv-state-head b { color:var(--dsw-alias-label-primary); font-size:13px; }
+  .pv-state .pv-mount { display:flex; flex:1 1 auto; flex-direction:column; min-height:0;
+    border:1px solid var(--dsw-alias-border-l1); border-radius:10px; background:var(--dsw-alias-bg-layer-1);
+    overflow:hidden; }
+  #dswPreview { position:fixed; top:56px; right:0; bottom:0; width:380px; display:none; z-index:50;
+    background:var(--dsw-alias-bg-layer-1); border-left:1px solid var(--dsw-alias-border-l1);
+    box-shadow:-12px 0 36px rgba(15,23,42,.14); flex-direction:column; }
+  #dswPreview.on { display:flex; }
+  #dswPreview header { display:flex; align-items:center; gap:8px; padding:10px 12px;
+    border-bottom:1px solid var(--dsw-alias-border-l1); font-size:12px; font-weight:600; }
+  #dswPreview header button { margin-left:auto; }
+  #dswPreview .pv-addr { margin:10px 12px; padding:8px; border-radius:8px; font-size:10.5px; word-break:break-all;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--dsw-alias-bg-layer-2); border:1px solid var(--dsw-alias-border-l1); }
+  #dswPreview .pv-body { padding:0 12px 12px; overflow:auto; font-size:12px; color:var(--dsw-alias-label-secondary); }
+  #dswPreview code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
 </style>
 <style>
 .ho-root, .ho-root *, .ho-root *::before, .ho-root *::after { box-sizing:border-box; }
 .ho-root { display:flex; flex-direction:column; flex:1 1 auto; width:100%; height:100%; min-height:0;
   color:var(--dsw-alias-label-primary,#1f2328); background:var(--dsw-alias-bg-base,transparent);
-  font-size:13px; line-height:1.55; overflow:hidden; }
-.ho-banners { display:flex; flex-direction:column; gap:6px; padding:7px 14px; flex:none;
+  font-size:13px; line-height:1.5; overflow:hidden; }
+.ho-banners { display:flex; flex-direction:column; gap:6px; padding:7px 12px; flex:none;
   border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); }
 .ho-banner { display:flex; align-items:center; gap:8px; padding:4px 9px; border-radius:7px;
   border:1px solid var(--dsw-alias-border-l1,#e5e7eb); font-size:11.5px; }
 .ho-banner-error { border-color:var(--dsw-alias-state-error-primary,#dc2626); color:var(--dsw-alias-state-error-primary,#dc2626); }
 .ho-banner-ok { border-color:var(--dsw-alias-state-success-primary,#16a34a); color:var(--dsw-alias-state-success-primary,#16a34a); }
-.ho-banner-text { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
-.ho-cols { flex:1 1 auto; min-height:0; display:grid; grid-template-columns:248px minmax(0,1fr) 286px;
-  background:var(--dsw-alias-bg-layer-1,#fff); }
-.ho-col { min-height:0; overflow-y:auto; overflow-x:hidden; }
-.ho-list-col { border-right:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:0 8px 8px; }
-.ho-detail-col { padding:14px 16px 40px; }
-.ho-side { border-left:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding:12px; display:flex; flex-direction:column; gap:10px; }
-.ho-list-head { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:8px;
-  padding:8px 0 6px; background:var(--dsw-alias-bg-layer-1,#fff); }
-.ho-list-title { font-weight:600; }
-.ho-wip { display:flex; flex-direction:column; gap:2px; padding:4px 8px; margin-bottom:8px; font-size:11.5px;
-  color:var(--dsw-alias-label-secondary,#6b7280); border:1px solid var(--dsw-alias-border-l1,#e5e7eb);
-  border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
-.ho-wip-over { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
-.ho-wip-warn { font-size:11px; }
-.ho-new { display:flex; align-items:center; justify-content:center; width:100%; padding:5px 8px; margin-bottom:8px;
-  border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:7px; background:var(--dsw-alias-bg-layer-2,#f8f9fb);
-  color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; cursor:pointer; }
-.ho-new:hover:not(:disabled) { border-color:var(--dsw-alias-brand-primary,#2563eb); color:var(--dsw-alias-brand-primary,#2563eb); }
-.ho-new:disabled { opacity:.45; cursor:default; }
-.ho-create { display:flex; flex-direction:column; gap:6px; padding:8px; margin-bottom:8px;
-  border:1px dashed var(--dsw-alias-border-l2,#d1d5db); border-radius:8px; }
-.ho-create-acceptance { min-height:60px; }
-.ho-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb);
-  border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
-.ho-seg-btn { flex:1; border:none; background:none; padding:3px 8px; border-radius:6px; font-size:12px;
-  color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
-.ho-seg-btn:disabled { opacity:.45; cursor:default; }
-.ho-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827); box-shadow:0 1px 2px rgba(0,0,0,.06); }
-.ho-groups { display:flex; flex-direction:column; gap:6px; }
-.ho-group { border-radius:8px; }
-.ho-group-head { display:flex; align-items:center; gap:6px; width:100%; padding:5px 6px; border:none; background:none;
-  border-radius:6px; color:var(--dsw-alias-label-secondary,#6b7280); font-size:11.5px; font-weight:600;
-  letter-spacing:.02em; cursor:pointer; text-align:left; }
-.ho-group-head:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
-.ho-caret { width:10px; display:inline-block; }
-.ho-group-empty { margin:2px 0 4px 22px; font-size:11.5px; }
-.ho-rows { list-style:none; margin:0; padding:0; }
-.ho-row { display:flex; flex-direction:column; gap:2px; padding:7px 9px; border-radius:8px; cursor:pointer; }
-.ho-row:hover { background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
-.ho-row-on { background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 14%, var(--dsw-alias-bg-layer-1,#fff));
-  box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary,#2563eb); }
-.ho-row-title { font-weight:550; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.ho-row-meta { display:flex; gap:5px; align-items:center; flex-wrap:wrap; font-size:11px;
-  color:var(--dsw-alias-label-secondary,#6b7280); }
-.ho-row-age { color:var(--dsw-alias-label-secondary,#9aa1ab); }
-.ho-badge { font-style:normal; font-size:10px; padding:0 4px; border-radius:999px;
-  border:1px solid var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
-.ho-problems { margin-bottom:8px; border:1px solid var(--dsw-alias-state-warn-primary,#d97706); border-radius:7px;
-  padding:4px 7px; font-size:11.5px; color:var(--dsw-alias-state-warn-primary,#d97706);
+.ho-banner-warn { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706);
   background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
-.ho-problems-head { border:none; background:none; color:inherit; font:inherit; cursor:pointer; padding:0; }
-.ho-problem-list { margin:4px 0 0; padding-left:16px; }
-.ho-problem-list li { word-break:break-all; }
-.ho-muted { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; }
-.ho-faint { color:var(--dsw-alias-label-secondary,#9aa1ab); font-size:11.5px; }
-.ho-pad { padding:8px; }
-.ho-hint { margin:4px 0; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
-.ho-placeholder { margin:40px auto; color:var(--dsw-alias-label-secondary,#6b7280); text-align:center; }
-.ho-detail-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
-.ho-detail-title { margin:0; font-size:16px; font-weight:600; word-break:break-word; }
-.ho-mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
-.ho-meta { display:flex; gap:6px; flex-wrap:wrap; margin-top:3px; font-size:11px;
+.ho-banner-info { border-color:var(--dsw-alias-border-l2,#d1d5db); }
+.ho-banner-text { flex:1 1 auto; min-width:0; word-break:break-word; }
+.ho-empty-session { flex:1 1 auto; display:flex; align-items:center; justify-content:center; }
+.ho-top { flex:none; display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 12px;
+  border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.ho-top-title { font-weight:600; font-size:13.5px; }
+.ho-top-count { color:var(--dsw-alias-label-secondary,#6b7280); font-weight:500; }
+.ho-stats { display:flex; gap:6px; flex:1 1 auto; flex-wrap:wrap; align-items:center; }
+.ho-stat { display:inline-flex; align-items:baseline; gap:5px; padding:1px 8px; border-radius:999px;
+  font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280);
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-stat b { font-size:12.5px; color:var(--dsw-alias-label-primary,#1f2328); }
+.ho-stat-warn { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-stat-warn b { color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-stat-danger { border-color:var(--dsw-alias-state-error-primary,#dc2626); color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-stat-danger b { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-stat-ok b { color:var(--dsw-alias-state-success-primary,#16a34a); }
+.ho-top-actions { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.ho-drag-hint { display:none; }
+.ho-main { flex:1 1 auto; min-width:0; min-height:0; display:flex; overflow:hidden;
+  background:var(--dsw-alias-bg-layer-1,#fff); }
+.ho-board-wrap { flex:1 1 auto; width:100%; min-width:0; min-height:0; display:flex;
+  flex-direction:column; overflow:hidden; }
+.ho-board { flex:1 1 auto; width:100%; min-width:0; min-height:0; display:flex; gap:8px; padding:10px;
+  overflow-x:auto; overflow-y:hidden; align-items:stretch; }
+.ho-col { flex:0 0 auto; width:calc((100% - 32px) / 5); min-width:150px; display:flex;
+  flex-direction:column; min-height:0;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:10px;
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-col-over { border-color:var(--dsw-alias-brand-primary,#2563eb);
+  box-shadow:inset 0 0 0 1px var(--dsw-alias-brand-primary,#2563eb); }
+.ho-col-head { display:flex; align-items:center; gap:6px; padding:7px 9px; flex:none;
+  border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); font-size:11.5px; font-weight:600;
   color:var(--dsw-alias-label-secondary,#6b7280); }
-.ho-item { display:grid; grid-template-columns:96px minmax(0,1fr); gap:10px; padding:7px 0;
-  border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb); }
-.ho-item-label { font-size:11.5px; color:var(--dsw-alias-label-secondary,#6b7280); }
-.ho-item-body { min-width:0; }
+.ho-col-sub { font-weight:400; font-size:10.5px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-col-count { margin-left:auto; font-weight:600; color:var(--dsw-alias-label-primary,#1f2328); }
+.ho-dot { width:7px; height:7px; border-radius:50%; background:var(--dsw-alias-label-secondary,#9aa1ab); flex:none; }
+.ho-dot-intake { background:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-dot-active { background:var(--dsw-alias-brand-primary,#2563eb); }
+.ho-dot-review { background:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-dot-blocked { background:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-dot-done { background:var(--dsw-alias-state-success-primary,#16a34a); }
+.ho-dot-dropped { background:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-col-note { margin:0; padding:4px 9px 0; font-size:10px; color:var(--dsw-alias-state-success-primary,#16a34a); }
+.ho-col-body { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:8px;
+  display:flex; flex-direction:column; gap:7px; }
+.ho-col-empty { margin:8px 0; text-align:center; font-size:11.5px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-col-foot { flex:none; display:flex; justify-content:space-between; gap:6px; padding:5px 9px;
+  border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb); font-size:10.5px;
+  color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-card { display:flex; flex-direction:column; gap:4px; padding:7px 9px; border-radius:9px; cursor:pointer;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.ho-card:hover { border-color:var(--dsw-alias-border-l2,#d1d5db); }
+.ho-card:focus-visible { outline:2px solid var(--dsw-alias-brand-primary,#2563eb); outline-offset:1px; }
+.ho-card-on { border-color:var(--dsw-alias-brand-primary,#2563eb);
+  background:color-mix(in srgb, var(--dsw-alias-brand-primary,#2563eb) 10%, var(--dsw-alias-bg-layer-1,#fff));
+  box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary,#2563eb); }
+.ho-card-compact { min-width:200px; max-width:300px; }
+.ho-card-dragging { opacity:.5; }
+.ho-card-bounce { animation:ho-shake .34s ease; }
+.ho-card-title { font-weight:550; word-break:break-word; display:-webkit-box; -webkit-line-clamp:2;
+  -webkit-box-orient:vertical; overflow:hidden; }
+.ho-card-meta { display:flex; align-items:center; gap:5px; flex-wrap:wrap; font-size:11px;
+  color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-chip { font-size:10px; line-height:1.5; padding:0 5px; border-radius:999px;
+  border:1px solid var(--dsw-alias-border-l1,#e5e7eb); color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-chip-size { font-weight:600; color:var(--dsw-alias-label-primary,#1f2328);
+  border-color:var(--dsw-alias-border-l2,#d1d5db); }
+.ho-chip-warn { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-chip-danger { border-color:var(--dsw-alias-state-error-primary,#dc2626); color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-chip-global { border-color:var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-card-warns { display:flex; gap:4px; flex-wrap:wrap; }
+.ho-card-foot { display:flex; justify-content:space-between; gap:6px; font-size:10px;
+  color:var(--dsw-alias-label-secondary,#9aa1ab); white-space:nowrap; min-width:0; }
+.ho-card-foot-main { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.ho-card-foot-side { flex:none; }
+.ho-card-signed { font-size:10.5px; color:var(--dsw-alias-state-success-primary,#16a34a); }
+.ho-archive { flex:none; border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  background:var(--dsw-alias-bg-layer-1,#fff); padding:6px 10px 8px; max-height:190px; overflow:auto; }
+.ho-archive-over { box-shadow:inset 0 0 0 1px var(--dsw-alias-brand-primary,#2563eb); }
+.ho-archive-btn { display:flex; align-items:center; gap:8px; width:100%; padding:0; border:none;
+  background:none; color:var(--dsw-alias-label-secondary,#6b7280); font:inherit; font-size:11.5px;
+  cursor:pointer; text-align:left; }
+.ho-archive-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.ho-archive-empty { margin:6px 0 0; font-size:11px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-checker { flex:none; width:300px; min-width:0; display:flex; flex-direction:column; min-height:0;
+  border-left:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff); }
+.ho-checker-closed { width:40px; align-items:center; padding-top:8px; gap:8px; }
+.ho-checker-closed-label { writing-mode:vertical-rl; font-size:11px; letter-spacing:.16em;
+  color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-checker-head { flex:none; display:flex; align-items:center; justify-content:space-between;
+  padding:7px 10px; border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb); }
+.ho-checker-title { font-size:12px; font-weight:600; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-checker-body { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;
+  padding:10px 12px 24px; display:flex; flex-direction:column; gap:10px; }
+.ho-placeholder { flex:1 1 auto; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:6px; color:var(--dsw-alias-label-secondary,#6b7280); padding:24px 18px; text-align:center; }
+.ho-placeholder-mark { font-size:22px; opacity:.5; }
+.ho-placeholder-sub { font-size:11px; }
+.ho-ins-head { display:flex; flex-direction:column; gap:3px; }
+.ho-ins-title { margin:0; font-size:15px; font-weight:600; word-break:break-word; }
+.ho-ins-meta { display:flex; gap:6px; flex-wrap:wrap; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-sec { border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb); padding-top:7px; }
+.ho-sec-label { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); margin-bottom:3px; }
+.ho-sec-body { min-width:0; word-break:break-word; }
+.ho-stage-row { display:flex; align-items:baseline; }
 .ho-stage { font-weight:600; }
 .ho-stage-done { color:var(--dsw-alias-state-success-primary,#16a34a); }
 .ho-stage-blocked { color:var(--dsw-alias-state-error-primary,#dc2626); }
 .ho-stage-review { color:var(--dsw-alias-state-warn-primary,#d97706); }
-.ho-acceptance { margin:0; padding-left:16px; }
+.ho-stage-active { color:var(--dsw-alias-brand-primary,#2563eb); }
+.ho-acceptance { margin:0; padding-left:17px; }
 .ho-acceptance li { margin:1px 0; word-break:break-word; }
-.ho-warn-inline { margin:0; padding:4px 8px; border-radius:6px; font-size:11.5px;
-  border:1px solid var(--dsw-alias-state-warn-primary,#d97706); color:var(--dsw-alias-state-warn-primary,#d97706);
-  background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
-.ho-artifacts { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:3px; }
-.ho-artifact { display:flex; align-items:center; gap:6px; font-size:12px; }
-.ho-artifact-open { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); font:inherit; cursor:pointer; padding:0; text-align:left; }
-.ho-artifact-open:disabled { color:var(--dsw-alias-label-secondary,#9aa1ab); cursor:default; }
-.ho-artifact-open:disabled:hover { text-decoration:none; }
-.ho-artifact-open:hover:not(:disabled) { text-decoration:underline; }
-.ho-artifact-kind { font-size:10.5px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
-.ho-artifact-missing .ho-artifact-kind, .ho-artifact-escape .ho-artifact-kind { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-muted { color:var(--dsw-alias-label-secondary,#6b7280); font-size:12px; }
+.ho-faint { color:var(--dsw-alias-label-secondary,#9aa1ab); font-size:10.5px; }
+.ho-hint { margin:2px 0; font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
+.ho-mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+.ho-warnbox { margin:2px 0; padding:4px 8px; border-radius:6px; font-size:11.5px;
+  border:1px solid var(--dsw-alias-state-warn-primary,#d97706);
+  color:var(--dsw-alias-state-warn-primary,#d97706); background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-arts { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px; }
+.ho-art { display:flex; flex-direction:column; gap:2px; padding:4px 0; }
+.ho-art-top { display:flex; align-items:baseline; gap:6px; min-width:0; }
+.ho-art-path { flex:1 1 auto; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ho-art-kind { flex:none; font-size:10px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-art-missing .ho-art-kind, .ho-art-escape .ho-art-kind { color:var(--dsw-alias-state-error-primary,#dc2626); }
+.ho-art-open { align-self:flex-start; border:none; background:none; padding:0; cursor:pointer;
+  font:inherit; font-size:11.5px; color:var(--dsw-alias-brand-primary,#2563eb); }
+.ho-art-open:hover:not(:disabled) { text-decoration:underline; }
+.ho-art-open:disabled { color:var(--dsw-alias-label-secondary,#9aa1ab); cursor:default; }
+.ho-art-hint { font-size:10.5px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
 .ho-link { border:none; background:none; color:var(--dsw-alias-brand-primary,#2563eb); cursor:pointer;
   padding:0 2px; font-size:11px; }
-.ho-log { max-height:260px; overflow:auto; }
-.ho-log-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
-.ho-log-list li { border-left:2px solid var(--dsw-alias-border-l2,#d1d5db); padding-left:7px; }
+.ho-log { max-height:280px; overflow:auto; }
+.ho-log-list { display:flex; flex-direction:column; gap:7px; }
+.ho-log-row { border-left:2px solid var(--dsw-alias-border-l2,#d1d5db); padding-left:7px; }
 .ho-log-meta { font-size:10.5px; color:var(--dsw-alias-label-secondary,#6b7280); }
-.ho-log-note { margin:1px 0 0; white-space:pre-wrap; word-break:break-word; }
-.ho-pre { margin:0; padding:10px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:8px;
-  background:var(--dsw-alias-bg-layer-2,#f8f9fb); font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:12px; line-height:1.6; overflow:auto; max-height:calc(100% - 90px); }
-.ho-pre-wrap { white-space:pre-wrap; word-break:break-word; }
-.ho-card { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:9px; padding:9px 10px;
-  background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
-.ho-card-title { margin:0 0 7px; font-size:12.5px; font-weight:600; }
+.ho-log-note { margin:1px 0 0; white-space:pre-wrap; word-break:break-word; font-size:12px; }
+.ho-log-count { margin-top:6px; font-size:10.5px; color:var(--dsw-alias-label-secondary,#9aa1ab); }
+.ho-cardpanel { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:9px;
+  padding:8px 9px; background:var(--dsw-alias-bg-layer-2,#f8f9fb); }
+.ho-panel-title { margin:0 0 7px; font-size:12.5px; font-weight:600; }
 .ho-field { display:flex; flex-direction:column; gap:3px; margin-bottom:7px; }
 .ho-label { font-size:11px; color:var(--dsw-alias-label-secondary,#6b7280); }
-.ho-input, .ho-textarea { width:100%; border:1px solid var(--dsw-alias-border-l1,#e5e7eb); border-radius:7px;
-  padding:5px 7px; background:var(--dsw-alias-bg-layer-1,#fff); color:inherit; outline:none; font:inherit; }
+.ho-input, .ho-textarea { width:100%; border:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  border-radius:7px; padding:5px 7px; background:var(--dsw-alias-bg-layer-1,#fff); color:inherit;
+  outline:none; font:inherit; }
 .ho-input:focus, .ho-textarea:focus { border-color:var(--dsw-alias-brand-primary,#2563eb); }
-.ho-textarea { resize:vertical; min-height:56px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
-.ho-sign-note { min-height:58px; margin-bottom:6px; }
-.ho-artifacts-input { min-height:46px; }
+.ho-textarea { resize:vertical; min-height:56px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px; }
+.ho-sign-note { min-height:58px; margin-bottom:4px; }
+.ho-artifacts-input { min-height:44px; }
 .ho-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
 .ho-btn { border:1px solid var(--dsw-alias-border-l1,#e5e7eb); background:var(--dsw-alias-bg-layer-1,#fff);
   color:inherit; padding:4px 10px; border-radius:7px; font-size:12px; cursor:pointer; white-space:nowrap; }
@@ -153,13 +230,38 @@
 .ho-primary { background:var(--dsw-alias-brand-primary,#2563eb); border-color:var(--dsw-alias-brand-primary,#2563eb); color:#fff; }
 .ho-danger { color:var(--dsw-alias-state-error-primary,#dc2626); }
 .ho-ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary,#6b7280); }
-.ho-blockers { list-style:none; margin:0 0 7px; padding:0; display:flex; flex-direction:column; gap:4px; }
-.ho-blocker { font-size:11px; color:var(--dsw-alias-state-warn-primary,#d97706); }
-@media (max-width: 1239px) {
-  .ho-cols { grid-template-columns:236px minmax(0,1fr); grid-template-rows:minmax(0,1fr) 240px; }
-  .ho-side { grid-column:1 / -1; border-left:0; border-top:1px solid var(--dsw-alias-border-l1,#e5e7eb);
-    flex-direction:row; flex-wrap:wrap; overflow-y:auto; }
-  .ho-side > .ho-card { flex:1 1 260px; }
+.ho-blockers { list-style:none; margin:0 0 6px; padding:0; display:flex; flex-direction:column; gap:4px; }
+.ho-blocker { font-size:11px; color:var(--dsw-alias-state-warn-primary,#d97706); word-break:break-word; }
+.ho-problems { flex:none; padding:4px 12px; border-bottom:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  background:var(--dsw-alias-bg-layer-2,#f8f9fb); font-size:11.5px;
+  color:var(--dsw-alias-state-warn-primary,#d97706); }
+.ho-problems-head { border:none; background:none; color:inherit; font:inherit; cursor:pointer; padding:0; }
+.ho-problem-list { margin:4px 0 3px; padding-left:16px; }
+.ho-problem-item { word-break:break-all; }
+.ho-modal { position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+  padding:20px; background:rgba(15,23,42,.38); }
+.ho-modal-card { width:min(540px, 100%); max-height:84vh; overflow:auto; padding:14px 16px;
+  border-radius:12px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  background:var(--dsw-alias-bg-layer-1,#fff); box-shadow:0 18px 50px rgba(15,23,42,.28); }
+.ho-modal-title { margin:0 0 4px; font-size:14px; font-weight:600; }
+.ho-seg { display:flex; gap:2px; padding:2px; border:1px solid var(--dsw-alias-border-l1,#e5e7eb);
+  border-radius:8px; background:var(--dsw-alias-bg-layer-2,#f3f4f6); }
+.ho-seg-btn { flex:1; border:none; background:none; padding:3px 8px; border-radius:6px; font-size:12px;
+  color:var(--dsw-alias-label-secondary,#6b7280); cursor:pointer; }
+.ho-seg-btn:disabled { opacity:.45; cursor:default; }
+.ho-seg-on { background:var(--dsw-alias-bg-layer-1,#fff); color:var(--dsw-alias-label-primary,#111827);
+  box-shadow:0 1px 2px rgba(0,0,0,.06); }
+@keyframes ho-shake {
+  0%, 100% { transform:translateX(0); }
+  25% { transform:translateX(-3px); }
+  75% { transform:translateX(3px); }
+}
+@media (max-width:1239px) {
+  .ho-checker { width:286px; }
+  .ho-checker-closed { width:36px; }
+  .ho-drag-hint { display:none; }
+  .ho-col { min-width:160px; }
+  .ho-top { gap:6px; }
 }
 </style>
 </head>
@@ -170,13 +272,60 @@
   <main class="main">
     <header class="sesshead">
       <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
-      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="">岗位</span><span class="">Wiki</span><span class="on">工单</span></nav>
+      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span>岗位</span><span>Wiki</span><span class="on">工单</span></nav>
     </header>
-    <div class="viewArea" id="mount"><div class="ho-root"><div class="ho-cols"><aside class="ho-col ho-list-col"><div class="ho-list-head"><span class="ho-list-title">工单 (4)</span><button class="ho-btn ho-ghost">刷新</button></div><div class="ho-wip">在制 2/2</div><div class="ho-problems"><button class="ho-problems-head">1 个工单文件无法解析</button></div><button class="ho-new">＋ 新建工单</button><div class="ho-groups"><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>intake (1)</span></button><ul class="ho-rows"><li class="ho-row"><span class="ho-row-title">把工单脉冲写进系统提示：只给主代理看的那一段</span><span class="ho-row-meta"><span class="ho-row-size">L</span><span>·</span><span class="ho-row-dri">未指派</span><span>·</span><span class="ho-row-age">3 天</span><em class="ho-badge">全局</em></span></li></ul></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>active (1)</span></button><ul class="ho-rows"><li class="ho-row"><span class="ho-row-title">工单看板：会话内「工单」标签页</span><span class="ho-row-meta"><span class="ho-row-size">M</span><span>·</span><span class="ho-row-dri">工程师</span><span>·</span><span class="ho-row-age">6 小时</span></span></li></ul></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>review (1)</span></button><ul class="ho-rows"><li class="ho-row ho-row-on"><span class="ho-row-title">键盘导航：会话内快捷键与焦点环</span><span class="ho-row-meta"><span class="ho-row-size">S</span><span>·</span><span class="ho-row-dri">工程师</span><span>·</span><span class="ho-row-age">2 天</span></span></li></ul></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▾</span><span>blocked (0)</span></button><p class="ho-muted ho-group-empty">—</p></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▸</span><span>done (1)</span></button></div><div class="ho-group"><button class="ho-group-head"><span class="ho-caret">▸</span><span>dropped (0)</span></button></div></div></aside><section class="ho-col ho-detail-col"><div class="ho-detail-head"><h2 class="ho-detail-title">键盘导航：会话内快捷键与焦点环</h2><div class="ho-meta"><span>wo-20261115-3</span><span>·</span><span>本项目</span><span>·</span><span>2 天</span></div></div><div class="ho-item"><div class="ho-item-label">当前阶段</div><div class="ho-item-body"><span class="ho-stage ho-stage-review">review</span></div></div><div class="ho-item"><div class="ho-item-label">规模</div><div class="ho-item-body">S · 单兵</div></div><div class="ho-item"><div class="ho-item-label">领取人</div><div class="ho-item-body">工程师（engineer）</div></div><div class="ho-item"><div class="ho-item-label">验收标准</div><div class="ho-item-body"><ul class="ho-acceptance"><li>Tab 顺序与视觉顺序一致</li><li>Esc 关闭浮层，焦点回到触发元素</li></ul></div></div><div class="ho-item"><div class="ho-item-label">交付物</div><div class="ho-item-body"><ul class="ho-artifacts"><li class="ho-artifact ho-artifact-file"><button class="ho-artifact-open">plugins/hyper-roles/client/client.js</button><span class="ho-artifact-kind">文件</span><button class="ho-link">复制路径</button></li></ul></div></div><div class="ho-item"><div class="ho-item-label">完整日志</div><div class="ho-item-body"><div class="ho-log"><ul class="ho-log-list"><li><span class="ho-log-meta">11-13 12:00 · engineer</span><p class="ho-log-note">update → review：两条标准都有截图证据，等签字。</p></li><li><span class="ho-log-meta">11-13 10:30 · engineer</span><p class="ho-log-note">实现落盘：焦点环用 :focus-visible，Esc 走 keydown 冒泡。</p></li><li><span class="ho-log-meta">11-13 09:00 · lead</span><p class="ho-log-note">建单：键盘可用的最小集，先覆盖标签页切换与浮层关闭。</p></li></ul></div></div></div></section><aside class="ho-col ho-side"><section class="ho-card"><h3 class="ho-card-title">签收 / 打回</h3><p class="ho-muted">签收身份：engineer</p><ul class="ho-blockers"><li class="ho-blocker">工单 wo-20261115-3 的领取人是 engineer：验收不能由领取人自己签</li></ul><p class="ho-hint">签收必须写 note</p><textarea class="ho-textarea ho-sign-note" value="" placeholder="写清签收依据，或打回时要改哪一条"></textarea><div class="ho-actions"><button class="ho-btn ho-primary" disabled>签收 → done</button><button class="ho-btn ho-danger" disabled>打回 → active</button></div></section><section class="ho-card"><h3 class="ho-card-title">改阶段与领取人</h3><label class="ho-field"><span class="ho-label">当前阶段</span><select class="ho-input" value="review"><option value="intake">intake</option><option value="active">active</option><option value="review">review</option><option value="blocked">blocked</option><option value="dropped">dropped</option><option value="done" disabled>done（只能由签收产生）</option></select></label><label class="ho-field"><span class="ho-label">领取人</span><select class="ho-input" value="engineer"><option value="">未指派</option><option value="engineer">工程师（engineer）</option><option value="reviewer">验收评审员（reviewer）</option><option value="architect">架构师（architect）</option></select></label><label class="ho-field"><span class="ho-label">验收标准 · 一行一条，逗号不拆</span><textarea class="ho-textarea" value="Tab 顺序与视觉顺序一致
-Esc 关闭浮层，焦点回到触发元素">Tab 顺序与视觉顺序一致
-Esc 关闭浮层，焦点回到触发元素</textarea></label><label class="ho-field"><span class="ho-label">交付物 · 逗号或换行分隔，只追加</span><textarea class="ho-textarea ho-artifacts-input" value="" placeholder="逗号或换行分隔，只追加"></textarea></label><label class="ho-field"><span class="ho-label">备注（写进日志）</span><input class="ho-input" value=""></label><div class="ho-actions"><button class="ho-btn ho-primary">保存</button></div></section><section class="ho-card"><h3 class="ho-card-title">数据位置</h3><p class="ho-muted">本项目：.dsh/org/</p><p class="ho-muted">全局：/Users/you/.dsh/org</p></section></aside></div></div></div>
+    <div class="pv-head">
+      <b>工单看板 v2 · 五列 + 固定检查器</b>
+      <span class="pv-mut">预览面板：<a href="?panel=main">正常</a> · <a href="?panel=empty">空态</a> · <a href="?panel=error">错误</a> · <a href="?panel=noproject">无项目根</a></span>
+      <span class="pv-mut">交付物按钮带真实 <code>data-address</code>；点击后由页面里的假 sidebarRight 弹出右栏 mock（真实 GUI 用 DSH 自己的文档预览）。</span>
+    </div>
+    <div class="viewArea">
+      <section class="pv-main" data-panel="main" hidden>
+  <div class="pv-mount"><div class="ho-root"><header class="ho-top"><div class="ho-top-title" title="/Users/you/src/app"><span>工单</span><span class="ho-top-count"> (6)</span></div><div class="ho-stats"><span class="ho-stat ho-stat-warn"><span class="ho-stat-label">在制</span><b>3/2</b></span><span class="ho-stat ho-stat-danger"><span class="ho-stat-label">超龄</span><b>1</b></span><span class="ho-stat ho-stat-warn"><span class="ho-stat-label">无验收</span><b>1</b></span><span class="ho-stat ho-stat-warn" title="在制已超上限，新单会被压到 intake 排队">在制已超上限，新单会被压到 intake 排队</span></div><div class="ho-top-actions"><span class="ho-faint ho-drag-hint">拖卡片到别的列改阶段；Host 拒绝时显示原文并回弹</span><button class="ho-btn ho-ghost">刷新</button><button class="ho-btn ho-primary">＋ 新建工单</button></div></header><div class="ho-problems"><button class="ho-problems-head">▸ 1 个工单文件无法解析</button></div><div class="ho-main"><div class="ho-board-wrap"><div class="ho-board"><section class="ho-col ho-col-intake" data-stage="intake" data-drop="intake"><header class="ho-col-head"><span class="ho-dot ho-dot-intake"></span><span class="ho-col-name">intake</span><span class="ho-col-sub">排队</span><span class="ho-col-count">1</span></header><div class="ho-col-body"><div class="ho-card" role="button" tabindex="0" title="排队那单：在制满时落 intake · wo-20261114-4" data-order-id="wo-20261114-4" draggable="true"><div class="ho-card-title">排队那单：在制满时落 intake</div><div class="ho-card-meta"><span class="ho-chip ho-chip-size">L</span><span class="ho-card-dri">未指派</span><span class="ho-faint">·</span><span class="ho-faint">6 天</span><span class="ho-chip ho-chip-global">全局</span></div><div class="ho-card-warns"><span class="ho-chip ho-chip-warn" title="无验收标准：M/L 规模的单不能进 active，也不能签收">无验收</span></div><div class="ho-card-foot"><span class="ho-card-foot-main">验收 0 · 交付物 0</span><span class="ho-card-foot-side">日志 1</span></div></div></div><div class="ho-col-foot"><span>降级落点</span><span>新单排队</span></div></section><section class="ho-col ho-col-active" data-stage="active" data-drop="active"><header class="ho-col-head"><span class="ho-dot ho-dot-active"></span><span class="ho-col-name">active</span><span class="ho-col-sub">在制</span><span class="ho-col-count">1</span></header><div class="ho-col-body"><div class="ho-card" role="button" tabindex="0" title="在制那单：规则下沉到 lib/rules.js · wo-20261115-2" data-order-id="wo-20261115-2" draggable="true"><div class="ho-card-title">在制那单：规则下沉到 lib/rules.js</div><div class="ho-card-meta"><span class="ho-chip ho-chip-size">M</span><span class="ho-card-dri">工程师</span><span class="ho-faint">·</span><span class="ho-faint">2 天</span></div><div class="ho-card-foot"><span class="ho-card-foot-main">验收 6 · 交付物 1</span><span class="ho-card-foot-side">日志 3</span></div></div></div><div class="ho-col-foot"><span>在制 3/2</span><span>已满</span></div></section><section class="ho-col ho-col-review" data-stage="review" data-drop="review"><header class="ho-col-head"><span class="ho-dot ho-dot-review"></span><span class="ho-col-name">review</span><span class="ho-col-sub">待验收</span><span class="ho-col-count">1</span></header><div class="ho-col-body"><div class="ho-card ho-card-on" role="button" tabindex="0" title="工单看板改版：五列 Kanban + 固定检查器，交付物都在最右侧 DSH 文档预览里打开（长标题示例：这段要能截断到两行，悬停时看到全文） · wo-20261116-1" data-order-id="wo-20261116-1" draggable="true"><div class="ho-card-title">工单看板改版：五列 Kanban + 固定检查器，交付物都在最右侧 DSH 文档预览里打开（长标题示例：这段要能截断到两行，悬停时看到全文）</div><div class="ho-card-meta"><span class="ho-chip ho-chip-size">M</span><span class="ho-card-dri">工程师</span><span class="ho-faint">·</span><span class="ho-faint">5 天</span></div><div class="ho-card-warns"><span class="ho-chip ho-chip-danger">超龄 4 天</span></div><div class="ho-card-foot"><span class="ho-card-foot-main">验收 5 · 交付物 2</span><span class="ho-card-foot-side">日志 120</span></div></div></div><div class="ho-col-foot"><span>超龄 1</span><span>只有这里能签收</span></div></section><section class="ho-col ho-col-blocked" data-stage="blocked" data-drop="blocked"><header class="ho-col-head"><span class="ho-dot ho-dot-blocked"></span><span class="ho-col-name">blocked</span><span class="ho-col-sub">受阻</span><span class="ho-col-count">1</span></header><div class="ho-col-body"><div class="ho-card" role="button" tabindex="0" title="受阻那单：等外部接口权限 · wo-20261117-2" data-order-id="wo-20261117-2" draggable="true"><div class="ho-card-title">受阻那单：等外部接口权限</div><div class="ho-card-meta"><span class="ho-chip ho-chip-size">M</span><span class="ho-card-dri">架构师</span><span class="ho-faint">·</span><span class="ho-faint">3 天</span></div><div class="ho-card-warns"><span class="ho-chip ho-chip-danger">受阻</span></div><div class="ho-card-foot"><span class="ho-card-foot-main">验收 2 · 交付物 0</span><span class="ho-card-foot-side">日志 2</span></div></div></div><div class="ho-col-foot"><span>需外部条件</span><span>看最新日志</span></div></section><section class="ho-col ho-col-done" data-stage="done" data-drop="done"><header class="ho-col-head"><span class="ho-dot ho-dot-done"></span><span class="ho-col-name">done</span><span class="ho-col-sub">已签收</span><span class="ho-col-count">1</span></header><p class="ho-col-note">只能由签收进入</p><div class="ho-col-body"><div class="ho-card" role="button" tabindex="0" title="第一单：可玩的中国象棋飞行棋页面 · wo-20261115-1" data-order-id="wo-20261115-1" draggable="true"><div class="ho-card-title">第一单：可玩的中国象棋飞行棋页面</div><div class="ho-card-meta"><span class="ho-chip ho-chip-size">M</span><span class="ho-card-dri">工程师</span><span class="ho-faint">·</span><span class="ho-faint">9 天</span></div><div class="ho-card-foot"><span class="ho-card-foot-main">验收 4 · 交付物 1</span><span class="ho-card-foot-side">日志 4</span></div><div class="ho-card-signed">✓ 已签收</div></div></div><div class="ho-col-foot"><span>由 sign 产生</span><span>只读进入</span></div></section></div><section class="ho-archive" data-drop="dropped"><button class="ho-archive-btn"><span>▸</span><span>dropped · 1</span><span class="ho-faint">拖卡片到这里撤单（要写理由）</span></button></section></div><aside class="ho-checker" data-checker="open"><div class="ho-checker-head"><span class="ho-checker-title">详情检查器</span><button class="ho-btn ho-ghost" title="收起检查器">⟩</button></div><div class="ho-checker-body"><div class="ho-ins-head"><h2 class="ho-ins-title" title="工单看板改版：五列 Kanban + 固定检查器，交付物都在最右侧 DSH 文档预览里打开（长标题示例：这段要能截断到两行，悬停时看到全文）">工单看板改版：五列 Kanban + 固定检查器，交付物都在最右侧 DSH 文档预览里打开（长标题示例：这段要能截断到两行，悬停时看到全文）</h2><div class="ho-ins-meta"><span class="ho-mono">wo-20261116-1</span><span>·</span><span>本项目</span><span>·</span><span>5 天</span></div></div><section class="ho-sec"><div class="ho-sec-label">当前阶段</div><div class="ho-sec-body"><div class="ho-stage-row"><span class="ho-stage ho-stage-review">review</span><span class="ho-muted"> · 待验收</span></div></div></section><section class="ho-sec"><div class="ho-sec-label">规模</div><div class="ho-sec-body"><span class="ho-muted">M · 三岗</span></div></section><section class="ho-sec"><div class="ho-sec-label">领取人（DRI）</div><div class="ho-sec-body"><span>工程师（engineer）</span></div></section><section class="ho-sec"><div class="ho-sec-label">验收标准</div><div class="ho-sec-body"><ol class="ho-acceptance"><li>五列（intake / active / review / blocked / done）+ 右侧固定检查器；done 只读进入，dropped 折叠成底部一条</li><li>拖拽只是 PATCH /order/:id 的快捷方式：与 org_order update 同一个 updateWithRules → store.saveOrder，客户端不预判门禁</li><li>拖进 done 得到 Host 的 done_forbidden 原文并回弹；拖进 dropped 必须先填理由（update 本来就要求 note）</li><li>交付物只留「在 DSH 预览中打开」：客户端构造 dsh-resource 地址后调 ctx.get('sidebarRight').openResource，面板不读文件内容</li><li>窄屏检查器可折叠、看板可横向滚动；空 / 加载 / 错误 / 无项目根 / 长标题 / 长日志都有可见处理</li></ol></div></section><section class="ho-sec"><div class="ho-sec-label">交付物</div><div class="ho-sec-body"><ul class="ho-arts"><li class="ho-art ho-art-file"><div class="ho-art-top"><span class="ho-art-path" title="docs/design/orders-tab.md">docs/design/orders-tab.md</span><span class="ho-art-kind">文件</span></div><button class="ho-art-open" data-address="dsh-resource://file/session/session-preview//Users/you/src/app/docs/design/orders-tab.md" title="dsh-resource://file/session/session-preview//Users/you/src/app/docs/design/orders-tab.md">在 DSH 预览中打开 ↗</button></li><li class="ho-art ho-art-missing"><div class="ho-art-top"><span class="ho-art-path" title="docs/verify/orders-v2-1440.png">docs/verify/orders-v2-1440.png</span><span class="ho-art-kind">文件不存在</span></div><button class="ho-art-open" disabled title="这个交付物解析不出绝对路径（missing / 越界）">在 DSH 预览中打开 ↗</button><span class="ho-art-hint">这个交付物解析不出绝对路径（missing / 越界）</span></li></ul></div></section><section class="ho-sec"><div class="ho-sec-label">完整日志</div><div class="ho-sec-body"><div class="ho-log"><div class="ho-log-list"><div class="ho-log-row"><div class="ho-log-meta">11-15 09:00 · reviewer</div><p class="ho-log-note">update → review：五列与固定检查器都在，交付物入口只调 sidebarRight.openResource，没有自定义文件读取。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 08:23 · engineer</div><p class="ho-log-note">第 119 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 07:46 · engineer</div><p class="ho-log-note">第 118 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 07:09 · architect</div><p class="ho-log-note">第 117 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 06:32 · engineer</div><p class="ho-log-note">第 116 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 05:55 · reviewer</div><p class="ho-log-note">第 115 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 05:18 · architect</div><p class="ho-log-note">第 114 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 04:41 · engineer</div><p class="ho-log-note">第 113 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 04:04 · engineer</div><p class="ho-log-note">第 112 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 03:27 · architect</div><p class="ho-log-note">第 111 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 02:50 · reviewer</div><p class="ho-log-note">第 110 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 02:13 · engineer</div><p class="ho-log-note">第 109 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 01:36 · architect</div><p class="ho-log-note">第 108 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 00:59 · engineer</div><p class="ho-log-note">第 107 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-15 00:22 · engineer</div><p class="ho-log-note">第 106 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 23:45 · reviewer</div><p class="ho-log-note">第 105 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 23:08 · engineer</div><p class="ho-log-note">第 104 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 22:31 · engineer</div><p class="ho-log-note">第 103 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 21:54 · architect</div><p class="ho-log-note">第 102 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 21:17 · engineer</div><p class="ho-log-note">第 101 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 20:40 · reviewer</div><p class="ho-log-note">第 100 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 20:03 · architect</div><p class="ho-log-note">第 99 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 19:26 · engineer</div><p class="ho-log-note">第 98 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 18:49 · engineer</div><p class="ho-log-note">第 97 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 18:12 · architect</div><p class="ho-log-note">第 96 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 17:35 · reviewer</div><p class="ho-log-note">第 95 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 16:58 · engineer</div><p class="ho-log-note">第 94 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 16:21 · architect</div><p class="ho-log-note">第 93 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 15:44 · engineer</div><p class="ho-log-note">第 92 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 15:07 · engineer</div><p class="ho-log-note">第 91 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 14:30 · reviewer</div><p class="ho-log-note">第 90 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 13:53 · engineer</div><p class="ho-log-note">第 89 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 13:16 · engineer</div><p class="ho-log-note">第 88 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 12:39 · architect</div><p class="ho-log-note">第 87 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 12:02 · engineer</div><p class="ho-log-note">第 86 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 11:25 · reviewer</div><p class="ho-log-note">第 85 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 10:48 · architect</div><p class="ho-log-note">第 84 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 10:11 · engineer</div><p class="ho-log-note">第 83 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 09:34 · engineer</div><p class="ho-log-note">第 82 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 08:57 · architect</div><p class="ho-log-note">第 81 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 08:20 · reviewer</div><p class="ho-log-note">第 80 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 07:43 · engineer</div><p class="ho-log-note">第 79 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 07:06 · architect</div><p class="ho-log-note">第 78 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 06:29 · engineer</div><p class="ho-log-note">第 77 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 05:52 · engineer</div><p class="ho-log-note">第 76 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 05:15 · reviewer</div><p class="ho-log-note">第 75 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 04:38 · engineer</div><p class="ho-log-note">第 74 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 04:01 · engineer</div><p class="ho-log-note">第 73 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 03:24 · architect</div><p class="ho-log-note">第 72 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 02:47 · engineer</div><p class="ho-log-note">第 71 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 02:10 · reviewer</div><p class="ho-log-note">第 70 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 01:33 · architect</div><p class="ho-log-note">第 69 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 00:56 · engineer</div><p class="ho-log-note">第 68 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-14 00:19 · engineer</div><p class="ho-log-note">第 67 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 23:42 · architect</div><p class="ho-log-note">第 66 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 23:05 · reviewer</div><p class="ho-log-note">第 65 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 22:28 · engineer</div><p class="ho-log-note">第 64 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 21:51 · architect</div><p class="ho-log-note">第 63 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 21:14 · engineer</div><p class="ho-log-note">第 62 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 20:37 · engineer</div><p class="ho-log-note">第 61 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 20:00 · reviewer</div><p class="ho-log-note">第 60 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 19:23 · engineer</div><p class="ho-log-note">第 59 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 18:46 · engineer</div><p class="ho-log-note">第 58 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 18:09 · architect</div><p class="ho-log-note">第 57 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 17:32 · engineer</div><p class="ho-log-note">第 56 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 16:55 · reviewer</div><p class="ho-log-note">第 55 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 16:18 · architect</div><p class="ho-log-note">第 54 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 15:41 · engineer</div><p class="ho-log-note">第 53 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 15:04 · engineer</div><p class="ho-log-note">第 52 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 14:27 · architect</div><p class="ho-log-note">第 51 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 13:50 · reviewer</div><p class="ho-log-note">第 50 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 13:13 · engineer</div><p class="ho-log-note">第 49 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 12:36 · architect</div><p class="ho-log-note">第 48 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 11:59 · engineer</div><p class="ho-log-note">第 47 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 11:22 · engineer</div><p class="ho-log-note">第 46 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 10:45 · reviewer</div><p class="ho-log-note">第 45 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 10:08 · engineer</div><p class="ho-log-note">第 44 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 09:31 · engineer</div><p class="ho-log-note">第 43 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 08:54 · architect</div><p class="ho-log-note">第 42 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 08:17 · engineer</div><p class="ho-log-note">第 41 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 07:40 · reviewer</div><p class="ho-log-note">第 40 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 07:03 · architect</div><p class="ho-log-note">第 39 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 06:26 · engineer</div><p class="ho-log-note">第 38 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 05:49 · engineer</div><p class="ho-log-note">第 37 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 05:12 · architect</div><p class="ho-log-note">第 36 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 04:35 · reviewer</div><p class="ho-log-note">第 35 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 03:58 · engineer</div><p class="ho-log-note">第 34 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 03:21 · architect</div><p class="ho-log-note">第 33 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 02:44 · engineer</div><p class="ho-log-note">第 32 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 02:07 · engineer</div><p class="ho-log-note">第 31 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 01:30 · reviewer</div><p class="ho-log-note">第 30 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 00:53 · engineer</div><p class="ho-log-note">第 29 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-13 00:16 · engineer</div><p class="ho-log-note">第 28 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-12 23:39 · architect</div><p class="ho-log-note">第 27 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-12 23:02 · engineer</div><p class="ho-log-note">第 26 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-12 22:25 · reviewer</div><p class="ho-log-note">第 25 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-12 21:48 · architect</div><p class="ho-log-note">第 24 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-12 21:11 · engineer</div><p class="ho-log-note">第 23 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-12 20:34 · engineer</div><p class="ho-log-note">第 22 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div><div class="ho-log-row"><div class="ho-log-meta">11-12 19:57 · architect</div><p class="ho-log-note">第 21 条日志：规则只放在 lib/rules.js 与 store.js，面板不发第二套判断。</p></div></div><button class="ho-link">显示全部（120）</button><div class="ho-log-count">共 120 条 · 最新在上</div></div></div></section><section class="ho-cardpanel"><h3 class="ho-panel-title">签收 / 打回</h3><p class="ho-muted">签收身份：lead</p><textarea class="ho-textarea ho-sign-note" placeholder="写清签收依据，或打回时要改哪一条"></textarea><p class="ho-hint">签收必须写 note</p><div class="ho-actions"><button class="ho-btn ho-primary" disabled>签收 → done</button><button class="ho-btn ho-danger" disabled>打回 → active</button></div></section><section class="ho-cardpanel"><h3 class="ho-panel-title">改阶段与明细</h3><p class="ho-hint">改阶段与拖拽是同一个请求：PATCH /hyper-org/api/order/:id</p><label class="ho-field"><span class="ho-label">当前阶段</span><select class="ho-input" value="review" data-stage-select="true"><option>intake</option><option>active</option><option selected>review</option><option>blocked</option><option>dropped（撤单要写理由）</option><option>done（只能由签收产生）</option></select></label><label class="ho-field"><span class="ho-label">领取人（DRI）</span><select class="ho-input" value="engineer"><option>未指派</option><option selected>工程师（engineer）</option><option>验收评审员（reviewer）</option><option>架构师（architect）</option></select></label><label class="ho-field"><span class="ho-label">验收标准 · 一行一条，逗号不拆</span><textarea class="ho-textarea">五列（intake / active / review / blocked / done）+ 右侧固定检查器；done 只读进入，dropped 折叠成底部一条
+拖拽只是 PATCH /order/:id 的快捷方式：与 org_order update 同一个 updateWithRules → store.saveOrder，客户端不预判门禁
+拖进 done 得到 Host 的 done_forbidden 原文并回弹；拖进 dropped 必须先填理由（update 本来就要求 note）
+交付物只留「在 DSH 预览中打开」：客户端构造 dsh-resource 地址后调 ctx.get('sidebarRight').openResource，面板不读文件内容
+窄屏检查器可折叠、看板可横向滚动；空 / 加载 / 错误 / 无项目根 / 长标题 / 长日志都有可见处理</textarea></label><label class="ho-field"><span class="ho-label">交付物 · 逗号或换行分隔，只追加</span><textarea class="ho-textarea ho-artifacts-input" placeholder="逗号或换行分隔，只追加"></textarea></label><label class="ho-field"><span class="ho-label">note（写进日志）</span><input class="ho-input" value=""></label><div class="ho-actions"><button class="ho-btn ho-primary">保存</button></div></section></div></aside></div></div></div>
+</section>
+      <section class="pv-state" data-panel="empty" hidden>
+  <header class="pv-state-head"><b>空态 · orders: []</b><span>空看板不是错误；新建入口仍可用，右下角状态不明说就不算完成。</span></header>
+  <div class="pv-mount"><div class="ho-root"><div class="ho-banner ho-banner-info"><span class="ho-banner-text">还没有工单，用「＋ 新建工单」开一张 · 空看板不是错误：.dsh/org/orders/ 下没有可解析的工单</span><button class="ho-btn ho-primary">＋ 新建工单</button></div><header class="ho-top"><div class="ho-top-title" title="/Users/you/src/app"><span>工单</span><span class="ho-top-count"> (0)</span></div><div class="ho-stats"><span class="ho-stat ho-stat-ok"><span class="ho-stat-label">在制</span><b>0/2</b></span><span class="ho-stat"><span class="ho-stat-label">超龄</span><b>0</b></span><span class="ho-stat"><span class="ho-stat-label">无验收</span><b>0</b></span></div><div class="ho-top-actions"><span class="ho-faint ho-drag-hint">拖卡片到别的列改阶段；Host 拒绝时显示原文并回弹</span><button class="ho-btn ho-ghost">刷新</button><button class="ho-btn ho-primary">＋ 新建工单</button></div></header><div class="ho-problems"><button class="ho-problems-head">▸ 1 个工单文件无法解析</button></div><div class="ho-main"><div class="ho-board-wrap"><div class="ho-board"><section class="ho-col ho-col-intake" data-stage="intake" data-drop="intake"><header class="ho-col-head"><span class="ho-dot ho-dot-intake"></span><span class="ho-col-name">intake</span><span class="ho-col-sub">排队</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>降级落点</span><span>新单排队</span></div></section><section class="ho-col ho-col-active" data-stage="active" data-drop="active"><header class="ho-col-head"><span class="ho-dot ho-dot-active"></span><span class="ho-col-name">active</span><span class="ho-col-sub">在制</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>在制 0/2</span><span>有名额</span></div></section><section class="ho-col ho-col-review" data-stage="review" data-drop="review"><header class="ho-col-head"><span class="ho-dot ho-dot-review"></span><span class="ho-col-name">review</span><span class="ho-col-sub">待验收</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>超龄 0</span><span>只有这里能签收</span></div></section><section class="ho-col ho-col-blocked" data-stage="blocked" data-drop="blocked"><header class="ho-col-head"><span class="ho-dot ho-dot-blocked"></span><span class="ho-col-name">blocked</span><span class="ho-col-sub">受阻</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>需外部条件</span><span>看最新日志</span></div></section><section class="ho-col ho-col-done" data-stage="done" data-drop="done"><header class="ho-col-head"><span class="ho-dot ho-dot-done"></span><span class="ho-col-name">done</span><span class="ho-col-sub">已签收</span><span class="ho-col-count">0</span></header><p class="ho-col-note">只能由签收进入</p><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>由 sign 产生</span><span>只读进入</span></div></section></div><section class="ho-archive" data-drop="dropped"><button class="ho-archive-btn"><span>▸</span><span>dropped · 0</span><span class="ho-faint">拖卡片到这里撤单（要写理由）</span></button></section></div><aside class="ho-checker" data-checker="open"><div class="ho-checker-head"><span class="ho-checker-title">详情检查器</span><button class="ho-btn ho-ghost" title="收起检查器">⟩</button></div><div class="ho-placeholder"><span class="ho-placeholder-mark">◇</span><b>选一张工单</b><span class="ho-placeholder-sub">点左侧卡片；右侧只显示六项，不重复渲染文件</span></div></aside></div></div></div>
+</section>
+     <section class="pv-state" data-panel="error" hidden>
+  <header class="pv-state-head"><b>错误态 · /state → 500</b><span>错误必须落在可见错误条上，并给出重试；看板结构保留。</span></header>
+  <div class="pv-mount"><div class="ho-root"><div class="ho-banners"><div class="ho-banner ho-banner-error"><span class="ho-banner-text">出错了: Host 没有响应（preview 模拟）</span><button class="ho-btn ho-ghost">重试</button><button class="ho-btn ho-ghost">关闭</button></div></div><header class="ho-top"><div class="ho-top-title"><span>工单</span><span class="ho-top-count"> (0)</span></div><div class="ho-stats"><span class="ho-stat ho-stat-ok"><span class="ho-stat-label">在制</span><b>0/0</b></span><span class="ho-stat"><span class="ho-stat-label">超龄</span><b>0</b></span><span class="ho-stat"><span class="ho-stat-label">无验收</span><b>0</b></span></div><div class="ho-top-actions"><span class="ho-faint ho-drag-hint">拖卡片到别的列改阶段；Host 拒绝时显示原文并回弹</span><button class="ho-btn ho-ghost">刷新</button><button class="ho-btn ho-primary" disabled>＋ 新建工单</button></div></header><div class="ho-main"><div class="ho-board-wrap"><div class="ho-board"><section class="ho-col ho-col-intake" data-stage="intake" data-drop="intake"><header class="ho-col-head"><span class="ho-dot ho-dot-intake"></span><span class="ho-col-name">intake</span><span class="ho-col-sub">排队</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">看板读取失败，可在顶部重试</p></div><div class="ho-col-foot"><span>降级落点</span><span>新单排队</span></div></section><section class="ho-col ho-col-active" data-stage="active" data-drop="active"><header class="ho-col-head"><span class="ho-dot ho-dot-active"></span><span class="ho-col-name">active</span><span class="ho-col-sub">在制</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">看板读取失败，可在顶部重试</p></div><div class="ho-col-foot"><span>在制 0/0</span><span>有名额</span></div></section><section class="ho-col ho-col-review" data-stage="review" data-drop="review"><header class="ho-col-head"><span class="ho-dot ho-dot-review"></span><span class="ho-col-name">review</span><span class="ho-col-sub">待验收</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">看板读取失败，可在顶部重试</p></div><div class="ho-col-foot"><span>超龄 0</span><span>只有这里能签收</span></div></section><section class="ho-col ho-col-blocked" data-stage="blocked" data-drop="blocked"><header class="ho-col-head"><span class="ho-dot ho-dot-blocked"></span><span class="ho-col-name">blocked</span><span class="ho-col-sub">受阻</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">看板读取失败，可在顶部重试</p></div><div class="ho-col-foot"><span>需外部条件</span><span>看最新日志</span></div></section><section class="ho-col ho-col-done" data-stage="done" data-drop="done"><header class="ho-col-head"><span class="ho-dot ho-dot-done"></span><span class="ho-col-name">done</span><span class="ho-col-sub">已签收</span><span class="ho-col-count">0</span></header><p class="ho-col-note">只能由签收进入</p><div class="ho-col-body"><p class="ho-col-empty">看板读取失败，可在顶部重试</p></div><div class="ho-col-foot"><span>由 sign 产生</span><span>只读进入</span></div></section></div><section class="ho-archive" data-drop="dropped"><button class="ho-archive-btn"><span>▸</span><span>dropped · 0</span><span class="ho-faint">拖卡片到这里撤单（要写理由）</span></button></section></div><aside class="ho-checker" data-checker="open"><div class="ho-checker-head"><span class="ho-checker-title">详情检查器</span><button class="ho-btn ho-ghost" title="收起检查器">⟩</button></div><div class="ho-placeholder"><span class="ho-placeholder-mark">◇</span><b>选一张工单</b><span class="ho-placeholder-sub">点左侧卡片；右侧只显示六项，不重复渲染文件</span></div></aside></div></div></div>
+</section>
+     <section class="pv-state" data-panel="noproject" hidden>
+  <header class="pv-state-head"><b>无项目根 · projectRoot: null</b><span>黄条说明 + 作用域锁 global；交付物解析不出绝对路径，按钮禁用并解释。</span></header>
+  <div class="pv-mount"><div class="ho-root"><div class="ho-banners"><div class="ho-banner ho-banner-warn"><span class="ho-banner-text">这个会话没有项目根：只能看全局工单，新建会落在全局作用域 · 作用域锁定 global</span></div></div><header class="ho-top"><div class="ho-top-title" title="/Users/you/.dsh/org"><span>工单</span><span class="ho-top-count"> (1)</span></div><div class="ho-stats"><span class="ho-stat"><span class="ho-stat-label">在制</span><b>1/2</b></span><span class="ho-stat"><span class="ho-stat-label">超龄</span><b>0</b></span><span class="ho-stat ho-stat-warn"><span class="ho-stat-label">无验收</span><b>1</b></span></div><div class="ho-top-actions"><span class="ho-faint ho-drag-hint">拖卡片到别的列改阶段；Host 拒绝时显示原文并回弹</span><button class="ho-btn ho-ghost">刷新</button><button class="ho-btn ho-primary">＋ 新建工单</button></div></header><div class="ho-problems"><button class="ho-problems-head">▸ 1 个工单文件无法解析</button></div><div class="ho-main"><div class="ho-board-wrap"><div class="ho-board"><section class="ho-col ho-col-intake" data-stage="intake" data-drop="intake"><header class="ho-col-head"><span class="ho-dot ho-dot-intake"></span><span class="ho-col-name">intake</span><span class="ho-col-sub">排队</span><span class="ho-col-count">1</span></header><div class="ho-col-body"><div class="ho-card ho-card-on" role="button" tabindex="0" title="排队那单：在制满时落 intake · wo-20261114-4" data-order-id="wo-20261114-4" draggable="true"><div class="ho-card-title">排队那单：在制满时落 intake</div><div class="ho-card-meta"><span class="ho-chip ho-chip-size">L</span><span class="ho-card-dri">未指派</span><span class="ho-faint">·</span><span class="ho-faint">6 天</span><span class="ho-chip ho-chip-global">全局</span></div><div class="ho-card-warns"><span class="ho-chip ho-chip-warn" title="无验收标准：M/L 规模的单不能进 active，也不能签收">无验收</span></div><div class="ho-card-foot"><span class="ho-card-foot-main">验收 0 · 交付物 0</span><span class="ho-card-foot-side">日志 1</span></div></div></div><div class="ho-col-foot"><span>降级落点</span><span>新单排队</span></div></section><section class="ho-col ho-col-active" data-stage="active" data-drop="active"><header class="ho-col-head"><span class="ho-dot ho-dot-active"></span><span class="ho-col-name">active</span><span class="ho-col-sub">在制</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>在制 1/2</span><span>有名额</span></div></section><section class="ho-col ho-col-review" data-stage="review" data-drop="review"><header class="ho-col-head"><span class="ho-dot ho-dot-review"></span><span class="ho-col-name">review</span><span class="ho-col-sub">待验收</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>超龄 0</span><span>只有这里能签收</span></div></section><section class="ho-col ho-col-blocked" data-stage="blocked" data-drop="blocked"><header class="ho-col-head"><span class="ho-dot ho-dot-blocked"></span><span class="ho-col-name">blocked</span><span class="ho-col-sub">受阻</span><span class="ho-col-count">0</span></header><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>需外部条件</span><span>看最新日志</span></div></section><section class="ho-col ho-col-done" data-stage="done" data-drop="done"><header class="ho-col-head"><span class="ho-dot ho-dot-done"></span><span class="ho-col-name">done</span><span class="ho-col-sub">已签收</span><span class="ho-col-count">0</span></header><p class="ho-col-note">只能由签收进入</p><div class="ho-col-body"><p class="ho-col-empty">—</p></div><div class="ho-col-foot"><span>由 sign 产生</span><span>只读进入</span></div></section></div><section class="ho-archive" data-drop="dropped"><button class="ho-archive-btn"><span>▸</span><span>dropped · 0</span><span class="ho-faint">拖卡片到这里撤单（要写理由）</span></button></section></div><aside class="ho-checker" data-checker="open"><div class="ho-checker-head"><span class="ho-checker-title">详情检查器</span><button class="ho-btn ho-ghost" title="收起检查器">⟩</button></div><div class="ho-checker-body"><div class="ho-ins-head"><h2 class="ho-ins-title" title="排队那单：在制满时落 intake">排队那单：在制满时落 intake</h2><div class="ho-ins-meta"><span class="ho-mono">wo-20261114-4</span><span>·</span><span>全局</span><span>·</span><span>6 天</span></div></div><section class="ho-sec"><div class="ho-sec-label">当前阶段</div><div class="ho-sec-body"><div class="ho-stage-row"><span class="ho-stage ho-stage-intake">intake</span><span class="ho-muted"> · 排队</span></div></div></section><section class="ho-sec"><div class="ho-sec-label">规模</div><div class="ho-sec-body"><span class="ho-muted">L · 全链路</span></div></section><section class="ho-sec"><div class="ho-sec-label">领取人（DRI）</div><div class="ho-sec-body"><span>未指派</span></div></section><section class="ho-sec"><div class="ho-sec-label">验收标准</div><div class="ho-sec-body"><p class="ho-warnbox">无验收标准：M/L 规模的单不能进 active，也不能签收</p></div></section><section class="ho-sec"><div class="ho-sec-label">交付物</div><div class="ho-sec-body"><p class="ho-muted">没有挂交付物</p></div></section><section class="ho-sec"><div class="ho-sec-label">完整日志</div><div class="ho-sec-body"><div class="ho-log"><div class="ho-log-list"><div class="ho-log-row"><div class="ho-log-meta">11-11 08:00 · lead</div><p class="ho-log-note">在制满了，先排队：等一张在制单关掉。</p></div></div><div class="ho-log-count">共 1 条 · 最新在上</div></div></div></section><section class="ho-cardpanel"><h3 class="ho-panel-title">签收 / 打回</h3><p class="ho-muted">只有 review 可签收 · 先改到 review，再写 note 签收</p></section><section class="ho-cardpanel"><h3 class="ho-panel-title">改阶段与明细</h3><p class="ho-hint">改阶段与拖拽是同一个请求：PATCH /hyper-org/api/order/:id</p><label class="ho-field"><span class="ho-label">当前阶段</span><select class="ho-input" value="intake" data-stage-select="true"><option selected>intake</option><option>active</option><option>review</option><option>blocked</option><option>dropped（撤单要写理由）</option><option>done（只能由签收产生）</option></select></label><label class="ho-field"><span class="ho-label">领取人（DRI）</span><select class="ho-input" value=""><option selected>未指派</option><option>工程师（engineer）</option><option>验收评审员（reviewer）</option><option>架构师（architect）</option></select></label><label class="ho-field"><span class="ho-label">验收标准 · 一行一条，逗号不拆</span><textarea class="ho-textarea"></textarea></label><label class="ho-field"><span class="ho-label">交付物 · 逗号或换行分隔，只追加</span><textarea class="ho-textarea ho-artifacts-input" placeholder="逗号或换行分隔，只追加"></textarea></label><label class="ho-field"><span class="ho-label">note（写进日志）</span><input class="ho-input" value=""></label><div class="ho-actions"><button class="ho-btn ho-primary">保存</button></div></section></div></aside></div></div></div>
+</section>
+    </div>
   </main>
 </div>
-<script>globalThis.__previewReady = true</script>
+<aside id="dswPreview" aria-label="DSH 右侧栏 mock">
+  <header>DSH 文档预览 · 右侧栏 mock <button type="button" id="dswClose">关闭</button></header>
+  <div class="pv-addr" id="dswAddr"></div>
+  <div class="pv-body">
+    <p>真实实现：<code>ctx.get('sidebarRight').openResource(address)</code>，由 DSH 自己渲染 Markdown / 代码 / 图片 / PDF / Office / HTML。</p>
+    <p>这个障碍物只是预览页的 mock：它证明按钮构造的地址就是 <code>dsh-resource://file/session/…</code>，不是面板自绘的文本预览。</p>
+  </div>
+</aside>
+<script>
+  // The panel mounts are static snapshots; ?panel= picks which state is shown.
+  const wanted = new URLSearchParams(location.search).get('panel') || 'main';
+  document.querySelectorAll('[data-panel]').forEach((node) => { node.hidden = node.dataset.panel !== wanted; });
+  // Fake sidebarRight: clicking a deliverable shows the address it would open.
+  const preview = document.getElementById('dswPreview');
+  const address = document.getElementById('dswAddr');
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest && event.target.closest('.ho-art-open');
+    if (trigger === undefined || trigger === null) return;
+    if (trigger.disabled) return;
+    address.textContent = trigger.dataset.address || '(no address)';
+    preview.classList.add('on');
+  });
+  document.getElementById('dswClose').addEventListener('click', () => preview.classList.remove('on'));
+  globalThis.__previewReady = true;
+</script>
 </body>
 </html>

@@ -15,7 +15,7 @@
 import { resolveDirs } from '../../hyper-roles/lib/scopes.js'
 import { listRoles, readRole } from '../../hyper-roles/lib/store.js'
 
-import { artifactBase, describeArtifact, readArtifactText } from './artifacts.js'
+import { artifactBase, describeArtifact } from './artifacts.js'
 import { ageOf } from './marker.js'
 import { ORDER_ID, occupiesSlot, SIZES, STAGES, WIP_STAGES } from './order-doc.js'
 import {
@@ -189,31 +189,8 @@ export function createApiHandler(options) {
         return
       }
 
-      if (rest[0] === 'artifact') {
-        if (rest.length !== 1) {
-          sendJson(res, 404, { ok: false, code: 'not_found', error: 'not found' })
-          return
-        }
-        if (method !== 'GET') {
-          sendMethod(res, method, 'GET', true)
-          return
-        }
-        const id = requireOrderId(res, url.searchParams.get('id'))
-        if (id === undefined) return
-        const found = readOrder(dirs, id)
-        if (found === undefined) {
-          sendJson(res, 404, { ok: false, code: 'order_not_found', error: missingOrder(id) })
-          return
-        }
-        const preview = readArtifactText({
-          base: artifactBase({ projectRoot: dirs.projectRoot }),
-          declaredPaths: found.order.artifacts,
-          path: url.searchParams.get('path') ?? '',
-        })
-        sendJson(res, 200, { ok: true, id, scope: found.scope, ...preview })
-        return
-      }
-
+      // There is no artifact route on purpose: deliverables are opened by DSH's
+      // own right sidebar, so the panel never reads file contents.
       sendJson(res, 404, { ok: false, code: 'not_found', error: 'not found' })
     } catch (error) {
       respondError(res, error)

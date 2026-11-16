@@ -17,7 +17,7 @@
   .rail { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); }
   .side { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); padding:12px 10px; }
   .side div { height:28px; margin:4px 0; border-radius:6px; background:var(--dsw-alias-bg-layer-1); opacity:.6; }
-  .main { display:flex; flex-direction:column; min-width:0; }
+  .main { display:flex; flex-direction:column; min-width:0; min-height:0; }
   .sesshead { background:var(--dsw-alias-bg-layer-1); border-bottom:1px solid var(--dsw-alias-border-l1); padding:14px 20px 0; }
   .sesstop { display:flex; justify-content:space-between; color:var(--dsw-alias-label-secondary); font-size:11.5px; }
   .sesstop b { color:var(--dsw-alias-label-primary); font-size:14px; font-weight:600; }
@@ -25,6 +25,36 @@
   .tabs span { padding:8px 10px 9px; border-bottom:2px solid transparent; }
   .tabs .on { color:var(--dsw-alias-label-primary); border-bottom-color:var(--dsw-alias-brand-primary); font-weight:550; }
   .viewArea { display:flex; flex:1; flex-direction:column; min-height:0; }
+  [hidden] { display:none !important; }
+  .pv-head { display:flex; flex-wrap:wrap; gap:4px 14px; align-items:baseline; padding:6px 14px;
+    border-bottom:1px dashed var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2);
+    font-size:11px; color:var(--dsw-alias-label-secondary); flex:none; }
+  .pv-head b { color:var(--dsw-alias-label-primary); font-size:11.5px; }
+  .pv-head a { color:var(--dsw-alias-brand-primary); text-decoration:none; }
+  .pv-head a:hover { text-decoration:underline; }
+  .pv-mut { color:var(--dsw-alias-label-secondary); }
+  .pv-main { display:flex; flex:1 1 auto; min-width:0; min-height:0; }
+  .pv-main .pv-mount { display:flex; flex:1 1 auto; min-width:0; flex-direction:column; min-height:0; }
+  .pv-state { position:fixed; inset:70px 0 0 0; display:flex; flex-direction:column; padding:14px;
+    background:var(--dsw-alias-bg-base); z-index:40; }
+  .pv-state-head { display:flex; gap:12px; align-items:baseline; padding:0 4px 8px; font-size:12px;
+    color:var(--dsw-alias-label-secondary); flex:none; }
+  .pv-state-head b { color:var(--dsw-alias-label-primary); font-size:13px; }
+  .pv-state .pv-mount { display:flex; flex:1 1 auto; flex-direction:column; min-height:0;
+    border:1px solid var(--dsw-alias-border-l1); border-radius:10px; background:var(--dsw-alias-bg-layer-1);
+    overflow:hidden; }
+  #dswPreview { position:fixed; top:56px; right:0; bottom:0; width:380px; display:none; z-index:50;
+    background:var(--dsw-alias-bg-layer-1); border-left:1px solid var(--dsw-alias-border-l1);
+    box-shadow:-12px 0 36px rgba(15,23,42,.14); flex-direction:column; }
+  #dswPreview.on { display:flex; }
+  #dswPreview header { display:flex; align-items:center; gap:8px; padding:10px 12px;
+    border-bottom:1px solid var(--dsw-alias-border-l1); font-size:12px; font-weight:600; }
+  #dswPreview header button { margin-left:auto; }
+  #dswPreview .pv-addr { margin:10px 12px; padding:8px; border-radius:8px; font-size:10.5px; word-break:break-all;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--dsw-alias-bg-layer-2); border:1px solid var(--dsw-alias-border-l1); }
+  #dswPreview .pv-body { padding:0 12px 12px; overflow:auto; font-size:12px; color:var(--dsw-alias-label-secondary); }
+  #dswPreview code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
 </style>
 <style>
 .hr-tab, .hr-tab *, .hr-tab *::before, .hr-tab *::after { box-sizing:border-box; }
@@ -134,9 +164,12 @@
   <main class="main">
     <header class="sesshead">
       <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
-      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="on">岗位</span><span>Wiki</span></nav>
+      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span>岗位</span><span>Wiki</span><span class="">工单</span></nav>
     </header>
-    <div class="viewArea" id="mount"><div class="hr-tab"><div class="hr-body-cols"><aside class="hr-col hr-list-col"><div class="hr-list-head"><div class="hr-seg"><button class="hr-seg-btn hr-seg-on">scopeProject</button><button class="hr-seg-btn">scopeGlobal</button></div><input class="hr-input hr-filter" value="" placeholder="filter"><button class="hr-new">＋ newRole</button></div><ul class="hr-rows"><li class="hr-row"><span class="hr-row-title">代码评审员</span><span class="hr-row-meta">reviewer · version3</span></li><li class="hr-row"><span class="hr-row-title">实现者</span><span class="hr-row-meta">implementer · version2</span></li></ul><div class="hr-builtins"><p class="hr-muted hr-pad">readonly</p><ul class="hr-rows"><li class="hr-row hr-row-builtin"><span class="hr-row-title">培训员</span><span class="hr-row-meta">trainer<button class="hr-link">copyIn</button></span></li></ul></div></aside><section class="hr-col hr-editor-col"><div class="hr-editor"><div class="hr-ed-head"><div class="hr-ed-title-wrap"><input class="hr-title" value="代码评审员"><div class="hr-meta"><span>reviewer</span><span>·</span><span>scopeProject</span><span>·</span><span>version3</span><span>·</span><span class="hr-faint">saved</span></div></div><div class="hr-actions"><button class="hr-btn hr-ghost">copyPrompt</button><button class="hr-btn">reload</button><button class="hr-btn hr-primary" disabled>save</button><button class="hr-btn hr-danger">archive</button></div></div><div class="hr-grid"><div class="hr-field"><span class="hr-label">capabilities</span><div class="hr-tokens"><span class="hr-chip">静态分析<button class="hr-chip-x">×</button></span><span class="hr-chip">风险识别<button class="hr-chip-x">×</button></span><span class="hr-chip">回归验证<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">skills</span><div class="hr-tokens"><span class="hr-chip">dsh-bundle-authoring<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">handoffs</span><div class="hr-tokens"><span class="hr-chip">implementer<button class="hr-chip-x">×</button></span><span class="hr-chip">architect<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">can</span><div class="hr-tokens"><span class="hr-chip">edit-roles<button class="hr-chip-x">×</button></span><input class="hr-token-input" value=""></div></div></div><textarea class="hr-textarea hr-body" value="## 职责
+    
+    <div class="viewArea">
+      <section class="pv-main" data-panel="main" hidden>
+  <div class="pv-mount"><div class="hr-tab"><div class="hr-body-cols"><aside class="hr-col hr-list-col"><div class="hr-list-head"><div class="hr-seg"><button class="hr-seg-btn hr-seg-on">本项目</button><button class="hr-seg-btn">全局</button></div><input class="hr-input hr-filter" value="" placeholder="筛选岗位"><button class="hr-new">＋ 新建岗位</button></div><ul class="hr-rows"><li class="hr-row"><span class="hr-row-title">代码评审员</span><span class="hr-row-meta">reviewer · v3</span></li><li class="hr-row"><span class="hr-row-title">实现者</span><span class="hr-row-meta">implementer · v2</span></li></ul><div class="hr-builtins"><p class="hr-muted hr-pad">随包岗位只读，复制后即可编辑</p><ul class="hr-rows"><li class="hr-row hr-row-builtin"><span class="hr-row-title">培训员</span><span class="hr-row-meta">trainer<button class="hr-link">复制到本项目</button></span></li></ul></div></aside><section class="hr-col hr-editor-col"><div class="hr-editor"><div class="hr-ed-head"><div class="hr-ed-title-wrap"><input class="hr-title" value="代码评审员"><div class="hr-meta"><span>reviewer</span><span>·</span><span>本项目</span><span>·</span><span>v3</span><span>·</span><span class="hr-faint">已保存</span></div></div><div class="hr-actions"><button class="hr-btn hr-ghost">复制岗位提示词</button><button class="hr-btn">重新载入</button><button class="hr-btn hr-primary" disabled>保存</button><button class="hr-btn hr-danger">归档</button></div></div><div class="hr-grid"><div class="hr-field"><span class="hr-label">能力（逗号分隔）</span><div class="hr-tokens"><span class="hr-chip">静态分析<button class="hr-chip-x" aria-label="移除 静态分析">×</button></span><span class="hr-chip">风险识别<button class="hr-chip-x" aria-label="移除 风险识别">×</button></span><span class="hr-chip">回归验证<button class="hr-chip-x" aria-label="移除 回归验证">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">技能（逗号分隔）</span><div class="hr-tokens"><span class="hr-chip">dsh-bundle-authoring<button class="hr-chip-x" aria-label="移除 dsh-bundle-authoring">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">交接对象（岗位 id，逗号分隔）</span><div class="hr-tokens"><span class="hr-chip">implementer<button class="hr-chip-x" aria-label="移除 implementer">×</button></span><span class="hr-chip">architect<button class="hr-chip-x" aria-label="移除 architect">×</button></span><input class="hr-token-input" value=""></div></div><div class="hr-field"><span class="hr-label">权限（edit-roles / train）</span><div class="hr-tokens"><span class="hr-chip">edit-roles<button class="hr-chip-x" aria-label="移除 edit-roles">×</button></span><input class="hr-token-input" value=""></div></div><label class="hr-field"><span class="hr-label">模型（provider/model，留空继承默认路由）</span><input class="hr-input" value=""></label></div><textarea class="hr-textarea hr-body">## 职责
 对变更做风险分级，给出可执行的修复清单；不替作者改代码，只指出「哪里会坏、为什么、怎么验证」。
 
 ## 工作方式
@@ -146,23 +179,38 @@
 向上：architect（设计约束）；向下：implementer（修复清单）。
 
 ## 完成标准
-每条风险都有触发条件、后果与验证方式。">## 职责
-对变更做风险分级，给出可执行的修复清单；不替作者改代码，只指出「哪里会坏、为什么、怎么验证」。
-
-## 工作方式
-先看测试再看实现；diff 超过 400 行先要求拆 PR；每个结论都要能指到具体行。
-
-## 交互对象
-向上：architect（设计约束）；向下：implementer（修复清单）。
-
-## 完成标准
-每条风险都有触发条件、后果与验证方式。</textarea><details class="hr-guide" open><summary>guide</summary><textarea class="hr-textarea hr-guide-text" value="阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。
+每条风险都有触发条件、后果与验证方式。</textarea><details class="hr-guide" open><summary>岗位指导：指向 wiki 页面与阅读顺序</summary><textarea class="hr-textarea hr-guide-text">阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。
 - guide/error-codes.md
-- adr/0007-role-orchestration.md">阅读顺序：先读 wiki 的《评审约定》→ 再看《错误码规范》→ 最后看 ADR-0007。
-- guide/error-codes.md
-- adr/0007-role-orchestration.md</textarea><div class="hr-guide-actions"><button class="hr-btn">guideSave</button></div></details><p class="hr-hint">promptHint</p></div></section><aside class="hr-col hr-side-col"><h3 class="hr-side-title">notes (3)</h3><div><ul class="hr-note-list"><li><span class="hr-note-meta">2026-11-13 18:03 · trainer</span><p>跨岗位经验：架构师的「爆炸半径」可以直接用作评审第一条判据。</p></li><li><span class="hr-note-meta">2026-11-14 21:12 · reviewer</span><p>先看测试再看实现：测试表达了作者的意图，实现只是手段。</p></li><li><span class="hr-note-meta">2026-11-15 02:40 · lead</span><p>diff 超过 400 行才要求拆 PR，否则是噪声。</p></li></ul><textarea class="hr-textarea hr-note-input" value="" placeholder="notePlaceholder"></textarea><div class="hr-note-actions"><button class="hr-btn hr-primary" disabled>noteAdd</button></div></div><h3 class="hr-side-title">dataAt</h3><p class="hr-muted">本项目 .dsh/roles/<br></br>全局 /Users/you/.dsh/roles</p></aside></div></div></div>
+- adr/0007-role-orchestration.md</textarea><div class="hr-guide-actions"><button class="hr-btn">保存指导</button></div></details><p class="hr-hint">复制后粘进新会话，首行即绑定这个岗位</p></div></section><aside class="hr-col hr-side-col"><h3 class="hr-side-title">经验 (3)</h3><div><ul class="hr-note-list"><li><span class="hr-note-meta">2026-11-13 18:03 · trainer</span><p>跨岗位经验：架构师的「爆炸半径」可以直接用作评审第一条判据。</p></li><li><span class="hr-note-meta">2026-11-14 21:12 · reviewer</span><p>先看测试再看实现：测试表达了作者的意图，实现只是手段。</p></li><li><span class="hr-note-meta">2026-11-15 02:40 · lead</span><p>diff 超过 400 行才要求拆 PR，否则是噪声。</p></li></ul><textarea class="hr-textarea hr-note-input" placeholder="一条一事：什么信号出现时 → 做什么判断 → 为什么"></textarea><div class="hr-note-actions"><button class="hr-btn hr-primary" disabled>记一条经验</button></div></div><h3 class="hr-side-title">数据位置</h3><p class="hr-muted">本项目 .dsh/roles/<br></br>全局 /Users/you/.dsh/roles</p></aside></div></div></div>
+</section>
+      
+    </div>
   </main>
 </div>
-<script>globalThis.__previewReady = true</script>
+<aside id="dswPreview" aria-label="DSH 右侧栏 mock">
+  <header>DSH 文档预览 · 右侧栏 mock <button type="button" id="dswClose">关闭</button></header>
+  <div class="pv-addr" id="dswAddr"></div>
+  <div class="pv-body">
+    <p>真实实现：<code>ctx.get('sidebarRight').openResource(address)</code>，由 DSH 自己渲染 Markdown / 代码 / 图片 / PDF / Office / HTML。</p>
+    <p>这个障碍物只是预览页的 mock：它证明按钮构造的地址就是 <code>dsh-resource://file/session/…</code>，不是面板自绘的文本预览。</p>
+  </div>
+</aside>
+<script>
+  // The panel mounts are static snapshots; ?panel= picks which state is shown.
+  const wanted = new URLSearchParams(location.search).get('panel') || 'main';
+  document.querySelectorAll('[data-panel]').forEach((node) => { node.hidden = node.dataset.panel !== wanted; });
+  // Fake sidebarRight: clicking a deliverable shows the address it would open.
+  const preview = document.getElementById('dswPreview');
+  const address = document.getElementById('dswAddr');
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest && event.target.closest('.ho-art-open');
+    if (trigger === undefined || trigger === null) return;
+    if (trigger.disabled) return;
+    address.textContent = trigger.dataset.address || '(no address)';
+    preview.classList.add('on');
+  });
+  document.getElementById('dswClose').addEventListener('click', () => preview.classList.remove('on'));
+  globalThis.__previewReady = true;
+</script>
 </body>
 </html>

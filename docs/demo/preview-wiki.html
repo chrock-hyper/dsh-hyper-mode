@@ -17,7 +17,7 @@
   .rail { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); }
   .side { background:var(--dsw-alias-bg-layer-2); border-right:1px solid var(--dsw-alias-border-l1); padding:12px 10px; }
   .side div { height:28px; margin:4px 0; border-radius:6px; background:var(--dsw-alias-bg-layer-1); opacity:.6; }
-  .main { display:flex; flex-direction:column; min-width:0; }
+  .main { display:flex; flex-direction:column; min-width:0; min-height:0; }
   .sesshead { background:var(--dsw-alias-bg-layer-1); border-bottom:1px solid var(--dsw-alias-border-l1); padding:14px 20px 0; }
   .sesstop { display:flex; justify-content:space-between; color:var(--dsw-alias-label-secondary); font-size:11.5px; }
   .sesstop b { color:var(--dsw-alias-label-primary); font-size:14px; font-weight:600; }
@@ -25,6 +25,36 @@
   .tabs span { padding:8px 10px 9px; border-bottom:2px solid transparent; }
   .tabs .on { color:var(--dsw-alias-label-primary); border-bottom-color:var(--dsw-alias-brand-primary); font-weight:550; }
   .viewArea { display:flex; flex:1; flex-direction:column; min-height:0; }
+  [hidden] { display:none !important; }
+  .pv-head { display:flex; flex-wrap:wrap; gap:4px 14px; align-items:baseline; padding:6px 14px;
+    border-bottom:1px dashed var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2);
+    font-size:11px; color:var(--dsw-alias-label-secondary); flex:none; }
+  .pv-head b { color:var(--dsw-alias-label-primary); font-size:11.5px; }
+  .pv-head a { color:var(--dsw-alias-brand-primary); text-decoration:none; }
+  .pv-head a:hover { text-decoration:underline; }
+  .pv-mut { color:var(--dsw-alias-label-secondary); }
+  .pv-main { display:flex; flex:1 1 auto; min-width:0; min-height:0; }
+  .pv-main .pv-mount { display:flex; flex:1 1 auto; min-width:0; flex-direction:column; min-height:0; }
+  .pv-state { position:fixed; inset:70px 0 0 0; display:flex; flex-direction:column; padding:14px;
+    background:var(--dsw-alias-bg-base); z-index:40; }
+  .pv-state-head { display:flex; gap:12px; align-items:baseline; padding:0 4px 8px; font-size:12px;
+    color:var(--dsw-alias-label-secondary); flex:none; }
+  .pv-state-head b { color:var(--dsw-alias-label-primary); font-size:13px; }
+  .pv-state .pv-mount { display:flex; flex:1 1 auto; flex-direction:column; min-height:0;
+    border:1px solid var(--dsw-alias-border-l1); border-radius:10px; background:var(--dsw-alias-bg-layer-1);
+    overflow:hidden; }
+  #dswPreview { position:fixed; top:56px; right:0; bottom:0; width:380px; display:none; z-index:50;
+    background:var(--dsw-alias-bg-layer-1); border-left:1px solid var(--dsw-alias-border-l1);
+    box-shadow:-12px 0 36px rgba(15,23,42,.14); flex-direction:column; }
+  #dswPreview.on { display:flex; }
+  #dswPreview header { display:flex; align-items:center; gap:8px; padding:10px 12px;
+    border-bottom:1px solid var(--dsw-alias-border-l1); font-size:12px; font-weight:600; }
+  #dswPreview header button { margin-left:auto; }
+  #dswPreview .pv-addr { margin:10px 12px; padding:8px; border-radius:8px; font-size:10.5px; word-break:break-all;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--dsw-alias-bg-layer-2); border:1px solid var(--dsw-alias-border-l1); }
+  #dswPreview .pv-body { padding:0 12px 12px; overflow:auto; font-size:12px; color:var(--dsw-alias-label-secondary); }
+  #dswPreview code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
 </style>
 <style>
 .dw-root, .dw-root *, .dw-root *::before, .dw-root *::after { box-sizing: border-box; }
@@ -143,9 +173,12 @@ textarea.dw-dialog-input { min-height: 84px; resize: vertical; }
   <main class="main">
     <header class="sesshead">
       <div class="sesstop"><b>岗位与 wiki 评审</b><span>deepseek-v4.1 · 增强创造模式</span></div>
-      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span class="on">Wiki</span><span>岗位</span></nav>
+      <nav class="tabs"><span>对话</span><span>轨迹</span><span>统计</span><span>岗位</span><span>Wiki</span><span class="">工单</span></nav>
     </header>
-    <div class="viewArea" id="mount"><div class="dw-root"><div class="dw-body"><aside class="dw-tree"><div class="dw-treehead"><div class="dw-controls"><div class="dw-segmented"><button class="dw-segment dw-segment-active">scopeGlobal</button><button class="dw-segment">scopeProject</button></div><span class="dw-chip">pendingCount</span><span class="dw-chip dw-chip-quiet">gitOn</span><button class="dw-button">refresh</button></div></div><input class="dw-input dw-search" value="" placeholder="searchPlaceholder"><button class="dw-newpage">＋ newPage</button><div class="dw-tree-meta">pagesCount · draftsCount</div><ul class="dw-page-list"><li><button class="dw-page-row dw-page-row-active"><span class="dw-page-title">错误码规范</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>guide/error-codes.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">新人上手</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>guide/onboarding.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">ADR-0007 岗位制编排</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>adr/0007-role-orchestration.md</span></button></li><li><button class="dw-page-row"><span class="dw-page-title">术语表</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>domain/glossary.md</span></button></li></ul></aside><main class="dw-main"><div class="dw-page-head"><div><h2>错误码规范</h2><div class="dw-page-meta"><span class="dw-mono">guide/error-codes.md</span><span class="dw-dot dw-dot-stable"></span><span>stable</span><span class="dw-muted">updated 2026-11-12</span></div></div><div class="dw-tabs"><button class="dw-tab dw-tab-active">tabSource</button><button class="dw-tab">tabPreview</button><button class="dw-tab">tabDraft</button><span class="dw-spacer"></span><button class="dw-button">edit</button></div></div><textarea class="dw-input dw-editor" value="---
+    
+    <div class="viewArea">
+      <section class="pv-main" data-panel="main" hidden>
+  <div class="pv-mount"><div class="dw-root"><div class="dw-body"><aside class="dw-tree"><div class="dw-treehead"><div class="dw-controls"><div class="dw-segmented" role="group" aria-label="Wiki"><button class="dw-segment dw-segment-active">全局</button><button class="dw-segment">项目</button></div><span class="dw-chip">待审 {count}</span><span class="dw-chip dw-chip-quiet">git 历史开</span><button class="dw-button">刷新</button></div></div><input class="dw-input dw-search" value="" placeholder="搜索标题、标签、文件名…"><button class="dw-newpage">＋ 新建页面</button><div class="dw-tree-meta">{count} 页 · {count} 份草稿</div><ul class="dw-page-list"><li><button class="dw-page-row dw-page-row-active" title="guide/error-codes.md"><span class="dw-page-title">错误码规范</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>guide/error-codes.md</span></button></li><li><button class="dw-page-row" title="guide/onboarding.md"><span class="dw-page-title">新人上手</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>guide/onboarding.md</span></button></li><li><button class="dw-page-row" title="adr/0007-role-orchestration.md"><span class="dw-page-title">ADR-0007 岗位制编排</span><span class="dw-page-sub"><span class="dw-dot dw-dot-wip"></span>adr/0007-role-orchestration.md</span></button></li><li><button class="dw-page-row" title="domain/glossary.md"><span class="dw-page-title">术语表</span><span class="dw-page-sub"><span class="dw-dot dw-dot-stable"></span>domain/glossary.md</span></button></li></ul></aside><main class="dw-main"><div class="dw-page-head"><div><h2>错误码规范</h2><div class="dw-page-meta"><span class="dw-mono">guide/error-codes.md</span><span class="dw-dot dw-dot-stable"></span><span>stable</span><span class="dw-muted">更新于 2026-11-12</span></div></div><div class="dw-tabs"><button class="dw-tab dw-tab-active">源码</button><button class="dw-tab">预览</button><button class="dw-tab">草稿对比</button><span class="dw-spacer"></span><button class="dw-button">编辑</button></div></div><textarea class="dw-input dw-editor">---
 title: 错误码规范
 tags: [约定, api]
 status: stable
@@ -153,17 +186,36 @@ updated: 2026-11-12
 ---
 
 ## 原则
-错误码是接口的一部分，一旦发布就只能新增，不能改语义。">---
-title: 错误码规范
-tags: [约定, api]
-status: stable
-updated: 2026-11-12
----
-
-## 原则
-错误码是接口的一部分，一旦发布就只能新增，不能改语义。</textarea></main><aside class="dw-rail"><section class="dw-section"><h3>draftTitle</h3><dl class="dw-dl"><dt>status</dt><dd>draftStatus_pending</dd><dt>draftAuthor</dt><dd>lead</dd><dt>draftBase</dt><dd class="dw-mono">3f2a91c4</dd><dt>draftUpdated</dt><dd>2026-11-15T02:40:00.000Z</dd></dl><div class="dw-actions"><button class="dw-button dw-primary">approve</button><button class="dw-button">reject</button></div></section><section class="dw-section"><h3>backlinks (2)</h3><ul class="dw-backlinks"><li><button class="dw-link">新人上手</button></li><li><button class="dw-link">ADR-0007 岗位制编排</button></li></ul></section><section class="dw-section"><h3>meta</h3><dl class="dw-dl"><dt>path</dt><dd class="dw-mono">guide/error-codes.md</dd><dt>tags</dt><dd>约定, api</dd><dt>contract</dt><dd class="dw-mono">/Users/you/.dsh/wiki.md</dd></dl></section><section class="dw-section"><div class="dw-actions"><button class="dw-button">renamePage</button><button class="dw-button dw-danger">deletePage</button></div></section></aside></div></div></div>
+错误码是接口的一部分，一旦发布就只能新增，不能改语义。</textarea></main><aside class="dw-rail"><section class="dw-section"><h3>草稿</h3><dl class="dw-dl"><dt>状态</dt><dd>待批准</dd><dt>作者</dt><dd>lead</dd><dt>基线</dt><dd class="dw-mono">3f2a91c4</dd><dt>更新</dt><dd>2026-11-15T02:40:00.000Z</dd></dl><div class="dw-actions"><button class="dw-button dw-primary">批准</button><button class="dw-button">打回…</button></div></section><section class="dw-section"><h3>反链 (2)</h3><ul class="dw-backlinks"><li><button class="dw-link">新人上手</button></li><li><button class="dw-link">ADR-0007 岗位制编排</button></li></ul></section><section class="dw-section"><h3>信息</h3><dl class="dw-dl"><dt>路径</dt><dd class="dw-mono">guide/error-codes.md</dd><dt>标签</dt><dd>约定, api</dd><dt>契约文件</dt><dd class="dw-mono">/Users/you/.dsh/wiki.md</dd></dl></section><section class="dw-section"><div class="dw-actions"><button class="dw-button">重命名…</button><button class="dw-button dw-danger">删除…</button></div></section></aside></div></div></div>
+</section>
+      
+    </div>
   </main>
 </div>
-<script>globalThis.__previewReady = true</script>
+<aside id="dswPreview" aria-label="DSH 右侧栏 mock">
+  <header>DSH 文档预览 · 右侧栏 mock <button type="button" id="dswClose">关闭</button></header>
+  <div class="pv-addr" id="dswAddr"></div>
+  <div class="pv-body">
+    <p>真实实现：<code>ctx.get('sidebarRight').openResource(address)</code>，由 DSH 自己渲染 Markdown / 代码 / 图片 / PDF / Office / HTML。</p>
+    <p>这个障碍物只是预览页的 mock：它证明按钮构造的地址就是 <code>dsh-resource://file/session/…</code>，不是面板自绘的文本预览。</p>
+  </div>
+</aside>
+<script>
+  // The panel mounts are static snapshots; ?panel= picks which state is shown.
+  const wanted = new URLSearchParams(location.search).get('panel') || 'main';
+  document.querySelectorAll('[data-panel]').forEach((node) => { node.hidden = node.dataset.panel !== wanted; });
+  // Fake sidebarRight: clicking a deliverable shows the address it would open.
+  const preview = document.getElementById('dswPreview');
+  const address = document.getElementById('dswAddr');
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest && event.target.closest('.ho-art-open');
+    if (trigger === undefined || trigger === null) return;
+    if (trigger.disabled) return;
+    address.textContent = trigger.dataset.address || '(no address)';
+    preview.classList.add('on');
+  });
+  document.getElementById('dswClose').addEventListener('click', () => preview.classList.remove('on'));
+  globalThis.__previewReady = true;
+</script>
 </body>
 </html>

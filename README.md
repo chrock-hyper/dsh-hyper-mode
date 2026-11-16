@@ -8,7 +8,7 @@
 |---|---|---|
 | 岗位 | `hyper-roles` | 可编辑的角色卡、会话级岗位绑定、按岗位委派；数据在 `~/.dsh/roles` 与 `<项目>/.dsh/roles` |
 | Wiki | `hyper-wiki` | 约定优先的 Markdown 知识库、草稿审批、反链、每作用域 git 历史 |
-| 工单 | `hyper-org` | 按阶段分组的工单看板、建单 / 改阶段 / 签收、交付物文本预览；数据仍是 `<项目>/.dsh/org` |
+| 工单 | `hyper-org` | 五列看板 + 固定检查器、建单 / 改阶段 / 签收；拖拽与 Agent 走同一条 `PATCH`，交付物在 DSH 右侧栏预览；数据仍是 `<项目>/.dsh/org` |
 
 三个面板不共享代码，只通过文件约定互操作（岗位的「岗位指导」引用 wiki 页面，培训员的报告写成 wiki 草稿，工单的 DRI 引用岗位 id）。
 
@@ -207,13 +207,15 @@ can: edit-roles
 
 ### 面板（会话里的「工单」标签页）
 
-三栏：左栏按阶段分组（intake / active / review / blocked / done，末尾 dropped），组内按 `updatedAt` 升序，超龄一眼看见；中栏是一张单的六项——当前阶段、规模、DRI、验收标准、交付物、完整日志（不截断，>100 条才折叠）；右栏是签收 / 打回与改阶段 / 领取人。
+**五列 Kanban + 右侧固定检查器**：intake / active / review / blocked / done，`done` 只能由签收进入、`dropped` 折叠成看板底部一条。顶部常驻「在制 x/wipLimit / 超龄 / 无验收」，卡片显示标题（两行截断，悬停看全文）、规模、DRI 岗位名、超龄、验收与交付物条数，以及「无验收 / 受阻 / 超龄」标记。检查器给六项——当前阶段、规模、DRI（岗位名 + id）、验收标准（空时警示）、交付物（路径 + 状态 + 「在 DSH 预览中打开」）、完整日志（最新在上，`pre-wrap`，>100 条折叠）；下面接签收 / 打回与改阶段 / DRI / 验收标准 / note / 保存。「新建工单」是弹层，被压回 intake 用信息条解释，不当错误。
 
 - **规则只有一套**：面板的写操作与 `org_order` 走同一个 `lib/rules.js`（note 必填、领取人不能自签、DRI 必须存在），门禁仍由 `lib/store.js` 执行；面板不自己判断，只渲染 Host 下发的 `sign.blockers` 与 `create.notes`。
+- **拖拽不是第二套移动逻辑**：拖卡片和检查器的阶段下拉都只发同一个 `PATCH /hyper-org/api/order/:id`，Host 侧与 `org_order action=update` 同一条 `updateWithRules → store.saveOrder`。客户端**不预判门禁**（不拦 M/L 无验收、在制满或 done），Host 的 409/400 原文进错误条、卡片原地不动（不做乐观移动），成功与失败后都重拉 `/state` 与 `/order`。拖进 `done` 照常发请求，由 Host 回 `done_forbidden`；拖进 `dropped` 先在弹层里补 `update` 本来就要求的 note，理由为空不发请求。键盘 / 无拖拽用户走检查器里同一个函数。
+- **交付物复用 DSH 自己的预览**：面板不读文件内容，也没有 `/hyper-org/api/artifact`（路由已删）。`describeArtifact` 只回 `{ path, kind, absolutePath? }`；客户端用绝对路径构造 `dsh-resource://file/session/<sessionId>/<path>`（与官方 `sessionFileAddress` 同形：逐段编码、`%3A` 还原为 `:`、绝对路径保留前导 `/`），再调 `ctx.get('sidebarRight').openResource(address)` 在最右侧栏打开，Markdown / 代码 / 图片 / PDF / Office / HTML 全由 DSH 渲染。`sidebarRight` 惰性解析；服务缺失或没有绝对路径时按钮禁用并写明原因，不静默失败。
 - **身份同源**：`actor` 取当前会话的岗位绑定（与工具同一个 projection）；未绑定即 `lead`。日志里的 `by` 是标签，自签判定只看真实岗位——手改文件把 DRI 写成 `lead` 不会误伤主代理。
 - **建单受同一套门禁**：M/L 无验收标准落 intake，在制满时强制排队；降级是 200 + 解释，不是失败。
-- **交付物「可点开」= 文本预览 + 复制路径**：Host 的 `/hyper-org/api/artifact` 依次校验路径形态、是否在工单 `artifacts` 里声明、词法包含、符号链接包含、类型与体积，再做二进制嗅探；HTML 不渲染（不把仓库代码执行在 GUI 页面里）。
 - **数据不动**：`schemaVersion` 仍为 1，`.dsh/org` 是唯一数据源，面板不建第二份存储、不改写老文件。
+- **窄屏**：<1240px 时检查器可折叠（默认展开，按钮收起），看板横向滚动，不遮挡主操作。
 
 路由前缀 `/hyper-org/api`（跟 `hyper-roles` 一致）；面板客户端在独立嵌套包 `plugins/hyper-org/package.json`（`@chrock-studio/dsh-hyper-org`），标签页 `order: 70` 排在岗位（50）、Wiki（60）右侧。
 
@@ -252,7 +254,7 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-roles.mjs   # 岗位
 ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki：真实 Host 装配
 ```
 
-界面自查（不改 app、不点按钮）：`bun scripts/preview.mjs roles` / `wiki` / `orders` 会把**真实组件**渲染成 `docs/demo/preview-*.html`，用无头 Chrome 截图即可看到 1200/1440 下的实际样子。它复刻了 `conversation.view` 的 flex 容器，所以布局塌缩这类问题会在这里暴露。
+界面自查（不改 app、不点按钮）：`bun scripts/preview.mjs roles` / `wiki` / `orders` 会把**真实组件**渲染成 `docs/demo/preview-*.html`，用无头 Chrome 截图即可看到 1200/1440 下的实际样子。它复刻了 `conversation.view` 的 flex 容器，所以布局塌缩这类问题会在这里暴露。`orders` 页另外挂了空态 / 错误 / 无项目根三个快照，用 `?panel=empty|error|noproject` 切换；交付物按钮带真实 `data-address`，点开时页面里的假 `sidebarRight` 会显示即将交给 DSH 的地址。
 
 端到端验收用例见 `plugins/hyper-creator/VERIFY.md`、`plugins/hyper-roles/VERIFY.md`、`plugins/hyper-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
 

@@ -241,7 +241,7 @@ describe('GET /order', () => {
     expect(json.order.acceptance).toEqual(['跑通', '不打折'])
     expect(json.order.log.length).toBeGreaterThan(0)
     expect(json.artifacts).toEqual([
-      { path: 'report.md', kind: 'file', bytes: 9 },
+      { path: 'report.md', kind: 'file', bytes: 9, absolutePath: join(app.project, 'report.md') },
       { path: 'gone.md', kind: 'missing' },
     ])
     expect(json.sign.allowed).toBe(false)
@@ -276,46 +276,29 @@ describe('GET /order', () => {
   })
 })
 
-describe('GET /artifact', () => {
-  test('previews a file the order declares, and refuses everything else', async () => {
+describe('the removed artifact route', () => {
+  test('reads no file contents, and still hands the path to DSH preview', async () => {
     const app = sandbox()
     const created = app.order({ title: '带交付物', size: 'S' })
     writeFileSync(join(app.project, 'notes.md'), '# 结论\n一切正常\n', 'utf8')
-    mkdirSync(join(app.project, 'folder'), { recursive: true })
-    writeFileSync(join(app.project, 'binary.dat'), Buffer.from([0x00, 0x01, 0x02]))
-    saveOrder(app.dirs, {
-      id: created.order.id,
-      by: 'lead',
-      patch: { artifacts: ['notes.md', 'folder', 'binary.dat', '../outside.txt'] },
+    saveOrder(app.dirs, { id: created.order.id, by: 'lead', patch: { artifacts: ['notes.md'] } })
+
+    const res = await app.call('GET', '/artifact', {
+      query: { session: 'sess-lead', id: created.order.id, path: 'notes.md' },
     })
-    const query = { session: 'sess-lead', id: created.order.id }
-
-    const ok = await app.call('GET', '/artifact', { query: { ...query, path: 'notes.md' } })
-    expect(ok.status).toBe(200)
-    expect(ok.json()).toEqual(expect.objectContaining({ ok: true, path: 'notes.md', truncated: false }))
-    expect(ok.json().text).toContain('一切正常')
-
-    const undeclared = await app.call('GET', '/artifact', { query: { ...query, path: 'package.json' } })
-    expect(undeclared.status).toBe(400)
-    expect(undeclared.json().code).toBe('not_declared')
-
-    const escape = await app.call('GET', '/artifact', { query: { ...query, path: '../outside.txt' } })
-    expect(escape.status).toBe(400)
-    expect(escape.json().code).toBe('path_escape')
-
-    const directory = await app.call('GET', '/artifact', { query: { ...query, path: 'folder' } })
-    expect(directory.status).toBe(409)
-    expect(directory.json().code).toBe('is_directory')
-
-    const binary = await app.call('GET', '/artifact', { query: { ...query, path: 'binary.dat' } })
-    expect(binary.status).toBe(415)
-    expect(binary.json().code).toBe('binary')
-  })
-
-  test('answers 404 when the order is gone', async () => {
-    const app = sandbox()
-    const res = await app.call('GET', '/artifact', { query: { id: 'wo-20261115-404', path: 'a.txt' } })
     expect(res.status).toBe(404)
+    expect(res.json().code).toBe('not_found')
+
+    // The panel opens deliverables through DSH's right sidebar, so the only
+    // thing it needs from the Host is the absolute path.
+    const detail = await app.call('GET', '/order', { query: { session: 'sess-lead', id: created.order.id } })
+    expect(detail.json().artifacts).toEqual([{
+      path: 'notes.md',
+      kind: 'file',
+      bytes: 22,
+      absolutePath: join(app.project, 'notes.md'),
+    }])
+    expect(detail.json().text).toBeUndefined()
   })
 })
 
