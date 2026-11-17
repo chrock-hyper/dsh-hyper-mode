@@ -16,5 +16,15 @@
   },
   "dependencies": {
     "@chrock-studio/dsh-hyper-shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tool-executor-native": "^0.2.2-rc.3",
+    "@deepseek-ai/dsh-tool-executor-ptc": "^0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "^0.2.2-rc.3"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tool-executor-ptc": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3"
   }
 }

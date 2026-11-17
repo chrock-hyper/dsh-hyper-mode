@@ -2,12 +2,16 @@
 
 跨插件共享的纯代码。**不是一个可挂载的插件**，不出现在 `cordis.patch.yml` 里。
 
-用法：插件内直接相对引用。
+插件通过包名引用（`workspace:*` 依赖），不做相对路径穿透：
 
-```js
-import { groupConsecutive } from '../shared/batch.js'
+```ts
+import { findProjectRoot } from '@chrock-studio/dsh-hyper-shared/paths'
 ```
 
 现有内容：
 
-- `shipped.js` — 按显式路径同步加载 DSH 随包提供的 `@deepseek-ai/*`（本地 `link:` 安装解析不到安装目录）。只允许在 `apply()` 里用，不要在模块作用域 import。
+- `paths.ts` — DSH 状态目录、项目根判定、路径安全、JSON 读取。
+- `host.ts` — 插件实际用到的 Host 接口面（`HostContext`、服务形状、`Disposable` 等），纯类型。
+- `package.json` — 只有 `exports`，没有构建产物：本包由各插件在打包时**内联**（`alwaysBundle`）。
+
+随包（`@deepseek-ai/*`）不在这里中转：各插件用 peer + dev + external 自己声明、自己 `import`。

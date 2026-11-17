@@ -37,7 +37,6 @@ Agent：（调用 wiki 工具，action=draft，path=guide/error-codes）
 plugins/hyper-wiki/
 ├─ index.js                    # 组装：config、工具、提示段、HTTP 路由、随包 skill
 ├─ package.json                # 嵌套包：只声明标签页的 dsh.client
-├─ lib/shipped.js              # loadShipped 的本地副本（shipped 包只能在 apply() 里加载）
 ├─ lib/scopes.js               # 两个作用域的路径、最近项目、原子写
 ├─ lib/page.js                 # frontmatter 解析/序列化、页面 id 校验、sha1
 ├─ lib/draft.js                # 草稿镜像路径、draft: 块、批准/打回状态机

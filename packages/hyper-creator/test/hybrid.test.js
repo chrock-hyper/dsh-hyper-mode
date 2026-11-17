@@ -1,8 +1,8 @@
 /**
- * Wiring test: replaces the plugin's one dependency seam (`lib/shipped.js`) with
- * fakes, so `describe`, `execute`, and `apply` can be exercised without a mounted
- * DSH runtime. Mocking our own module keeps the plugin's top level synchronous —
- * the real loader must never see a rejected import.
+ * Wiring test: replaces the three shipped modules the executor drives with
+ * fakes, so `describe`, `execute`, and `apply` can be exercised without a
+ * mounted DSH runtime. They are ordinary peer imports now; mocking them keeps
+ * the test free of the installation.
  */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -45,17 +45,9 @@ const fakes = {
   },
 }
 
-/** Specifier to fail on, so the visibility guarantee can be tested. */
-let failSpec = null
-
-mock.module('@chrock-studio/dsh-hyper-shared/shipped', () => ({
-  loadShipped: (spec) => {
-    if (spec === failSpec) throw new Error(`simulated resolution failure for ${spec}`)
-    const fake = fakes[spec]
-    if (!fake) throw new Error(`unexpected specifier: ${spec}`)
-    return fake
-  },
-}))
+mock.module('@deepseek-ai/dsh-tools', () => fakes['@deepseek-ai/dsh-tools'])
+mock.module('@deepseek-ai/dsh-tool-executor-native', () => fakes['@deepseek-ai/dsh-tool-executor-native'])
+mock.module('@deepseek-ai/dsh-tool-executor-ptc', () => fakes['@deepseek-ai/dsh-tool-executor-ptc'])
 
 const mod = await import('../src/index.ts')
 const { HybridToolExecutor } = mod
@@ -166,13 +158,4 @@ describe('apply', () => {
     expect(inject).toEqual(['tools', 'systemPrompt', 'ptcRuntime'])
   })
 
-  test('surfaces a resolution failure as a thrown error, not a silent no-op', () => {
-    failSpec = '@deepseek-ai/dsh-tools'
-    try {
-      const ctx = { ...makeCtx(), tools: { setExecutor: () => () => {} }, effect: (body) => body() }
-      expect(() => mod.apply(ctx, {})).toThrow(/simulated resolution failure/)
-    } finally {
-      failSpec = null
-    }
-  })
 })

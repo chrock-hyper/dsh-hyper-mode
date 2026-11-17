@@ -1,18 +1,15 @@
 /**
  * Wiring test: the provider is registered against a fake Host, so the manifest
  * contract and the assembly call can be asserted without mounting a runtime.
- * `lib/shared` resolution is faked for the same reason as the executor's test.
+ * The shipped scope helper is a peer import, mocked for the same reason.
  */
 import { describe, expect, test, mock } from 'bun:test'
 
 const assembleCalls = []
 const registered = []
 
-mock.module('@chrock-studio/dsh-hyper-shared/shipped', () => ({
-  loadShipped: (specifier) => {
-    if (specifier !== '@deepseek-ai/dsh-scope') throw new Error(`unexpected specifier: ${specifier}`)
-    return { scopeOf: (ctx) => ctx.scopeKey }
-  },
+mock.module('@deepseek-ai/dsh-scope', () => ({
+  scopeOf: (ctx) => ctx.scopeKey,
 }))
 
 const mod = await import('../src/index.ts')

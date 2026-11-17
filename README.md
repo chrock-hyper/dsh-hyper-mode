@@ -90,9 +90,10 @@ Client 的**源码**可以拆成多个 `.tsx`（JSX 由 tsdown 编译），但**
 是惰性 CJS 表，`factory(require)` 只认 `react` / `react/jsx-runtime` 这类基线，没有相对路径解析。
 构建时 `react` 与 `react/jsx-runtime` 保持外部，其余全部内联。
 
-`@deepseek-ai/*` 永远不进产物：随包装载走 `loadShipped`，而 profile resolver 把裸请求路由到安装副本，
-内联会造出第二个 Cordis 实例。`@chrock-studio/dsh-hyper-shared` 相反——它没有自己的构建，
-由各插件在打包时内联。
+`@deepseek-ai/*` 永远不进产物，也永远不做运行时探路径：每个插件在 `peerDependencies` +
+`devDependencies` 里声明用到的包，构建时保持 external。装进 profile 后 resolver 把裸请求指到宿主副本；
+本地 link 开发期解析到 workspace 里的 devDependency 副本。`@chrock-studio/dsh-hyper-shared` 相反——
+它没有自己的构建，由各插件在打包时内联。
 
 **聚合点是 `packages/bundle/cordis.patch.yml`，不是任何 `index.js`**：DSH 按补丁里的行挂载插件，
 包根导出它们并不会自动生效。

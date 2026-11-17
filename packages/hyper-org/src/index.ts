@@ -12,7 +12,6 @@
  * @module @chrock-studio/dsh-hyper-org
  */
 import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
-import { loadShipped } from '@chrock-studio/dsh-hyper-shared/shipped'
 import { registerBinding, resolveDirs } from '@chrock-studio/dsh-hyper-roles/internal'
 
 import { API_PREFIX, createApiHandler } from './api.ts'
@@ -20,7 +19,9 @@ import type { OrgConfig } from './config.ts'
 import { loadConfig } from './config.ts'
 import { renderPulse } from './marker.ts'
 import { listOrders, orgDirs, type ScopeDirs } from './store.ts'
-import type { BindingHandle, ShippedToolsModule } from './tools.ts'
+import { defineTool } from '@deepseek-ai/dsh-tools'
+
+import type { BindingHandle, DefineTool } from './tools.ts'
 import { buildOrgTools } from './tools.ts'
 
 /** Cordis plugin name. */
@@ -67,7 +68,8 @@ export async function apply(ctx: HostContext): Promise<void> {
     config,
     roleDirsForAgent,
     binding,
-    shipped: loadShipped<ShippedToolsModule>('@deepseek-ai/dsh-tools', ctx),
+    // Text-only tools: the narrower contract is pinned once, here.
+    shipped: { defineTool: defineTool as unknown as DefineTool },
   })
   // `tools` and `systemPrompt` are hard dependencies (`inject`), so both
   // services are present before this body runs; the `!` records that instead

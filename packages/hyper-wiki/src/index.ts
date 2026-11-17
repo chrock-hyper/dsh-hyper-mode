@@ -9,17 +9,15 @@
  *
  * This module only assembles: it resolves the stores, registers the `wiki`
  * tool, the prompt section, the bundled review skill, and the `/wiki` routes.
- * Module scope imports only Node builtins and local modules — a shipped package
- * is loaded inside `apply()` through the shared `loadShipped` helper, because
- * the Cordis loader turns a rejected plugin import into a bare `never started`
- * row.
+ * The shipped `defineTool` helper is a plain peer import.
  *
  * This module is the facade: the config lives in `config.js`, the bundled skill
  * in `skill.js`, the host lookups in `host.js`, and the mounting in `mount.js`.
  *
  * @module @chrock-studio/dsh-hyper-wiki
  */
-import { loadShipped } from '@chrock-studio/dsh-hyper-shared/shipped'
+import { defineTool } from '@deepseek-ai/dsh-tools'
+
 import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
 
 import { createWikiApi } from './api.ts'
@@ -55,10 +53,6 @@ export {
 export { readBundledSkill } from './skill.ts'
 
 /** The shipped tools module this plugin reads `defineTool` from. */
-interface ToolsModule {
-  defineTool: WikiToolFactory
-}
-
 /**
  * Mount the wiki plugin.
  * @param ctx - Host plugin context.
@@ -87,8 +81,8 @@ export function apply(ctx: HostContext, config?: unknown): void {
     return cwd
   }
 
-  const { defineTool } = loadShipped<ToolsModule>('@deepseek-ai/dsh-tools', ctx)
-  const tool = createWikiTool(defineTool, {
+  // Text-only tool: the narrower factory contract is pinned once, here.
+  const tool = createWikiTool(defineTool as unknown as WikiToolFactory, {
     core,
     scopes,
     cwdOf: toolCwdOf,

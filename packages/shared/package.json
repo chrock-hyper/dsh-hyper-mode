@@ -7,7 +7,6 @@
   "license": "MIT",
   "exports": {
     "./paths": "./src/paths.ts",
-    "./shipped": "./src/shipped.ts",
     "./host": "./src/host.ts",
     "./package.json": "./package.json"
   }

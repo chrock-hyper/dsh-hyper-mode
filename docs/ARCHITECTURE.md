@@ -112,7 +112,7 @@ packages/shared/        纯代码库，不是 Loader 行
    `factory(require)` 只认 `react`、`react/jsx-runtime` 这类基线，没有相对路径解析——手写就只能是
    单文件。有了打包，源码拆成多个 `.tsx`，产物仍然是那一个 `lib/client.js`，两件事同时成立。
 2. **Host 半边需要类型。** `strict` + `noUncheckedIndexedAccess` 把「从模型输出、面板输入、JSON
-   文件里读出来的东西」逼成显式窄化。随包模块用 `loadShipped<T>` 在调用点声明形状，`any` 不作为退路。
+   文件里读出来的东西」逼成显式窄化。随包模块走 peer + dev + external，直接 `import`，类型来自包本身。
 
 两半的产物形状不同：Host 是 ESM（Node 直接 import），Client 是 CJS 加 `window.__ModuleLoader__.load`
 包装（页面当脚本抓取）。

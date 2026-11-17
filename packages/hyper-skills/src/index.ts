@@ -22,13 +22,13 @@
  *
  * @module @chrock-studio/dsh-hyper-skills
  */
-import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
+
 import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
 import { findProjectRoot } from '@chrock-studio/dsh-hyper-shared/paths'
-import { loadShipped } from '@chrock-studio/dsh-hyper-shared/shipped'
 
 import { runSkillCommand } from './command.ts'
 
@@ -44,25 +44,16 @@ export const inject = ['commands']
 /** Command name without the leading slash. */
 const COMMAND_NAME = 'hyper-skill'
 
-/** The shipped home-paths module this plugin reads. */
-interface HomePathsModule {
-  dshHomePath?(name: string): string | undefined
-}
-
 /**
  * Resolve `<dsh home>/skills` the way the skill provider does.
- * @param ctx - mounting context, used only for the installation anchor.
+ *
+ * `dshHomePath` is the provider's own resolver: it honours `DSH_HOME` and falls
+ * back to `~/.dsh`, so re-deriving the path here would only add a second copy
+ * of that rule.
  * @returns the user-level scanned root.
  */
-function resolveUserSkillsDir(ctx: HostContext): string {
-  try {
-    const homePaths = loadShipped<HomePathsModule>('@deepseek-ai/dsh-home-paths', ctx)
-    const resolved = homePaths?.dshHomePath?.('skills')
-    if (typeof resolved === 'string' && resolved !== '') return resolved
-  } catch {
-    // Fall through to the documented default.
-  }
-  return join(homedir(), '.dsh', 'skills')
+function resolveUserSkillsDir(): string {
+  return dshHomePath('skills')
 }
 
 /**
@@ -90,7 +81,7 @@ export function apply(ctx: HostContext): void {
   // `<packages root>/<package>/skills/`: this package's own directory is
   // `packages/hyper-skills`, so the scan root is its parent.
   const packagesRoot = dirname(fileURLToPath(new URL('../', import.meta.url)))
-  const userSkillsDir = resolveUserSkillsDir(ctx)
+  const userSkillsDir = resolveUserSkillsDir()
   const commands = ctx.commands
   if (commands === undefined) return
   ctx.effect(

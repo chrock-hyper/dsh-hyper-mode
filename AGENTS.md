@@ -47,8 +47,17 @@ DSH 的 bundle 仓库，pnpm monorepo：`packages/bundle` 是元包（只有补�
 6. `pnpm install && pnpm build`。
 
 跨包复用走具名入口（现有例子是 `@chrock-studio/dsh-hyper-roles/internal`），不要 import 兄弟包的实现文件。
-Host 的类型面在 `@chrock-studio/dsh-hyper-shared/host`；随包模块用 `loadShipped<T>(...)` 并在调用点声明
-局部 interface——不要为了省事写 `any`。
+Host 的类型面在 `@chrock-studio/dsh-hyper-shared/host`。
+
+**随包（`@deepseek-ai/*`）走三件套，不写运行时探路径。** 要用哪个包就：
+
+1. 在 `peerDependencies` 声明（装进 profile 后由 resolver 指到宿主副本）；
+2. 在 `devDependencies` 声明（本地构建、类型检查、测试解析得到）；
+3. 构建时保持 external（`build/config.ts` 的 `neverBundle`），让裸请求在运行时仍然存在。
+
+然后正常写 `import { defineTool } from '@deepseek-ai/dsh-tools'`。**不要**再写按安装目录探路径的加载器：
+那是为「link 安装下解析不到随包」准备的绕路，代价是模块级不能 import、每个调用点手写 interface。
+peer 负责安装形态，dev 负责本地形态，external 保证运行时有裸请求。
 
 ## 新界面先 demo
 

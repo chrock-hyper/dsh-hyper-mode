@@ -1,10 +1,10 @@
 /**
  * Host-side smoke check for the dsh-wiki row.
  *
- * `bun test` covers the pure logic; this covers assembly against the installed
- * DSH — `loadShipped` resolves the tool registry, `defineTool` accepts the
- * schema, the prompt section and `/wiki` route register, and one tool action
- * plus one HTTP read both answer.
+ * `bun test` covers the pure logic; this covers assembly against a real DSH —
+ * the shipped tool registry resolves, `defineTool` accepts the schema, the
+ * prompt section and `/wiki` route register, and one tool action plus one HTTP
+ * read both answer.
  *
  *   ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs
  *

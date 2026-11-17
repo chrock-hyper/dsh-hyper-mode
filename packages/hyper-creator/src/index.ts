@@ -8,17 +8,18 @@
  * every native schema, and `execute` splits one model batch into consecutive
  * runs that each go to the executor that owns that call shape.
  *
- * Shipped packages are resolved inside `apply()`, never at module scope. The
- * Cordis loader swallows a rejected plugin import into a bare `never started`
- * row with the cause only in the Host log, so a module-scope dependency on
- * `@deepseek-ai/*` fails invisibly. Resolving in `apply()` turns the same
- * failure into a `failed: <detail>` row diagnostic, and keeps this module's own
- * import free of any specifier the bundle cannot resolve.
+ * The shipped executors and schema helpers are plain imports. They are declared
+ * as peers, so a link install resolves the workspace copy and a packed install
+ * resolves the installation's own; either way the module graph is the same one
+ * the Host runs.
  *
  * @module @chrock-studio/dsh-hyper-creator
  */
+import { RUN_CODE_NAME, projectToolSchema } from '@deepseek-ai/dsh-tools'
+import { NativeToolExecutor } from '@deepseek-ai/dsh-tool-executor-native'
+import { PtcExecutor, renderToolsSdk, renderToolsSdkPy } from '@deepseek-ai/dsh-tool-executor-ptc'
+
 import type { Disposable, HostContext, SystemPromptService, ToolRegistry } from '@chrock-studio/dsh-hyper-shared/host'
-import { loadShipped } from '@chrock-studio/dsh-hyper-shared/shipped'
 
 import type { ToolSchema } from './policy.ts'
 import { HYBRID_INSTRUCTION, withRunCodePreference } from './policy.ts'
@@ -152,22 +153,21 @@ interface ToolsModule {
 export interface ShippedModules extends NativeExecutorModule, PtcExecutorModule, ToolsModule {}
 
 /**
- * Resolve everything the executor needs from the DSH installation.
- * @param ctx - mounting context, source of the installation anchor.
+ * Assemble the shipped pieces the hybrid drives.
+ *
+ * They are plain imports: `peerDependencies` route a link install to the
+ * workspace copy, and a packed install to the installation's own copy. The
+ * local interfaces describe only the seam this executor uses.
  * @returns the executor classes and schema helpers.
- * @throws Error naming the package whose resolution failed.
  */
-function resolveShipped(ctx: ExecutorContext): ShippedModules {
-  const native = loadShipped<NativeExecutorModule>('@deepseek-ai/dsh-tool-executor-native', ctx)
-  const ptc = loadShipped<PtcExecutorModule>('@deepseek-ai/dsh-tool-executor-ptc', ctx)
-  const tools = loadShipped<ToolsModule>('@deepseek-ai/dsh-tools', ctx)
+function resolveShipped(): ShippedModules {
   return {
-    NativeToolExecutor: native.NativeToolExecutor,
-    PtcExecutor: ptc.PtcExecutor,
-    renderToolsSdk: ptc.renderToolsSdk,
-    renderToolsSdkPy: ptc.renderToolsSdkPy,
-    RUN_CODE_NAME: tools.RUN_CODE_NAME,
-    projectToolSchema: tools.projectToolSchema,
+    NativeToolExecutor: NativeToolExecutor as unknown as NativeExecutorModule['NativeToolExecutor'],
+    PtcExecutor: PtcExecutor as unknown as PtcExecutorModule['PtcExecutor'],
+    renderToolsSdk: renderToolsSdk as unknown as SdkRenderer,
+    renderToolsSdkPy: renderToolsSdkPy as unknown as SdkRenderer,
+    RUN_CODE_NAME,
+    projectToolSchema: projectToolSchema as unknown as ToolsModule['projectToolSchema'],
   }
 }
 
@@ -194,7 +194,7 @@ export class HybridToolExecutor {
     ctx: ExecutorContext,
     config: PtcConfig = {},
     maxParallel: MaxParallel = () => 10,
-    shipped: ShippedModules = resolveShipped(ctx),
+    shipped: ShippedModules = resolveShipped(),
   ) {
     this.ctx = ctx
     this.shipped = shipped

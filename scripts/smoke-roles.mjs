@@ -2,9 +2,9 @@
  * Host-side smoke check for the hyper-roles row.
  *
  * `bun test` covers the pure logic; this script covers the one thing unit tests
- * cannot: that the plugin actually assembles against the installed DSH —
- * `loadShipped` resolves the tool registry, `defineTool` accepts every schema,
- * the prompt sections register, and the panel route answers.
+ * cannot: that the plugin actually assembles against a real DSH — the shipped
+ * tool registry resolves, `defineTool` accepts every schema, the prompt sections
+ * register, and the panel route answers.
  *
  * Run it with the Host's own runtime, never a `node` from PATH:
  *

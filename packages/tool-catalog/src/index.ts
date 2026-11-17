@@ -19,8 +19,9 @@
  *
  * @module @chrock-studio/dsh-tool-catalog
  */
+import { scopeOf } from '@deepseek-ai/dsh-scope'
+
 import type { HostContext } from '@chrock-studio/dsh-hyper-shared/host'
-import { loadShipped } from '@chrock-studio/dsh-hyper-shared/shipped'
 
 /** No input: the requesting Agent is the subject. */
 const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false }
@@ -38,11 +39,6 @@ const MANIFEST = {
   }],
 }
 
-/** The shipped scope helper this provider reads. */
-interface ScopeModule {
-  scopeOf(ctx: unknown): unknown
-}
-
 /** Cordis plugin name. */
 export const name = 'tool-catalog'
 /** Prompt assembly is the only source of the model-facing catalog. */
@@ -54,7 +50,6 @@ export const inject = ['systemPrompt']
  * @throws Error naming the package whose resolution failed.
  */
 export function apply(ctx: HostContext): void {
-  const { scopeOf } = loadShipped<ScopeModule>('@deepseek-ai/dsh-scope', ctx)
   const prompt = ctx.systemPrompt
   ctx.inject(['cordisInspect'], (host) => {
     const inspect = host.cordisInspect
@@ -63,7 +58,7 @@ export function apply(ctx: HostContext): void {
       manifest: MANIFEST,
       async query(method: string, _input: unknown, { agent }: { agent: { ctx?: unknown } }) {
         if (method !== 'listTools') throw new Error(`unknown ToolCatalog inspect method "${method}"`)
-        const scope = scopeOf(agent.ctx)
+        const scope = scopeOf(agent.ctx as Parameters<typeof scopeOf>[0])
         const assembly = await prompt.assemble(scope === undefined ? {} : { scope })
         return { tools: assembly.tools }
       },

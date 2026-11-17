@@ -1,11 +1,10 @@
 /**
  * The Host surface these plugins actually touch, typed once.
  *
- * We do not depend on `@deepseek-ai/*` type packages: the plugins load shipped
- * modules at call time through `loadShipped`, so those names are resolved from
- * the installation and never imported statically. Keeping our own narrow
- * interfaces has two payoffs — no version coupling to the installed DSH, and a
- * single readable statement of which Host capabilities this bundle relies on.
+ * This file types the Host object the plugins receive. It is deliberately
+ * separate from the `@deepseek-ai/*` packages: those are declared as peers and
+ * carry their own types, while `ctx` itself is passed in structurally and never
+ * imported.
  *
  * Everything here is structural: the real Cordis context is wider, and a wider
  * object is assignable to these.

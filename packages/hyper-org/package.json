@@ -29,5 +29,11 @@
   "dependencies": {
     "@chrock-studio/dsh-hyper-roles": "workspace:*",
     "@chrock-studio/dsh-hyper-shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "^0.2.2-rc.3"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3"
   }
 }

@@ -14,8 +14,9 @@
  */
 import { fileURLToPath } from 'node:url'
 
+import { defineTool } from '@deepseek-ai/dsh-tools'
+
 import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
-import { loadShipped } from '@chrock-studio/dsh-hyper-shared/shipped'
 
 import type { ApiState } from './api.ts'
 import { API_PREFIX, createApiHandler } from './api.ts'
@@ -25,7 +26,7 @@ import { renderSelf } from './marker.ts'
 import type { ResolvedDirs } from './scopes.ts'
 import { recordRecentProject, resolveDirs, loadConfig } from './scopes.ts'
 import { readNotes, readRole } from './store.ts'
-import type { ShippedToolsModule } from './tools/context.ts'
+import type { DefineTool } from './tools/context.ts'
 import { buildRoleTools, rosterText } from './tools.ts'
 
 /** Cordis plugin name. */
@@ -113,7 +114,9 @@ export async function apply(ctx: HostContext): Promise<void> {
     packageRoot,
     dirsForAgent,
     binding,
-    shipped: loadShipped<ShippedToolsModule>('@deepseek-ai/dsh-tools', ctx),
+    // The shipped helper is generic over schema specs; these three tools are
+    // text-only, so the narrower contract is pinned once, here.
+    shipped: { defineTool: defineTool as unknown as DefineTool },
   })
   // `tools` and `systemPrompt` are hard dependencies (`inject`), so both services
   // are present before this body runs; the `!` records that instead of guarding.
