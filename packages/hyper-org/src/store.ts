@@ -5,7 +5,7 @@
  * root (`<project>/.dsh/org`), the global scope is shared by the profile
  * (`<home>/org`), and a project order shadows a global one with the same id.
  *
- * @module @chrock-studio/dsh-hyper-org/store
+ * @module @chrock-hyper/dsh-hyper-org/store
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

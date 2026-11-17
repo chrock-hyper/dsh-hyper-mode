@@ -10,13 +10,13 @@
  * becomes a bare `never started` row with the cause hidden in the Host log, so
  * shipped packages are resolved inside `apply()`.
  *
- * @module @chrock-studio/dsh-hyper-roles
+ * @module @chrock-hyper/dsh-hyper-roles
  */
 import { fileURLToPath } from 'node:url'
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
+import type { AgentHandle, HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { ApiState } from './api.ts'
 import { API_PREFIX, createApiHandler } from './api.ts'

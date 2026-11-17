@@ -10,7 +10,7 @@
  * This module is the entry point: it only assembles the handlers that live
  * under `tools/`, so the definition order and public exports stay fixed.
  *
- * @module @chrock-studio/dsh-hyper-roles/tools
+ * @module @chrock-hyper/dsh-hyper-roles/tools
  */
 import type { ToolDefinition, ToolRuntimeOptions, ToolTextResult } from './tools/context.ts'
 import { createToolContext } from './tools/context.ts'

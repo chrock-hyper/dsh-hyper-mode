@@ -7,7 +7,7 @@
  *
  * 这不是 Loader 行，也不参与客户端加载：它只是 Node 侧的模块导出。
  *
- * @module @chrock-studio/dsh-hyper-roles/internal
+ * @module @chrock-hyper/dsh-hyper-roles/internal
  */
 
 export { boundRoleOf, registerBinding } from './binding.ts'

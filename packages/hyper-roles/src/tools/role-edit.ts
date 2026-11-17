@@ -4,7 +4,7 @@
  * Writes are deliberately narrower than reads: creating or rewriting cards
  * belongs to the lead or to a role granted `edit-roles`.
  *
- * @module @chrock-studio/dsh-hyper-roles/tools/role-edit
+ * @module @chrock-hyper/dsh-hyper-roles/tools/role-edit
  */
 import { scopeLabel } from '../marker.ts'
 import { parseList } from '../role-doc.ts'

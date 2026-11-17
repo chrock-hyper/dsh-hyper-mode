@@ -300,7 +300,7 @@ describe('client module', () => {
   const client = loadClient()
 
   test('registers one lazy factory under the nested package name', () => {
-    expect(client.registration.id).toBe('@chrock-studio/dsh-hyper-org')
+    expect(client.registration.id).toBe('@chrock-hyper/dsh-hyper-org')
     expect(typeof client.registration.factory).toBe('function')
   })
 

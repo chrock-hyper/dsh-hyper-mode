@@ -4,7 +4,7 @@
  * Every action reads both scopes — the global store and the caller's project
  * store — and returns the same `{ ok, action, summary, data }` shape.
  *
- * @module @chrock-studio/dsh-hyper-wiki/tools/read-actions
+ * @module @chrock-hyper/dsh-hyper-wiki/tools/read-actions
  */
 import type { PageView } from '../store/pages.ts'
 import type { PageSummary } from '../search.ts'

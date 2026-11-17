@@ -2,7 +2,7 @@
  * Listing roles across both scopes: the read projection the catalog, roster
  * and panel all share.
  *
- * @module @chrock-studio/dsh-hyper-roles/store/list
+ * @module @chrock-hyper/dsh-hyper-roles/store/list
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'

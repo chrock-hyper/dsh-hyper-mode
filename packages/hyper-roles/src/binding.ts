@@ -8,9 +8,9 @@
  * unit, so it is driven by the framework, checkpointed with the session, and
  * never scans events on a prompt assembly.
  *
- * @module @chrock-studio/dsh-hyper-roles/binding
+ * @module @chrock-hyper/dsh-hyper-roles/binding
  */
-import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
+import type { AgentHandle, HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import { extractRole, messageText } from './marker.ts'
 

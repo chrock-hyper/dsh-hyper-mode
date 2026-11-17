@@ -1,4 +1,4 @@
-# @chrock-studio/dsh-hyper-mode
+# @chrock-hyper/dsh-hyper-mode
 
 组合包。只有 `dsh.bundle.patch`、bundle 级 locale 与图标，没有运行时代码，也不声明
 `dsh.client`——它插入多行，而一个包只能有一个活跃的 Client 来源。
@@ -7,8 +7,8 @@
 
 ```json
 "dependencies": {
-  "@chrock-studio/dsh-hyper-roles": "workspace:*",
-  "@chrock-studio/dsh-hyper-org": "workspace:*"
+  "@chrock-hyper/dsh-hyper-roles": "workspace:*",
+  "@chrock-hyper/dsh-hyper-org": "workspace:*"
 }
 ```
 

@@ -10,7 +10,7 @@
  * This module is the entry point: every implementation lives under `store/`,
  * and the export names here are the stable surface other modules import.
  *
- * @module @chrock-studio/dsh-hyper-roles/store
+ * @module @chrock-hyper/dsh-hyper-roles/store
  */
 export { copyBuiltin, listBuiltins } from './store/builtins.ts'
 export { archiveRole, createRole, readRole, readRoleIn, roleExists, saveRole } from './store/cards.ts'

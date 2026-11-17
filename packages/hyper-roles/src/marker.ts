@@ -9,7 +9,7 @@
  * from the role file on every step, so editing a role takes effect without
  * respawning anything.
  *
- * @module @chrock-studio/dsh-hyper-roles/marker
+ * @module @chrock-hyper/dsh-hyper-roles/marker
  */
 import type { RoleScope } from './scopes.ts'
 import type { RoleCard } from './store/cards.ts'

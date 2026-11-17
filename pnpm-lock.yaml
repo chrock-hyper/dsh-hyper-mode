@@ -23,28 +23,28 @@ importers:
 
   packages/bundle:
     dependencies:
-      '@chrock-studio/dsh-hyper-creator':
+      '@chrock-hyper/dsh-hyper-creator':
         specifier: workspace:*
         version: link:../hyper-creator
-      '@chrock-studio/dsh-hyper-org':
+      '@chrock-hyper/dsh-hyper-org':
         specifier: workspace:*
         version: link:../hyper-org
-      '@chrock-studio/dsh-hyper-roles':
+      '@chrock-hyper/dsh-hyper-roles':
         specifier: workspace:*
         version: link:../hyper-roles
-      '@chrock-studio/dsh-hyper-skills':
+      '@chrock-hyper/dsh-hyper-skills':
         specifier: workspace:*
         version: link:../hyper-skills
-      '@chrock-studio/dsh-hyper-wiki':
+      '@chrock-hyper/dsh-hyper-wiki':
         specifier: workspace:*
         version: link:../hyper-wiki
-      '@chrock-studio/dsh-tool-catalog':
+      '@chrock-hyper/dsh-tool-catalog':
         specifier: workspace:*
         version: link:../tool-catalog
 
   packages/hyper-creator:
     dependencies:
-      '@chrock-studio/dsh-hyper-shared':
+      '@chrock-hyper/dsh-hyper-shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -60,10 +60,10 @@ importers:
 
   packages/hyper-org:
     dependencies:
-      '@chrock-studio/dsh-hyper-roles':
+      '@chrock-hyper/dsh-hyper-roles':
         specifier: workspace:*
         version: link:../hyper-roles
-      '@chrock-studio/dsh-hyper-shared':
+      '@chrock-hyper/dsh-hyper-shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -73,7 +73,7 @@ importers:
 
   packages/hyper-roles:
     dependencies:
-      '@chrock-studio/dsh-hyper-shared':
+      '@chrock-hyper/dsh-hyper-shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -83,7 +83,7 @@ importers:
 
   packages/hyper-skills:
     dependencies:
-      '@chrock-studio/dsh-hyper-shared':
+      '@chrock-hyper/dsh-hyper-shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -93,7 +93,7 @@ importers:
 
   packages/hyper-wiki:
     dependencies:
-      '@chrock-studio/dsh-hyper-shared':
+      '@chrock-hyper/dsh-hyper-shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -105,7 +105,7 @@ importers:
 
   packages/tool-catalog:
     dependencies:
-      '@chrock-studio/dsh-hyper-shared':
+      '@chrock-hyper/dsh-hyper-shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:

@@ -7,7 +7,7 @@
 > - `plugins/<name>/index.js` → `packages/<name>/src/index.js`；
 >   `plugins/<name>/lib/*.js` → `packages/<name>/src/*.ts`；
 >   `plugins/<name>/client/client.js` → `packages/<name>/src/client/*.tsx`（已改为 JSX 多模块 + 构建产物 `lib/client.js`）。
-> - 行的 `name` 现在是裸包根（`@chrock-studio/dsh-hyper-roles`），不再用相对路径或子路径；
+> - 行的 `name` 现在是裸包根（`@chrock-hyper/dsh-hyper-roles`），不再用相对路径或子路径；
 >   面板的 `dsh.client` 就写在插件包自己的 `package.json` 上，嵌套伪包已删除。
 > - 根 `index.js` 兜底与空壳 `hyper-teams` 已删除。安装目标改为 `packages/bundle`。
 > - 为什么这么改见 [ARCHITECTURE.md](ARCHITECTURE.md)；日常约定见 `AGENTS.md`。
@@ -73,7 +73,7 @@
 **沿用自 v1 的落点（仍然有效）**
 
 1. 标签页 `order` 用 **70**：岗位 50、Wiki 60，不要撞号。
-2. 路由前缀 `/hyper-org/api`（跟 `hyper-roles` 一致）；面板客户端在独立嵌套包 `plugins/hyper-org/package.json`（`@chrock-studio/dsh-hyper-org`）。
+2. 路由前缀 `/hyper-org/api`（跟 `hyper-roles` 一致）；面板客户端在独立嵌套包 `plugins/hyper-org/package.json`（`@chrock-hyper/dsh-hyper-org`）。
 3. **规则只有一套**：面板写路径只能经 `rules.*WithRules`；身份拆成 `by`（日志标签）与 `role`（真实绑定），自签判定只看 `role`。
 4. `lib/store.js` 一行未改；`schemaVersion` 仍为 1，`.dsh/org` 是唯一数据源。
 

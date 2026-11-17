@@ -5,7 +5,7 @@
  * Shipped cards are read-only templates: a broken one is skipped rather than
  * failing the whole catalog, because it is a packaging mistake, not user data.
  *
- * @module @chrock-studio/dsh-hyper-roles/store/builtins
+ * @module @chrock-hyper/dsh-hyper-roles/store/builtins
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'

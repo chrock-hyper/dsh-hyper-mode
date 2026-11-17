@@ -362,7 +362,7 @@ export function signWithRules(dirs, { id, approve, note, actor }): signed
 
 ```json
 {
-  "name": "@chrock-studio/dsh-hyper-org",
+  "name": "@chrock-hyper/dsh-hyper-org",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -384,7 +384,7 @@ export function signWithRules(dirs, { id, approve, note, actor }): signed
 
 要点：
 
-- 包名与既有两个不同（`@chrock-studio/dsh-hyper-roles`、`@chrock-studio/dsh-hyper-wiki-client`），**不要**复用根包名——根包已经有 6 条 patch 行，塞 `dsh.client` 就是「同一包多个活跃 loader 来源」
+- 包名与既有两个不同（当时的 `@chrock-studio/dsh-hyper-roles` 与 `@chrock-studio/dsh-hyper-wiki-client`；现已改成每插件一个真包），**不要**复用根包名——根包已经有 6 条 patch 行，塞 `dsh.client` 就是「同一包多个活跃 loader 来源」
 - `locatePkgJson` 从行模块 `plugins/hyper-org/index.js` 向上取**最近的** `package.json`，正好是这个新文件；`hyper-roles`、`hyper-wiki` 两行各认领自己的清单，互不影响
 - 根 `package.json` 的 `exports` 追加一行：`"./hyper-org/client": "./plugins/hyper-org/client/client.js"`（给外部消费者与一致性，加载器实际走嵌套包名）
 
@@ -394,7 +394,7 @@ export function signWithRules(dirs, { id, approve, note, actor }): signed
 
 ```js
 window.__ModuleLoader__.load({
-  id: '@chrock-studio/dsh-hyper-org',            // 与 package.json 的 name 一致
+  id: '@chrock-hyper/dsh-hyper-org',            // 与 package.json 的 name 一致
   factory(require) {
     const React = require('react')
     const h = React.createElement

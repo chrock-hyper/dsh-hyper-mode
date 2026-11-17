@@ -5,7 +5,7 @@
  * Every renderer is bounded — an order log grows without limit, and a board
  * with forty orders must not cost more than a board with four.
  *
- * @module @chrock-studio/dsh-hyper-org/marker
+ * @module @chrock-hyper/dsh-hyper-org/marker
  */
 import type { WorkOrder } from './order-doc.ts'
 import type { OrderListing, OrderScope } from './store.ts'

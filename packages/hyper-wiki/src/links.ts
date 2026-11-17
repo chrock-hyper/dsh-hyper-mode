@@ -6,7 +6,7 @@
  * feature. A backlink is the inverse: every page whose links normalize to the
  * target page id.
  *
- * @module @chrock-studio/dsh-hyper-wiki/links
+ * @module @chrock-hyper/dsh-hyper-wiki/links
  */
 import { normalizePagePath, RESERVED_SEGMENTS } from './page.ts'
 

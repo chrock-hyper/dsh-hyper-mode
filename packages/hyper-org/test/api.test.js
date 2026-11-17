@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { createRole, resolveDirs } from '@chrock-studio/dsh-hyper-roles/internal'
+import { createRole, resolveDirs } from '@chrock-hyper/dsh-hyper-roles/internal'
 import { createApiHandler } from '../src/api.ts'
 import { createOrder, orgDirs, saveOrder, signOrder } from '../src/store.ts'
 

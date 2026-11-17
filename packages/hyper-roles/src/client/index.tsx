@@ -3,7 +3,7 @@
  *
  * The page keeps a lazy module table, and the build owns the one registration:
  * tsdown bundles this directory to CJS and wraps the chunk in
- * `window.__ModuleLoader__.load({ id: '@chrock-studio/dsh-hyper-roles', factory(require) { … } })`,
+ * `window.__ModuleLoader__.load({ id: '@chrock-hyper/dsh-hyper-roles', factory(require) { … } })`,
  * where the id is this package's name and the factory returns `module.exports`.
  * So this file has no `load` call of its own — a second registration for the
  * same id is a hard error in the table — and it exports exactly the plugin

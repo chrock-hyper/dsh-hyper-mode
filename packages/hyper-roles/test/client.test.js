@@ -197,7 +197,7 @@ function stylesFromSource() {
 describe('client module', () => {
   test('registers one factory under the package name', () => {
     expect(registrations.length).toBe(1)
-    expect(registrations[0].id).toBe('@chrock-studio/dsh-hyper-roles')
+    expect(registrations[0].id).toBe('@chrock-hyper/dsh-hyper-roles')
     expect(typeof registrations[0].factory).toBe('function')
   })
 

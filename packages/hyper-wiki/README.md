@@ -6,7 +6,7 @@
 
 ## 安装与入口
 
-它是 `@chrock-studio/dsh-hyper-mode` bundle 里的一行（`cordis.patch.yml` 的 `hyper-wiki`），不需要单独安装。
+它是 `@chrock-hyper/dsh-hyper-mode` bundle 里的一行（`cordis.patch.yml` 的 `hyper-wiki`），不需要单独安装。
 
 装好 bundle、新开一个会话后，会话标题下方会多出 **Wiki** 标签页（与「对话」「轨迹」「统计」同一排）。标签页自带会话 id，项目作用域直接取当前会话的工作目录——没有“选项目”这一步；没有会话时标签页也不存在。
 

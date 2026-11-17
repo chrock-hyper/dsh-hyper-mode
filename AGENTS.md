@@ -41,13 +41,13 @@ DSH 的 bundle 仓库，pnpm monorepo：`packages/bundle` 是元包（只有补�
    `load({ id: <包名>, factory })` 并返回 `module.exports`；源码再调一次就是重复注册（DSH 直接抛
    `duplicate factory registration`，插件对象变成 `{}`）。
 3. `packages/<name>/package.json`：`exports` 至少含 `"."`、`"./locale/*.json"`、`"./icon"`、`"./package.json"`；
-   有 UI 才加 `"./client"`（指向 `./lib/client.js`）与 `dsh.client`；依赖 `@chrock-studio/dsh-hyper-shared`。
-4. 在 `packages/bundle/package.json` 的 `dependencies` 加 `"@chrock-studio/dsh-<name>": "workspace:*"`。
+   有 UI 才加 `"./client"`（指向 `./lib/client.js`）与 `dsh.client`；依赖 `@chrock-hyper/dsh-hyper-shared`。
+4. 在 `packages/bundle/package.json` 的 `dependencies` 加 `"@chrock-hyper/dsh-<name>": "workspace:*"`。
 5. 在 `packages/bundle/cordis.patch.yml` 加一行，`name` 写**裸包根**。
 6. `pnpm install && pnpm build`。
 
-跨包复用走具名入口（现有例子是 `@chrock-studio/dsh-hyper-roles/internal`），不要 import 兄弟包的实现文件。
-Host 的类型面在 `@chrock-studio/dsh-hyper-shared/host`。
+跨包复用走具名入口（现有例子是 `@chrock-hyper/dsh-hyper-roles/internal`），不要 import 兄弟包的实现文件。
+Host 的类型面在 `@chrock-hyper/dsh-hyper-shared/host`。
 
 **随包（`@deepseek-ai/*`）走三件套，不写运行时探路径。** 要用哪个包就：
 

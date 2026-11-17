@@ -6,12 +6,12 @@
  * through {@link roleFile}, which validates the id and proves the result stays
  * inside its scope directory.
  *
- * @module @chrock-studio/dsh-hyper-roles/store/paths
+ * @module @chrock-hyper/dsh-hyper-roles/store/paths
  */
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { isInside } from '@chrock-studio/dsh-hyper-shared/paths'
+import { isInside } from '@chrock-hyper/dsh-hyper-shared/paths'
 
 import { ROLE_ID } from '../role-doc.ts'
 import type { ResolvedDirs, RoleScope } from '../scopes.ts'

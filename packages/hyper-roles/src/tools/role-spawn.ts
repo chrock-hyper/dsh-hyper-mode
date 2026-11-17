@@ -2,9 +2,9 @@
  * The `role_spawn` tool: delegate a subagent that carries one role card in its
  * task preamble and is bound to that role for the rest of its session.
  *
- * @module @chrock-studio/dsh-hyper-roles/tools/role-spawn
+ * @module @chrock-hyper/dsh-hyper-roles/tools/role-spawn
  */
-import type { SubagentsService } from '@chrock-studio/dsh-hyper-shared/host'
+import type { SubagentsService } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import { bindLine, renderBrief } from '../marker.ts'
 import { readGuide, readRole } from '../store.ts'

@@ -5,7 +5,7 @@
  * reaches them. A rename never rewrites the pages that link to the old id — it
  * reports them instead.
  *
- * @module @chrock-studio/dsh-hyper-wiki/store/mutations
+ * @module @chrock-hyper/dsh-hyper-wiki/store/mutations
  */
 import { existsSync, mkdirSync, renameSync } from 'node:fs'
 import { dirname, join } from 'node:path'

@@ -4,7 +4,7 @@
 
 ## 0. 前置
 
-- [ ] `@chrock-studio/dsh-hyper-mode` bundle 已安装，补丁行 `hyper-wiki` 处于启用状态。
+- [ ] `@chrock-hyper/dsh-hyper-mode` bundle 已安装，补丁行 `hyper-wiki` 处于启用状态。
 - [ ] 打开一个新会话（确保新代码被加载）。
 - [ ] 确认 `~/.dsh/wiki/` 与 `~/.dsh/wiki.md` 中的一个存在（仅当存在时才会注入提示段）。
 

@@ -1,5 +1,5 @@
 {
-  "name": "@chrock-studio/dsh-hyper-creator",
+  "name": "@chrock-hyper/dsh-hyper-creator",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@chrock-studio/dsh-hyper-shared": "workspace:*"
+    "@chrock-hyper/dsh-hyper-shared": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tool-executor-native": "^0.2.2-rc.3",

@@ -5,7 +5,7 @@
  * 所以这里只接受 skill 实际会用的形状（裸值、引号、折叠块），两个字段缺一个就
  * 丢弃——与 provider 一致：坏掉的 skill 是跳过，不是让整个编目失败。
  *
- * @module @chrock-studio/dsh-hyper-skills/frontmatter
+ * @module @chrock-hyper/dsh-hyper-skills/frontmatter
  */
 import { readFileSync } from 'node:fs'
 

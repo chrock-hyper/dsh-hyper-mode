@@ -1,6 +1,6 @@
 # dsh-hyper-mode 的 bundle 补丁：每个插件一行，行名就是它的包根。
 #
-# 行名一律用裸包规格符（`@chrock-studio/dsh-*`）。这是三套身份同时成立的唯一
+# 行名一律用裸包规格符（`@chrock-hyper/dsh-*`）。这是三套身份同时成立的唯一
 # 形状：Loader 按它 import 并挂载；client-modules 从该包读到这一行自己的 Client
 # 半边；Plugin Manager 从该包读到这一行自己的标题、图标与详情。相对路径行会
 # 保留 Client 却丢掉行级元数据，子路径行反过来——只有裸包根三者对齐。
@@ -11,26 +11,26 @@
     # 传输不在其中（run_code 是保留名，register 会直接抛错）。本行注册 ToolCatalog
     # provider，用 systemPrompt.assemble().tools 报告模型真正收到的编目。
     - id: tool-catalog
-      name: '@chrock-studio/dsh-tool-catalog'
+      name: '@chrock-hyper/dsh-tool-catalog'
     # /hyper-skill 命令：Host 作用域，所有模式可用。随包 skill 的可见性只取决于
     # 扫描根（项目 .dsh/skills / 用户 ~/.dsh/skills / customSkillDirs），
     # skill-filesystem 监听这些根，所以装/卸都不用重启；Preset 行挂载 skill 目录
     # 才需要重启。
     - id: hyper-skills
-      name: '@chrock-studio/dsh-hyper-skills'
+      name: '@chrock-hyper/dsh-hyper-skills'
     # 岗位制编排：角色卡 + 身份绑定 + 按岗位委派 + 面板。面板的浏览器半边就是
     # 这个包自己的 Client 入口（package.json 的 dsh.client + ./client 导出），
     # 所以它跟着这一行生灭，Plugin Manager 里也有自己的标题与图标。
     - id: hyper-roles
-      name: '@chrock-studio/dsh-hyper-roles'
+      name: '@chrock-hyper/dsh-hyper-roles'
     # 公司层：工单 + 在制上限 + 验收签字。它复用 hyper-roles 的身份绑定投影
     # （同一 projection key 由两家共享同一个单元）、岗位库与作用域解析，所以
     # 必须排在 hyper-roles 之后挂载。
     - id: hyper-org
-      name: '@chrock-studio/dsh-hyper-org'
+      name: '@chrock-hyper/dsh-hyper-org'
     # Wiki：同样是本 bundle 的一行，浏览器半边同样挂在自己的包上。
     - id: hyper-wiki
-      name: '@chrock-studio/dsh-hyper-wiki'
+      name: '@chrock-hyper/dsh-hyper-wiki'
     - id: preset-hyper-creator
       name: '@deepseek-ai/dsh-agent-preset'
       config:
@@ -154,7 +154,7 @@
               searchTimeoutMs: 60000
           # 混合执行器：直呼与 run_code 并存（本 bundle 自己的插件包）。
           - id: hyper-creator
-            name: '@chrock-studio/dsh-hyper-creator'
+            name: '@chrock-hyper/dsh-hyper-creator'
             config:
               maxSubCallsPerMinute: 1024
               maxParallelSubCalls: 10

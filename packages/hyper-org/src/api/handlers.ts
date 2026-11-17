@@ -5,9 +5,9 @@
  * Pure assembly — directories in, JSON out. No route, no transport and no
  * writes: every gate they report is the one `rules.ts` and `store.ts` enforce.
  *
- * @module @chrock-studio/dsh-hyper-org/api/handlers
+ * @module @chrock-hyper/dsh-hyper-org/api/handlers
  */
-import { listRoles, readRole } from '@chrock-studio/dsh-hyper-roles/internal'
+import { listRoles, readRole } from '@chrock-hyper/dsh-hyper-roles/internal'
 
 import { artifactBase, describeArtifact } from '../artifacts.ts'
 import { ageOf } from '../marker.ts'

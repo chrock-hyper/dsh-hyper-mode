@@ -13,7 +13,7 @@
  * in `api/routes.js`, the handlers in `api/reads.js` and `api/writes.js`, and
  * dispatch in `api/router.js`.
  *
- * @module @chrock-studio/dsh-hyper-wiki/api
+ * @module @chrock-hyper/dsh-hyper-wiki/api
  */
 export { isLoopbackAddress, MAX_BODY_BYTES, statusFor } from './api/http.ts'
 export { createWikiApi } from './api/router.ts'

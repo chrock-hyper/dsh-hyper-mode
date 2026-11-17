@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { createRole } from '@chrock-studio/dsh-hyper-roles/internal'
+import { createRole } from '@chrock-hyper/dsh-hyper-roles/internal'
 import { orgDirs, createOrder, listOrders, saveOrder, signOrder } from '../src/store.ts'
 import { buildOrgTools, splitLines } from '../src/tools.ts'
 

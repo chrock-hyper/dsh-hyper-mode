@@ -1,7 +1,7 @@
 /**
  * 发现本 bundle 各包随包的 skill。
  *
- * @module @chrock-studio/dsh-hyper-skills/discover
+ * @module @chrock-hyper/dsh-hyper-skills/discover
  */
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'

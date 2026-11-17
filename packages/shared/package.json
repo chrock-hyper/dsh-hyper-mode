@@ -1,5 +1,5 @@
 {
-  "name": "@chrock-studio/dsh-hyper-shared",
+  "name": "@chrock-hyper/dsh-hyper-shared",
   "version": "0.1.0",
   "private": true,
   "type": "module",

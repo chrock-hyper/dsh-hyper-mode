@@ -6,7 +6,7 @@
  * the file is the body. Parsing is deliberately tolerant: a bad status or
  * date becomes a recoverable complaint instead of a throw.
  *
- * @module @chrock-studio/dsh-hyper-wiki/page/frontmatter
+ * @module @chrock-hyper/dsh-hyper-wiki/page/frontmatter
  */
 
 /** Page lifecycle values the plugin recognizes. */

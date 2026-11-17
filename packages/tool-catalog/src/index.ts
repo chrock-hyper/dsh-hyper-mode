@@ -17,11 +17,11 @@
  * Cordis loader turns a rejected plugin import into a bare `never started` row
  * with the cause only in the Host log.
  *
- * @module @chrock-studio/dsh-tool-catalog
+ * @module @chrock-hyper/dsh-tool-catalog
  */
 import { scopeOf } from '@deepseek-ai/dsh-scope'
 
-import type { HostContext } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
 
 /** No input: the requesting Agent is the subject. */
 const NO_INPUT = { type: 'object', properties: {}, additionalProperties: false }

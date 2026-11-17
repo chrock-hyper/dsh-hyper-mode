@@ -9,10 +9,10 @@
  * modules: a rejected import becomes a bare `never started` row with the cause
  * hidden in the Host log, so shipped packages are resolved inside `apply()`.
  *
- * @module @chrock-studio/dsh-hyper-org
+ * @module @chrock-hyper/dsh-hyper-org
  */
-import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
-import { registerBinding, resolveDirs } from '@chrock-studio/dsh-hyper-roles/internal'
+import type { AgentHandle, HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
+import { registerBinding, resolveDirs } from '@chrock-hyper/dsh-hyper-roles/internal'
 
 import { API_PREFIX, createApiHandler } from './api.ts'
 import type { OrgConfig } from './config.ts'

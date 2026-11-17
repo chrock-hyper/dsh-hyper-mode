@@ -9,7 +9,7 @@
  * The section is four lines at most and is empty when neither scope holds a
  * wiki, so a profile without a wiki pays nothing.
  *
- * @module @chrock-studio/dsh-hyper-wiki/prompt
+ * @module @chrock-hyper/dsh-hyper-wiki/prompt
  */
 import type {
   AgentHandle,
@@ -17,7 +17,7 @@ import type {
   HostContext,
   PromptSection,
   SystemPromptService,
-} from '@chrock-studio/dsh-hyper-shared/host'
+} from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { ScopeIndex } from './scopes.ts'
 

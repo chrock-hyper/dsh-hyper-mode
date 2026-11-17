@@ -1,7 +1,7 @@
 /**
  * Tool action dispatch.
  *
- * @module @chrock-studio/dsh-hyper-wiki/tools/run
+ * @module @chrock-hyper/dsh-hyper-wiki/tools/run
  */
 import type { ToolActionInput, ToolResult } from './context.ts'
 import { failure } from './context.ts'

@@ -180,7 +180,7 @@ describe('client module', () => {
   const client = loadClient()
 
   test('registers a lazy factory under the package name', () => {
-    expect(client.registration.id).toBe('@chrock-studio/dsh-hyper-wiki')
+    expect(client.registration.id).toBe('@chrock-hyper/dsh-hyper-wiki')
     expect(typeof client.registration.factory).toBe('function')
   })
 

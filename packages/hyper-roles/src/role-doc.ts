@@ -10,7 +10,7 @@
  *
  * Pure functions only: filesystem work lives in `store.js`.
  *
- * @module @chrock-studio/dsh-hyper-roles/role-doc
+ * @module @chrock-hyper/dsh-hyper-roles/role-doc
  */
 
 /** Kebab-case role id, matching the marker grammar the projection parses. */

@@ -5,7 +5,7 @@
  * read in, which is why the module is built with `readDraft` injected rather
  * than imported — drafts never read pages back.
  *
- * @module @chrock-studio/dsh-hyper-wiki/store/pages
+ * @module @chrock-hyper/dsh-hyper-wiki/store/pages
  */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'

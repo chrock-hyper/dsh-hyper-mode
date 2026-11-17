@@ -9,7 +9,7 @@
  * The decisions here are pure functions over file text so the approval state
  * machine can be tested without touching a disk.
  *
- * @module @chrock-studio/dsh-hyper-wiki/draft
+ * @module @chrock-hyper/dsh-hyper-wiki/draft
  */
 import type { ParsedPage, PageStatus } from './page/frontmatter.ts'
 import {

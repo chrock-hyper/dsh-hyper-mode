@@ -1,9 +1,9 @@
 /**
  * Route dispatch for the wiki API: method matching and the request handler.
  *
- * @module @chrock-studio/dsh-hyper-wiki/api/router
+ * @module @chrock-hyper/dsh-hyper-wiki/api/router
  */
-import type { HttpRequest, HostLogger } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HttpRequest, HostLogger } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { ScopeIndex, WikiScope } from '../scopes.ts'
 import type { WikiStore } from '../store.ts'

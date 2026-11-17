@@ -2,7 +2,7 @@
  * Pure text projections over role store files: notes parsing and card
  * summaries. No filesystem access lives here.
  *
- * @module @chrock-studio/dsh-hyper-roles/store/text
+ * @module @chrock-hyper/dsh-hyper-roles/store/text
  */
 
 /** One experience entry, as it is written into and read back out of a notes file. */

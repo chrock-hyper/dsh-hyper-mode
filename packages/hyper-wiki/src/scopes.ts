@@ -13,7 +13,7 @@
  * The panel has no session, so it reaches a project scope through a recent
  * project list kept in `$DSH_HOME/wiki/state.json` plus an explicit `cwd`.
  *
- * @module @chrock-studio/dsh-hyper-wiki/scopes
+ * @module @chrock-hyper/dsh-hyper-wiki/scopes
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs'
 import type { Dirent } from 'node:fs'

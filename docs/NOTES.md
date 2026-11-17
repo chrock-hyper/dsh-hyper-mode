@@ -212,7 +212,7 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" …  # 模�
 
 这也解释了为什么它必须是 Host 行：preset 行的配置冻结在会话组合里，改动走 `unmanaged-plugin` 的重启路径；Host 行重载 bundle 即可生效。
 
-**坑 5（已作废）：新增子路径导出要重启，相对路径不用。** 第一次实现把这行写成 `@chrock-studio/dsh-hyper-mode/hyper-skills`，`exports` 也加了对应条目，重载后行状态是 `never started`。原因不在加载器：Node 的 ESM 解析器把 `package.json` 的 `exports` 缓存在**进程级**，同一进程里后来添加的子路径仍报 `ERR_PACKAGE_PATH_NOT_EXPORTED`（用一个只改 package.json 的最小复现确认过）。补丁方言支持 `name: ./plugins/<name>/index.js`，插入行的相对路径锚定在补丁文件旁，`loader` 里走的是 `new URL(name, ctx.baseUrl)`——完全绕开 `exports`。所以本 bundle 的新行用相对路径：**新增插件也不用重启**。
+**坑 5（已作废）：新增子路径导出要重启，相对路径不用。** 第一次实现把这行写成 `@chrock-hyper/dsh-hyper-mode/hyper-skills`，`exports` 也加了对应条目，重载后行状态是 `never started`。原因不在加载器：Node 的 ESM 解析器把 `package.json` 的 `exports` 缓存在**进程级**，同一进程里后来添加的子路径仍报 `ERR_PACKAGE_PATH_NOT_EXPORTED`（用一个只改 package.json 的最小复现确认过）。补丁方言支持 `name: ./plugins/<name>/index.js`，插入行的相对路径锚定在补丁文件旁，`loader` 里走的是 `new URL(name, ctx.baseUrl)`——完全绕开 `exports`。所以本 bundle 的新行用相对路径：**新增插件也不用重启**。
 
 **一个待查的现象**：当前进程里「增强创造模式」会话并没有看到 `dsh-preset-authoring`（`skill` 报 unknown），而同一个 skill 链接进项目根后立刻出现。可能是进程启动早于 `b23e5cc`、预设组合还是旧的，也可能是 preset 作用域下 `baseUrl` 的锚点与补丁文件不同。命令不依赖这条 preset 行，所以无论哪种原因它都成立。
 
@@ -231,13 +231,13 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" …  # 模�
 `dsh-client-modules` 的 `reconcilePackage` 会把「同一个包名」的所有活跃 Loader 来源收在一起，出现两个就抛：
 
 ```
-client-modules: package @chrock-studio/dsh-hyper-mode resolves from multiple active Loader sources:
+client-modules: package @chrock-hyper/dsh-hyper-mode resolves from multiple active Loader sources:
   "./plugins/hyper-skills/index.js" from file://…, "./plugins/hyper-roles/index.js" from file://…; remove one entry
 ```
 
 本 bundle 有四行来自同一个包（hyper-teams / tool-catalog / hyper-skills / preset 里的 hyper-creator），所以根包上永远不能声明 `dsh.client`。
 
-**做法（已作废）**：把客户端挂到一个嵌套清单 `plugins/hyper-roles/package.json`（包名 `@chrock-studio/dsh-hyper-roles`，只声明 `exports["./client"]` 与 `dsh.client`）。`locatePkgJson → nearestPackage` 会从行模块向上找**最近**的 `package.json`，因此只有 `hyper-roles` 这一行认领这个包，冲突消失。
+**做法（已作废）**：把客户端挂到一个嵌套清单 `plugins/hyper-roles/package.json`（包名 `@chrock-hyper/dsh-hyper-roles`，只声明 `exports["./client"]` 与 `dsh.client`）。`locatePkgJson → nearestPackage` 会从行模块向上找**最近**的 `package.json`，因此只有 `hyper-roles` 这一行认领这个包，冲突消失。
 
 顺带确认了三点：
 

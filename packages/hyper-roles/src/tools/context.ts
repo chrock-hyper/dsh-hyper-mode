@@ -6,9 +6,9 @@
  * that into a small context object plus the caller-identity helpers every tool
  * handler needs, so each handler module stays about its own action.
  *
- * @module @chrock-studio/dsh-hyper-roles/tools/context
+ * @module @chrock-hyper/dsh-hyper-roles/tools/context
  */
-import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
+import type { AgentHandle, HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { RoleProjectionHandle } from '../binding.ts'
 import { boundRoleOf } from '../binding.ts'

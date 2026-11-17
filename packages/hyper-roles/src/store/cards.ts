@@ -2,7 +2,7 @@
  * Role card CRUD on disk, including the archive that keeps removed cards
  * reviewable rather than destroyed.
  *
- * @module @chrock-studio/dsh-hyper-roles/store/cards
+ * @module @chrock-hyper/dsh-hyper-roles/store/cards
  */
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from 'node:fs'
 import { join } from 'node:path'

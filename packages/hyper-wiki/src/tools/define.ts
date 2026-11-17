@@ -9,9 +9,9 @@
  * definition can be built and inspected without resolving a DSH package at
  * import time (module scope may import only Node builtins and local modules).
  *
- * @module @chrock-studio/dsh-hyper-wiki/tools/define
+ * @module @chrock-hyper/dsh-hyper-wiki/tools/define
  */
-import type { AgentHandle } from '@chrock-studio/dsh-hyper-shared/host'
+import type { AgentHandle } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import { PAGE_STATUSES } from '../page.ts'
 import type { ScopeIndex } from '../scopes.ts'

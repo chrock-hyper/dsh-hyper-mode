@@ -5,11 +5,11 @@
  * defaults per key, because a link-installed bundle cannot statically import
  * schemastery to declare `Config`.
  *
- * @module @chrock-studio/dsh-hyper-org/config
+ * @module @chrock-hyper/dsh-hyper-org/config
  */
 import { join } from 'node:path'
 
-import { readJson } from '@chrock-studio/dsh-hyper-shared/paths'
+import { readJson } from '@chrock-hyper/dsh-hyper-shared/paths'
 
 /** The effective configuration of this plugin. */
 export interface OrgConfig {

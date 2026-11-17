@@ -10,7 +10,7 @@
  *
  * Pure functions and store calls only: no filesystem, no HTTP, no Cordis.
  *
- * @module @chrock-studio/dsh-hyper-org/rules
+ * @module @chrock-hyper/dsh-hyper-org/rules
  */
 import type { OrderSize, WorkOrder } from './order-doc.ts'
 import type { CreateOrderResult, LocatedOrder, OrderPatch, OrgDirs } from './store.ts'

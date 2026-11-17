@@ -20,15 +20,15 @@
  * The command grammar, the discovery walk and the link ownership rules each
  * live in their own module; this file is the plugin entry and the assembly.
  *
- * @module @chrock-studio/dsh-hyper-skills
+ * @module @chrock-hyper/dsh-hyper-skills
  */
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 
-import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
-import { findProjectRoot } from '@chrock-studio/dsh-hyper-shared/paths'
+import type { AgentHandle, HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
+import { findProjectRoot } from '@chrock-hyper/dsh-hyper-shared/paths'
 
 import { runSkillCommand } from './command.ts'
 

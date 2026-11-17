@@ -14,9 +14,9 @@
  * lifecycle in `store/drafts.js`, and the human-only effects in
  * `store/mutations.js`.
  *
- * @module @chrock-studio/dsh-hyper-wiki/store
+ * @module @chrock-hyper/dsh-hyper-wiki/store
  */
-import type { HostLogger } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HostLogger } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { GitCommitResult, GitHelper } from './git.ts'
 import type { ScopeIndex, ScopeKind, WikiScope } from './scopes.ts'

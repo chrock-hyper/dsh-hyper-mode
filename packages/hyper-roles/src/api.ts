@@ -9,9 +9,9 @@
  * Authentication reuses the connection carrier when the composition has one:
  * an otherwise ordinary route would let any local process edit role files.
  *
- * @module @chrock-studio/dsh-hyper-roles/api
+ * @module @chrock-hyper/dsh-hyper-roles/api
  */
-import type { HostContext, HttpHandler, HttpRequest, HttpResponse } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HostContext, HttpHandler, HttpRequest, HttpResponse } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { RoleFieldInput } from './role-doc.ts'
 import type { ResolvedDirs, RoleConfig, RoleScope } from './scopes.ts'

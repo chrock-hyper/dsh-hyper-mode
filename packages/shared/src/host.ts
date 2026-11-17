@@ -9,7 +9,7 @@
  * Everything here is structural: the real Cordis context is wider, and a wider
  * object is assignable to these.
  *
- * @module @chrock-studio/dsh-hyper-shared/host
+ * @module @chrock-hyper/dsh-hyper-shared/host
  */
 
 /** Cleanup returned by every registration. */

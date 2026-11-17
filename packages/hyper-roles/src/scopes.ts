@@ -6,12 +6,12 @@
  * role id present in both resolves to the project copy, and the panel marks the
  * global one as shadowed.
  *
- * @module @chrock-studio/dsh-hyper-roles/scopes
+ * @module @chrock-hyper/dsh-hyper-roles/scopes
  */
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { dshHome, findProjectRoot, readJson } from '@chrock-studio/dsh-hyper-shared/paths'
+import { dshHome, findProjectRoot, readJson } from '@chrock-hyper/dsh-hyper-shared/paths'
 
 /** The two scopes a role can live in. */
 export type RoleScope = 'global' | 'project'

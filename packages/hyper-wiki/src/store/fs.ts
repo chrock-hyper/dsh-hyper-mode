@@ -4,7 +4,7 @@
  * These helpers know nothing about drafts or pages beyond the shape of the
  * tree; callers decide what the ids mean.
  *
- * @module @chrock-studio/dsh-hyper-wiki/store/fs
+ * @module @chrock-hyper/dsh-hyper-wiki/store/fs
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import type { Dirent } from 'node:fs'

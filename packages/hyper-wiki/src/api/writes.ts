@@ -1,9 +1,9 @@
 /**
  * Write handlers: the POST routes of the wiki API.
  *
- * @module @chrock-studio/dsh-hyper-wiki/api/writes
+ * @module @chrock-hyper/dsh-hyper-wiki/api/writes
  */
-import type { HttpRequest } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HttpRequest } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { WikiResponse } from './http.ts'
 import { MAX_BODY_BYTES, readBody, sendJson, statusFor } from './http.ts'

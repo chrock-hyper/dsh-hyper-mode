@@ -1,7 +1,7 @@
 /**
  * Read handlers: the GET routes of the wiki API.
  *
- * @module @chrock-studio/dsh-hyper-wiki/api/reads
+ * @module @chrock-hyper/dsh-hyper-wiki/api/reads
  */
 import type { WikiResponse } from './http.ts'
 import { sendJson, statusFor } from './http.ts'

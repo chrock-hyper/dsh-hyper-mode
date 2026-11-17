@@ -4,7 +4,7 @@
  * The prefix is shared by the router, both handlers, and the plugin assembly;
  * the two sets below are what the method check in the router reads.
  *
- * @module @chrock-studio/dsh-hyper-wiki/api/routes
+ * @module @chrock-hyper/dsh-hyper-wiki/api/routes
  */
 
 /** Route prefix; the whole API sits under it. */

@@ -1,5 +1,5 @@
 {
-  "name": "@chrock-studio/dsh-hyper-wiki",
+  "name": "@chrock-hyper/dsh-hyper-wiki",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "@chrock-studio/dsh-hyper-shared": "workspace:*"
+    "@chrock-hyper/dsh-hyper-shared": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": "^0.2.2-rc.3"

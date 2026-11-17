@@ -5,9 +5,9 @@
  * Every helper here tolerates a composition that does not expose the service
  * it asks for; a missing service degrades the feature, never the plugin.
  *
- * @module @chrock-studio/dsh-hyper-wiki/host
+ * @module @chrock-hyper/dsh-hyper-wiki/host
  */
-import type { AgentHandle, HostContext, HttpRequest } from '@chrock-studio/dsh-hyper-shared/host'
+import type { AgentHandle, HostContext, HttpRequest } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import { isLoopbackAddress } from './api.ts'
 

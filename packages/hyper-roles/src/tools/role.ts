@@ -2,9 +2,9 @@
  * The `role` tool: read your own card, list the catalog, load a declared skill,
  * record an experience entry, or read and write a role's reading guide.
  *
- * @module @chrock-studio/dsh-hyper-roles/tools/role
+ * @module @chrock-hyper/dsh-hyper-roles/tools/role
  */
-import type { SkillsService } from '@chrock-studio/dsh-hyper-shared/host'
+import type { SkillsService } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import { clip, renderCard } from '../marker.ts'
 import type { RoleScope } from '../scopes.ts'

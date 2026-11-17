@@ -5,7 +5,7 @@
  * only place that decides which ids are acceptable. Nothing here touches the
  * filesystem; callers hand the id over and join it themselves.
  *
- * @module @chrock-studio/dsh-hyper-wiki/page/paths
+ * @module @chrock-hyper/dsh-hyper-wiki/page/paths
  */
 
 /** First path segments reserved for the plugin's own bookkeeping. */

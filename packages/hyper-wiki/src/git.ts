@@ -9,13 +9,13 @@
  * A missing `git` binary, a failed command, or an unwritable directory
  * degrades to "no history": the mutation itself must still succeed.
  *
- * @module @chrock-studio/dsh-hyper-wiki/git
+ * @module @chrock-hyper/dsh-hyper-wiki/git
  */
 import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-import type { HostLogger } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HostLogger } from '@chrock-hyper/dsh-hyper-shared/host'
 
 /** Default executable name; a Config value may point elsewhere. */
 export const DEFAULT_GIT_BIN = 'git'

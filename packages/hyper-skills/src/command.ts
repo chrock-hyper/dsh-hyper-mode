@@ -3,7 +3,7 @@
  *
  * 纯函数地对给定目录求值，测试不需要 Cordis 就能驱动整条命令。
  *
- * @module @chrock-studio/dsh-hyper-skills/command
+ * @module @chrock-hyper/dsh-hyper-skills/command
  */
 import { homedir } from 'node:os'
 import { sep } from 'node:path'

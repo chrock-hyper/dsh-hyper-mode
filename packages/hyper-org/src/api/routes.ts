@@ -11,10 +11,10 @@
  * carries none of the connection carrier's credentials, and refusing every
  * non-local peer is the narrowest policy that still works from the page.
  *
- * @module @chrock-studio/dsh-hyper-org/api/routes
+ * @module @chrock-hyper/dsh-hyper-org/api/routes
  */
-import type { HostContext, HttpHandler, HttpResponse } from '@chrock-studio/dsh-hyper-shared/host'
-import { readRole, resolveDirs } from '@chrock-studio/dsh-hyper-roles/internal'
+import type { HostContext, HttpHandler, HttpResponse } from '@chrock-hyper/dsh-hyper-shared/host'
+import { readRole, resolveDirs } from '@chrock-hyper/dsh-hyper-roles/internal'
 
 import type { OrgConfig } from '../config.ts'
 import { isSize, isStage, ORDER_ID, occupiesSlot, SIZES, STAGES } from '../order-doc.ts'

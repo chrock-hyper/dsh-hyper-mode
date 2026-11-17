@@ -14,11 +14,11 @@
  * This module is the facade: the config lives in `config.js`, the bundled skill
  * in `skill.js`, the host lookups in `host.js`, and the mounting in `mount.js`.
  *
- * @module @chrock-studio/dsh-hyper-wiki
+ * @module @chrock-hyper/dsh-hyper-wiki
  */
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
-import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
+import type { AgentHandle, HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import { createWikiApi } from './api.ts'
 import { normalizeConfig } from './config.ts'

@@ -5,7 +5,7 @@
 插件通过包名引用（`workspace:*` 依赖），不做相对路径穿透：
 
 ```ts
-import { findProjectRoot } from '@chrock-studio/dsh-hyper-shared/paths'
+import { findProjectRoot } from '@chrock-hyper/dsh-hyper-shared/paths'
 ```
 
 现有内容：

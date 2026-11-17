@@ -5,9 +5,9 @@
  * Deliberately route-agnostic: `routes.ts` owns the surface, `handlers.ts`
  * assembles payloads, and this module knows neither.
  *
- * @module @chrock-studio/dsh-hyper-org/api/http
+ * @module @chrock-hyper/dsh-hyper-org/api/http
  */
-import type { HttpRequest, HttpResponse } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HttpRequest, HttpResponse } from '@chrock-hyper/dsh-hyper-shared/host'
 
 /** Largest accepted JSON body: a create or patch request, not a file upload. */
 const MAX_BODY = 256 * 1024

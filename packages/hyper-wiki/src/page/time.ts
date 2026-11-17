@@ -4,7 +4,7 @@
  * `updated` is a human-facing calendar date, while draft bookkeeping keeps a
  * precise UTC instant. Both take an injectable clock so tests control them.
  *
- * @module @chrock-studio/dsh-hyper-wiki/page/time
+ * @module @chrock-hyper/dsh-hyper-wiki/page/time
  */
 
 /**

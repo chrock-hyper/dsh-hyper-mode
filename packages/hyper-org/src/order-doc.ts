@@ -9,7 +9,7 @@
  *
  * Pure functions only: filesystem work lives in `store.ts`.
  *
- * @module @chrock-studio/dsh-hyper-org/order-doc
+ * @module @chrock-hyper/dsh-hyper-org/order-doc
  */
 
 /** Order ids look like `wo-20261115-1`. */

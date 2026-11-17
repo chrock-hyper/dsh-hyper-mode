@@ -5,7 +5,7 @@
  * written against, and survives a rejection so the author can see why. The
  * decision functions live in `draft.ts`; this module only wires them to paths.
  *
- * @module @chrock-studio/dsh-hyper-wiki/store/drafts
+ * @module @chrock-hyper/dsh-hyper-wiki/store/drafts
  */
 import { existsSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'

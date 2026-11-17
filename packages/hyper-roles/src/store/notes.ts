@@ -2,7 +2,7 @@
  * Role experience notes: the append-only entries a role accumulates and later
  * reads back as its own memory.
  *
- * @module @chrock-studio/dsh-hyper-roles/store/notes
+ * @module @chrock-hyper/dsh-hyper-roles/store/notes
  */
 import type { ResolvedDirs, RoleScope } from '../scopes.ts'
 import { readRole, readRoleIn } from './cards.ts'

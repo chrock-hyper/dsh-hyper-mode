@@ -4,7 +4,7 @@
  * A typo in a patch must not take the wiki down with it, so every unusable
  * value falls back to its default instead of failing activation.
  *
- * @module @chrock-studio/dsh-hyper-wiki/config
+ * @module @chrock-hyper/dsh-hyper-wiki/config
  */
 import { DEFAULT_GIT_BIN } from './git.ts'
 

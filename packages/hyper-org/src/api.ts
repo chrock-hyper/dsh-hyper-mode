@@ -6,7 +6,7 @@
  * helpers in `api/http.ts`. Keeping the historical path means the mounting
  * plugin and `test/api.test.js` import the same names they always did.
  *
- * @module @chrock-studio/dsh-hyper-org/api
+ * @module @chrock-hyper/dsh-hyper-org/api
  */
 export { API_PREFIX, createApiHandler } from './api/routes.ts'
 export type { ApiHandlerOptions, ResolvedSessionInput } from './api/routes.ts'

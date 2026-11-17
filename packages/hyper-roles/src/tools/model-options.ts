@@ -1,7 +1,7 @@
 /**
  * Model routing for a delegated role.
  *
- * @module @chrock-studio/dsh-hyper-roles/tools/model-options
+ * @module @chrock-hyper/dsh-hyper-roles/tools/model-options
  */
 
 /** Agent options that pin one model, and the provider when the card names it. */

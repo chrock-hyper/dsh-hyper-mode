@@ -6,7 +6,7 @@
  * entry (`src/`). A missing or malformed file is reported by the caller, never
  * thrown.
  *
- * @module @chrock-studio/dsh-hyper-wiki/skill
+ * @module @chrock-hyper/dsh-hyper-wiki/skill
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

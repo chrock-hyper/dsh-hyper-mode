@@ -7,7 +7,7 @@
  * searched: a page's title, tags, and path are what the convention asks an
  * author to keep meaningful.
  *
- * @module @chrock-studio/dsh-hyper-wiki/search
+ * @module @chrock-hyper/dsh-hyper-wiki/search
  */
 import { displayTitle, stemOf } from './page.ts'
 

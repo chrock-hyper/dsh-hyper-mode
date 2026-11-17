@@ -5,10 +5,10 @@
  * hiring without an order is how a company ends up busy and unchanged. An order
  * is the thing a session can be handed, checked and signed.
  *
- * @module @chrock-studio/dsh-hyper-org/tools
+ * @module @chrock-hyper/dsh-hyper-org/tools
  */
-import type { AgentHandle, HostContext } from '@chrock-studio/dsh-hyper-shared/host'
-import { boundRoleOf, readRole } from '@chrock-studio/dsh-hyper-roles/internal'
+import type { AgentHandle, HostContext } from '@chrock-hyper/dsh-hyper-shared/host'
+import { boundRoleOf, readRole } from '@chrock-hyper/dsh-hyper-roles/internal'
 
 import type { OrgConfig } from './config.ts'
 import type { WorkOrder } from './order-doc.ts'

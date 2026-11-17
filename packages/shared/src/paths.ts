@@ -9,7 +9,7 @@
  * rejected plugin import into a bare `never started` row whose cause stays in
  * the Host log.
  *
- * @module @chrock-studio/dsh-hyper-shared/paths
+ * @module @chrock-hyper/dsh-hyper-shared/paths
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'

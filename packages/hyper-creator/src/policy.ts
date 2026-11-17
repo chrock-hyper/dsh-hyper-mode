@@ -8,7 +8,7 @@
  * The rule is thresholded on purpose. A program saves round trips and keeps large
  * payloads out of the conversation, but it costs a generation of code and it
  * nests the results, so "always program" would be a net loss for two small reads.
- * @module @chrock-studio/dsh-hyper-creator/policy
+ * @module @chrock-hyper/dsh-hyper-creator/policy
  */
 
 /**

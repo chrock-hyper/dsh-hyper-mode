@@ -1,5 +1,5 @@
 {
-  "name": "@chrock-studio/dsh-hyper-mode",
+  "name": "@chrock-hyper/dsh-hyper-mode",
   "version": "0.2.0",
   "private": true,
   "type": "module",
@@ -20,11 +20,11 @@
     }
   },
   "dependencies": {
-    "@chrock-studio/dsh-hyper-creator": "workspace:*",
-    "@chrock-studio/dsh-hyper-org": "workspace:*",
-    "@chrock-studio/dsh-hyper-roles": "workspace:*",
-    "@chrock-studio/dsh-hyper-skills": "workspace:*",
-    "@chrock-studio/dsh-hyper-wiki": "workspace:*",
-    "@chrock-studio/dsh-tool-catalog": "workspace:*"
+    "@chrock-hyper/dsh-hyper-creator": "workspace:*",
+    "@chrock-hyper/dsh-hyper-org": "workspace:*",
+    "@chrock-hyper/dsh-hyper-roles": "workspace:*",
+    "@chrock-hyper/dsh-hyper-skills": "workspace:*",
+    "@chrock-hyper/dsh-hyper-wiki": "workspace:*",
+    "@chrock-hyper/dsh-tool-catalog": "workspace:*"
   }
 }

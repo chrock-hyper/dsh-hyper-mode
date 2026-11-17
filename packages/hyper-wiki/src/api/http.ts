@@ -6,11 +6,11 @@
  * composition's connection service is absent. Everything here is transport;
  * it knows nothing about pages or drafts.
  *
- * @module @chrock-studio/dsh-hyper-wiki/api/http
+ * @module @chrock-hyper/dsh-hyper-wiki/api/http
  */
 import { isIP } from 'node:net'
 
-import type { HttpRequest, HttpResponse } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HttpRequest, HttpResponse } from '@chrock-hyper/dsh-hyper-shared/host'
 
 /** Largest accepted JSON request body. */
 export const MAX_BODY_BYTES = 256 * 1024

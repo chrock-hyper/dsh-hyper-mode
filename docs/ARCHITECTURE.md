@@ -10,7 +10,7 @@
 
 ```yaml
 - id: hyper-roles
-  name: '@chrock-studio/dsh-hyper-roles'
+  name: '@chrock-hyper/dsh-hyper-roles'
 ```
 
 `id` 是行自己的生命周期身份（启停、配置、日志），`name` 是模块规格符。Loader 对 `name` 最宽容：
@@ -54,7 +54,7 @@
 
 ## 三、重构前的形状（C）
 
-旧结构是一个根包 `@chrock-studio/dsh-hyper-mode`，插件放在 `plugins/<name>/index.js`，补丁行写相对路径
+旧结构是一个根包 `@chrock-hyper/dsh-hyper-mode`，插件放在 `plugins/<name>/index.js`，补丁行写相对路径
 `./plugins/hyper-roles/index.js`；三个面板各自挂一个**嵌套 `package.json`** 当伪包，靠
 `locatePkgJson → nearestPackage` 让 client-modules 认领。
 
@@ -86,7 +86,7 @@ packages/shared/        纯代码库，不是 Loader 行
 3. **一个带 UI 的组件一个包。** 多个面板塞进同一个包会让它们的生命周期绑死。
 4. **plugin 包导出 `./locale/*.json`、`./icon`、`./package.json`。** 行级元数据靠这三个导出。
 5. **跨包复用走具名入口。** `hyper-org` 需要岗位的身份投影与岗位库，走
-   `@chrock-studio/dsh-hyper-roles/internal`，不直接 import 兄弟包的实现文件。
+   `@chrock-hyper/dsh-hyper-roles/internal`，不直接 import 兄弟包的实现文件。
 6. **Client 半边只 `require` 基线模块。** 浏览器模块表只种了 `react` 这类基线；在 Client 里
    runtime import `@deepseek-ai/*` 会让整包加载失败。Client 半边因此是**单文件经典脚本**，
    没有相对路径解析——拆分它必须先引入打包步骤。

@@ -5,7 +5,7 @@
  * resolution order is the part the tool description promises, so it lives in
  * one place shared by every action.
  *
- * @module @chrock-studio/dsh-hyper-wiki/tools/context
+ * @module @chrock-hyper/dsh-hyper-wiki/tools/context
  */
 import type { ScopeIndex, WikiScope } from '../scopes.ts'
 import type { WikiStore } from '../store.ts'

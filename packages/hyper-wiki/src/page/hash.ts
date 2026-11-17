@@ -5,7 +5,7 @@
  * "is this draft stale?" is one string comparison. The digest is also the
  * `base` a draft carries through approval.
  *
- * @module @chrock-studio/dsh-hyper-wiki/page/hash
+ * @module @chrock-hyper/dsh-hyper-wiki/page/hash
  */
 import { createHash } from 'node:crypto'
 

@@ -13,13 +13,13 @@
  * resolves the installation's own; either way the module graph is the same one
  * the Host runs.
  *
- * @module @chrock-studio/dsh-hyper-creator
+ * @module @chrock-hyper/dsh-hyper-creator
  */
 import { RUN_CODE_NAME, projectToolSchema } from '@deepseek-ai/dsh-tools'
 import { NativeToolExecutor } from '@deepseek-ai/dsh-tool-executor-native'
 import { PtcExecutor, renderToolsSdk, renderToolsSdkPy } from '@deepseek-ai/dsh-tool-executor-ptc'
 
-import type { Disposable, HostContext, SystemPromptService, ToolRegistry } from '@chrock-studio/dsh-hyper-shared/host'
+import type { Disposable, HostContext, SystemPromptService, ToolRegistry } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import type { ToolSchema } from './policy.ts'
 import { HYBRID_INSTRUCTION, withRunCodePreference } from './policy.ts'

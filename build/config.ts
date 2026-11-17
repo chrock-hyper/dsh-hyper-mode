@@ -38,10 +38,10 @@ export function hostConfig(pkg: PackageBuild) {
       // bare request to the installation copy, and inlining would hand the
       // Host a second Cordis or Schemastery instance.
       neverBundle: [/^@deepseek-ai\//],
-      // `@chrock-studio/dsh-hyper-shared` is source-only: it has no build step
+      // `@chrock-hyper/dsh-hyper-shared` is source-only: it has no build step
       // of its own, so each plugin inlines this small pure library instead of
       // importing TypeScript at runtime.
-      alwaysBundle: [/^@chrock-studio\/dsh-hyper-shared/],
+      alwaysBundle: [/^@chrock-hyper\/dsh-hyper-shared/],
     },
   })
 }

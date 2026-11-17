@@ -10,7 +10,7 @@
  * `tools/context.js`, and the handlers in `tools/read-actions.js` and
  * `tools/write-actions.js`.
  *
- * @module @chrock-studio/dsh-hyper-wiki/tools
+ * @module @chrock-hyper/dsh-hyper-wiki/tools
  */
 export { createWikiTool } from './tools/define.ts'
 export { runWikiAction, WIKI_ACTIONS } from './tools/run.ts'

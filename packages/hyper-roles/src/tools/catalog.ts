@@ -5,7 +5,7 @@
  * sees for `role action=list`, the `role action=notes` hits, and the roster
  * section the system prompt embeds.
  *
- * @module @chrock-studio/dsh-hyper-roles/tools/catalog
+ * @module @chrock-hyper/dsh-hyper-roles/tools/catalog
  */
 import type { RenderRosterOptions, RosterRow } from '../marker.ts'
 import { clip, renderRoster } from '../marker.ts'

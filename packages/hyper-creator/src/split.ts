@@ -1,7 +1,7 @@
 /**
  * Batch splitting and result merging for the hybrid executor.
  * Pure functions: no Cordis, no tool packages, so they are unit-testable alone.
- * @module @chrock-studio/dsh-hyper-creator/split
+ * @module @chrock-hyper/dsh-hyper-creator/split
  */
 
 /** One model-submitted call; only `id` and `name` are read by this module. */

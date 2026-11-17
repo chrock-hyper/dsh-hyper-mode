@@ -11,7 +11,7 @@
  *
  * This module is the facade over `page/`: importers keep using `page.js`.
  *
- * @module @chrock-studio/dsh-hyper-wiki/page
+ * @module @chrock-hyper/dsh-hyper-wiki/page
  */
 export {
   isPageStatus,

@@ -5,9 +5,9 @@
  * `skills` after the wiki plugin. A service that never appears is a warning,
  * not a failure.
  *
- * @module @chrock-studio/dsh-hyper-wiki/mount
+ * @module @chrock-hyper/dsh-hyper-wiki/mount
  */
-import type { HostContext, HttpHandler } from '@chrock-studio/dsh-hyper-shared/host'
+import type { HostContext, HttpHandler } from '@chrock-hyper/dsh-hyper-shared/host'
 
 import { WIKI_ROUTE_PREFIX } from './api.ts'
 import type { WikiLogger } from './host.ts'

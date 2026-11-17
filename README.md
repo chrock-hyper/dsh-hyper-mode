@@ -20,13 +20,13 @@
 
 | 插件 | 包 | 提供什么 |
 |---|---|---|
-| **hyper-creator**（增强创造模式） | `@chrock-studio/dsh-hyper-creator` | Creator 能力 + 混合工具执行：既可直呼工具，也可把同一批工具当作 `run_code` 程序里的 SDK 绑定调用；动手前能列出步骤的多次调用优先走 `run_code` 编排 |
-| **tool-catalog**（检视修复） | `@chrock-studio/dsh-tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
-| **hyper-skills**（`/hyper-skill` 命令） | `@chrock-studio/dsh-hyper-skills` | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
-| **hyper-roles**（岗位） | `@chrock-studio/dsh-hyper-roles` | 顶层行 + 会话级「岗位」标签页：可编辑角色卡、会话级绑定、`role` / `role_spawn` / `role_edit`；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
-| **hyper-org**（公司层） | `@chrock-studio/dsh-hyper-org` | 顶层行 + 会话级「工单」标签页：在岗位制之上加工单——`org_order`（建单 / 改单 / 签收）、`org_board`（看板）、在制上限与「M/L 无验收标准不能进 active」的门禁；数据在 `~/.dsh/org` 与 `<项目>/.dsh/org` |
-| **hyper-wiki**（Wiki） | `@chrock-studio/dsh-hyper-wiki` | 顶层行 + 会话级「Wiki」标签页：约定优先的 Markdown 页面、镜像草稿与人工批准、反链、标题/标签检索、全局库自动 git 提交 |
-| `shared` | `@chrock-studio/dsh-hyper-shared` | 跨插件共享纯代码，不挂载、不出现补丁里 |
+| **hyper-creator**（增强创造模式） | `@chrock-hyper/dsh-hyper-creator` | Creator 能力 + 混合工具执行：既可直呼工具，也可把同一批工具当作 `run_code` 程序里的 SDK 绑定调用；动手前能列出步骤的多次调用优先走 `run_code` 编排 |
+| **tool-catalog**（检视修复） | `@chrock-hyper/dsh-tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
+| **hyper-skills**（`/hyper-skill` 命令） | `@chrock-hyper/dsh-hyper-skills` | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
+| **hyper-roles**（岗位） | `@chrock-hyper/dsh-hyper-roles` | 顶层行 + 会话级「岗位」标签页：可编辑角色卡、会话级绑定、`role` / `role_spawn` / `role_edit`；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
+| **hyper-org**（公司层） | `@chrock-hyper/dsh-hyper-org` | 顶层行 + 会话级「工单」标签页：在岗位制之上加工单——`org_order`（建单 / 改单 / 签收）、`org_board`（看板）、在制上限与「M/L 无验收标准不能进 active」的门禁；数据在 `~/.dsh/org` 与 `<项目>/.dsh/org` |
+| **hyper-wiki**（Wiki） | `@chrock-hyper/dsh-hyper-wiki` | 顶层行 + 会话级「Wiki」标签页：约定优先的 Markdown 页面、镜像草稿与人工批准、反链、标题/标签检索、全局库自动 git 提交 |
+| `shared` | `@chrock-hyper/dsh-hyper-shared` | 跨插件共享纯代码，不挂载、不出现补丁里 |
 
 行与包一一对应，所以每行在 Plugin Manager 里都有自己的标题、图标与详情，也能各自启停：
 关掉 `hyper-wiki` 只消失 Wiki 标签页与 `wiki` 工具，岗位与工单照常。
@@ -37,7 +37,7 @@
 dsh-hyper-mode/                  pnpm workspace 根（private，无运行时代码）
 ├─ pnpm-workspace.yaml           packages/*
 ├─ packages/
-│  ├─ bundle/                    元包 @chrock-studio/dsh-hyper-mode
+│  ├─ bundle/                    元包 @chrock-hyper/dsh-hyper-mode
 │  │  ├─ package.json            dsh.bundle.patch + workspace:* 依赖，不声明 dsh.client
 │  │  ├─ cordis.patch.yml        ← 聚合点：每条插件行 + 各 mode 的 preset 声明
 │  │  ├─ locale/                 bundle 在插件管理器里的标题/描述（en + zh）
@@ -92,7 +92,7 @@ Client 的**源码**可以拆成多个 `.tsx`（JSX 由 tsdown 编译），但**
 
 `@deepseek-ai/*` 永远不进产物，也永远不做运行时探路径：每个插件在 `peerDependencies` +
 `devDependencies` 里声明用到的包，构建时保持 external。装进 profile 后 resolver 把裸请求指到宿主副本；
-本地 link 开发期解析到 workspace 里的 devDependency 副本。`@chrock-studio/dsh-hyper-shared` 相反——
+本地 link 开发期解析到 workspace 里的 devDependency 副本。`@chrock-hyper/dsh-hyper-shared` 相反——
 它没有自己的构建，由各插件在打包时内联。
 
 **聚合点是 `packages/bundle/cordis.patch.yml`，不是任何 `index.js`**：DSH 按补丁里的行挂载插件，
@@ -103,8 +103,8 @@ Client 的**源码**可以拆成多个 `.tsx`（JSX 由 tsdown 编译），但**
 1. 建 `packages/<name>/src/index.js`，导出 `apply` / `name` / `inject`（可选 `Config`）；
 2. 写 `packages/<name>/package.json`：`"exports"` 至少含 `"."`、`"./locale/*.json"`、`"./icon"`、
    `"./package.json"`；有 UI 时再加 `"./client"` 与 `dsh.client`；
-3. 在 `packages/bundle/package.json` 的 `dependencies` 加 `"@chrock-studio/dsh-<name>": "workspace:*"`；
-4. 在 `packages/bundle/cordis.patch.yml` 加一行，`name` 写**裸包根** `@chrock-studio/dsh-<name>`；
+3. 在 `packages/bundle/package.json` 的 `dependencies` 加 `"@chrock-hyper/dsh-<name>": "workspace:*"`；
+4. 在 `packages/bundle/cordis.patch.yml` 加一行，`name` 写**裸包根** `@chrock-hyper/dsh-<name>`；
 5. 回仓库根跑 `pnpm install`（建立 workspace 链接）与 `pnpm test`。
 
 **不要再用相对路径行。** 以前为了绕开 Node 对 `exports` 的进程级缓存，行名写成
@@ -125,7 +125,7 @@ plugin_manager action=install_bundle target=<本仓库>/packages/bundle
 会话标题下方会多出「岗位」「Wiki」「工单」三个标签页。它们都是会话级的——没有会话就不显示，
 项目作用域直接取当前会话的工作目录。
 
-回滚：`plugin_manager action=remove_bundle target=@chrock-studio/dsh-hyper-mode`
+回滚：`plugin_manager action=remove_bundle target=@chrock-hyper/dsh-hyper-mode`
 
 ## 岗位制编排（hyper-roles）
 

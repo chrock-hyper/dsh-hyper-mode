@@ -12,12 +12,12 @@
  * inside the project, and a symlink check that its real path still does. A path
  * that escapes is reported as `escape` instead of being opened.
  *
- * @module @chrock-studio/dsh-hyper-org/artifacts
+ * @module @chrock-hyper/dsh-hyper-org/artifacts
  */
 import { realpathSync, statSync } from 'node:fs'
 import { isAbsolute, normalize, resolve } from 'node:path'
 
-import { isInside } from '@chrock-studio/dsh-hyper-shared/paths'
+import { isInside } from '@chrock-hyper/dsh-hyper-shared/paths'
 
 /** What one declared artifact turned out to be. */
 export type ArtifactStatus =

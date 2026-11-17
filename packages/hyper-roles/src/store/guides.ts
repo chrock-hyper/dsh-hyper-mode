@@ -2,7 +2,7 @@
  * Role reading guides: one prose file per role that the tool can read and
  * replace, separate from the card itself.
  *
- * @module @chrock-studio/dsh-hyper-roles/store/guides
+ * @module @chrock-hyper/dsh-hyper-roles/store/guides
  */
 import type { ResolvedDirs, RoleScope } from '../scopes.ts'
 import { readRole, readRoleIn } from './cards.ts'

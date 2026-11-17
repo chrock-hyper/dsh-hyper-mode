@@ -5,7 +5,7 @@
  * approve. `status` reports the caller's own drafts, including the reason a
  * rejection carried.
  *
- * @module @chrock-studio/dsh-hyper-wiki/tools/write-actions
+ * @module @chrock-hyper/dsh-hyper-wiki/tools/write-actions
  */
 import type { DraftRow } from '../store/drafts.ts'
 import type { ToolActionInput, ToolResult } from './context.ts'

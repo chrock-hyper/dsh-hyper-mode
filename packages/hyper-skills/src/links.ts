@@ -4,7 +4,7 @@
  * 这里每次写之前都要判断所有权：扫描根是共享目录，同名路径可能是别人的。
  * 只有解析后落在本 bundle 的 `packages/` 内，才允许删除。
  *
- * @module @chrock-studio/dsh-hyper-skills/links
+ * @module @chrock-hyper/dsh-hyper-skills/links
  */
 import { lstatSync, mkdirSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
 import { join, sep } from 'node:path'
