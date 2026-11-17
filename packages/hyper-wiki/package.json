@@ -1,0 +1,32 @@
+{
+  "name": "@chrock-studio/dsh-hyper-wiki",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "会话内 Wiki：作用域页面库、草稿流与标签页面板。",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./src/client/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "dependencies": {
+    "@chrock-studio/dsh-hyper-shared": "workspace:*"
+  }
+}

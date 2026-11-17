@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Tool catalog">
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#0f766e" opacity="0.12"/>
+  <rect x="14" y="13" width="36" height="9" rx="3" fill="#ffffff" stroke="#0f766e" stroke-width="2.3"/>
+  <rect x="14" y="27" width="36" height="9" rx="3" fill="#0f766e" opacity="0.85"/>
+  <rect x="14" y="41" width="36" height="9" rx="3" fill="#ffffff" stroke="#0f766e" stroke-width="2.3"/>
+  <circle cx="21" cy="17.5" r="2" fill="#0f766e"/>
+  <circle cx="21" cy="31.5" r="2" fill="#ffffff"/>
+  <circle cx="21" cy="45.5" r="2" fill="#0f766e"/>
+</svg>

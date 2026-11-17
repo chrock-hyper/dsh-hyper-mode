@@ -13,7 +13,7 @@
  * project root — and `?panel=empty|error|noproject` switches between them, so a
  * headless screenshot can look at each state without the app.
  *
- * @module @chrock-studio/dsh-hyper-mode/scripts/preview
+ * @module dsh-hyper-mode-workspace/scripts/preview
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -23,10 +23,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requested = process.argv[2]
 const kind = requested === 'wiki' ? 'wiki' : requested === 'orders' ? 'orders' : 'roles'
 const clientFile = kind === 'roles'
-  ? join(root, 'plugins/hyper-roles/client/client.js')
+  ? join(root, 'packages/hyper-roles/src/client/index.js')
   : kind === 'wiki'
-    ? join(root, 'plugins/hyper-wiki/client/client.js')
-    : join(root, 'plugins/hyper-org/client/client.js')
+    ? join(root, 'packages/hyper-wiki/src/client/index.js')
+    : join(root, 'packages/hyper-org/src/client/index.js')
 const source = readFileSync(clientFile, 'utf8')
 const styles = /const STYLES = `([\s\S]*?)`\n/.exec(source)?.[1] ?? ''
 if (styles === '') throw new Error('no STYLES block found')
@@ -273,7 +273,7 @@ const orderDetails = {
   },
   'wo-20261115-2': {
     acceptance: ['规则只有一处实现', '面板与工具同一份 signBlockers', '在制上限建单时生效'],
-    artifacts: [{ path: 'plugins/hyper-org/lib/rules.js', kind: 'file', bytes: 11403, absolutePath: '/Users/you/src/app/plugins/hyper-org/lib/rules.js' }],
+    artifacts: [{ path: 'packages/hyper-org/src/rules.js', kind: 'file', bytes: 11403, absolutePath: '/Users/you/src/app/packages/hyper-org/src/rules.js' }],
     log: [
       { at: '2026-11-15T09:00:00.000Z', by: 'architect', note: '方案：规则下沉，store 一行不改。' },
       { at: '2026-11-15T10:30:00.000Z', by: 'engineer', note: 'Phase 0 完成，org-flow.test.js 未改动即全绿。' },

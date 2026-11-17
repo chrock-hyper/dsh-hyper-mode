@@ -1,0 +1,30 @@
+{
+  "name": "@chrock-studio/dsh-hyper-mode",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "DeepSeek Harness 的扩展 bundle：增强创造模式 + 岗位制编排 + 工单看板 + 会话内 Wiki。",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrock-studio/dsh-hyper-mode.git"
+  },
+  "exports": {
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@chrock-studio/dsh-hyper-creator": "workspace:*",
+    "@chrock-studio/dsh-hyper-org": "workspace:*",
+    "@chrock-studio/dsh-hyper-roles": "workspace:*",
+    "@chrock-studio/dsh-hyper-skills": "workspace:*",
+    "@chrock-studio/dsh-hyper-wiki": "workspace:*",
+    "@chrock-studio/dsh-tool-catalog": "workspace:*"
+  }
+}

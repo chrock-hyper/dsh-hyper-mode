@@ -1,0 +1,71 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .: {}
+
+  packages/bundle:
+    dependencies:
+      '@chrock-studio/dsh-hyper-creator':
+        specifier: workspace:*
+        version: link:../hyper-creator
+      '@chrock-studio/dsh-hyper-org':
+        specifier: workspace:*
+        version: link:../hyper-org
+      '@chrock-studio/dsh-hyper-roles':
+        specifier: workspace:*
+        version: link:../hyper-roles
+      '@chrock-studio/dsh-hyper-skills':
+        specifier: workspace:*
+        version: link:../hyper-skills
+      '@chrock-studio/dsh-hyper-wiki':
+        specifier: workspace:*
+        version: link:../hyper-wiki
+      '@chrock-studio/dsh-tool-catalog':
+        specifier: workspace:*
+        version: link:../tool-catalog
+
+  packages/hyper-creator:
+    dependencies:
+      '@chrock-studio/dsh-hyper-shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/hyper-org:
+    dependencies:
+      '@chrock-studio/dsh-hyper-roles':
+        specifier: workspace:*
+        version: link:../hyper-roles
+      '@chrock-studio/dsh-hyper-shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/hyper-roles:
+    dependencies:
+      '@chrock-studio/dsh-hyper-shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/hyper-skills:
+    dependencies:
+      '@chrock-studio/dsh-hyper-shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/hyper-wiki:
+    dependencies:
+      '@chrock-studio/dsh-hyper-shared':
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/shared: {}
+
+  packages/tool-catalog:
+    dependencies:
+      '@chrock-studio/dsh-hyper-shared':
+        specifier: workspace:*
+        version: link:../shared

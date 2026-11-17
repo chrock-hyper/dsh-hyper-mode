@@ -1,8 +1,0 @@
-{
-  "name": "@chrock-studio/dsh-hyper-skills",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "description": "/hyper-skill 命令插件：按需把随包 skill 安装进扫描根（Host 作用域，所有模式可用）。",
-  "license": "MIT"
-}

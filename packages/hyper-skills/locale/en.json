@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Bundled skill installer",
+    "description": "The /hyper-skill command: list the skills this bundle ships and link one into the project or user scan root. Host scope, available in every mode."
+  }
+}

@@ -8,7 +8,7 @@
  *
  *   ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs
  *
- * @module dsh-wiki/scripts/smoke-wiki
+ * @module dsh-hyper-mode-workspace/scripts/smoke-wiki
  */
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -43,7 +43,7 @@ const host = {
   inject: (deps, callback) => callback({ effect: host.effect, get: host.get }),
 }
 
-const { apply } = await import('../plugins/hyper-wiki/index.js')
+const { apply } = await import('../packages/hyper-wiki/src/index.js')
 apply(host, { home, git: false })
 
 console.log('tools:', tools.map((tool) => tool.name).join(', '))

@@ -1,53 +1,19 @@
 {
-  "name": "@chrock-studio/dsh-hyper-mode",
+  "name": "dsh-hyper-mode-workspace",
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "DeepSeek Harness 的扩展 bundle：增强创造模式（hyper-creator）+ 岗位制编排（hyper-roles）+ 会话内 Wiki（hyper-wiki）。",
+  "description": "dsh-hyper-mode 的 pnpm 工作区：一个元包（packages/bundle）加每个插件一个真实包。",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/chrock-studio/dsh-hyper-mode.git"
   },
-  "exports": {
-    ".": "./index.js",
-    "./locale/*.json": "./locale/*.json",
-    "./hyper-creator": "./plugins/hyper-creator/index.js",
-    "./hyper-creator/locale/*.json": "./plugins/hyper-creator/locale/*.json",
-    "./hyper-creator/icon": "./plugins/hyper-creator/icon.svg",
-    "./hyper-teams": "./plugins/hyper-teams/index.js",
-    "./hyper-skills": "./plugins/hyper-skills/index.js",
-    "./tool-catalog": "./plugins/tool-catalog/index.js",
-    "./tool-catalog/locale/*.json": "./plugins/tool-catalog/locale/*.json",
-    "./hyper-org": "./plugins/hyper-org/index.js",
-    "./hyper-org/client": "./plugins/hyper-org/client/client.js",
-    "./hyper-roles": "./plugins/hyper-roles/index.js",
-    "./hyper-roles/client": "./plugins/hyper-roles/client/client.js",
-    "./hyper-wiki": "./plugins/hyper-wiki/index.js",
-    "./hyper-wiki/client": "./plugins/hyper-wiki/client/client.js"
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=24.9.0"
   },
-  "files": [
-    "index.js",
-    "cordis.patch.yml",
-    "locale",
-    "plugins",
-    "docs",
-    "LICENSE"
-  ],
-  "keywords": [
-    "agent-preset",
-    "bundle",
-    "deepseek-harness",
-    "dsh",
-    "orchestration",
-    "plugin",
-    "roles",
-    "tool-executor",
-    "wiki"
-  ],
-  "dsh": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    }
+  "scripts": {
+    "test": "pnpm -r --no-bail test"
   }
 }

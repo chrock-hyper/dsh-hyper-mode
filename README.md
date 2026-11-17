@@ -1,6 +1,8 @@
 # dsh-hyper-mode · 增强创造模式 + 岗位 + Wiki
 
-给 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）的扩展 bundle：一个包里聚合即插即用插件，装一次即可用。
+给 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH）的扩展 bundle：一个 pnpm monorepo，
+**元包负责组合、每个插件一个真实包**，装一次即可用。为什么要拆成多包、而不是一个大包 +
+若干子路径，见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 除了「增强创造模式」，它还在**会话里**加了三个标签页（与「对话」「轨迹」「统计」同一排）：
 
@@ -14,58 +16,87 @@
 
 ## 插件地图
 
-| 插件 | 子路径 | 提供什么 |
+每个插件是一个独立包，行的 `name` 就是包根：
+
+| 插件 | 包 | 提供什么 |
 |---|---|---|
-| **hyper-creator**（增强创造模式） | `@chrock-studio/dsh-hyper-mode/hyper-creator` | Creator 能力 + 混合工具执行：既可直呼工具，也可把同一批工具当作 `run_code` 程序里的 SDK 绑定调用；动手前能列出步骤的多次调用优先走 `run_code` 编排 |
-| `shared` | — | 跨插件共享纯代码，不挂载 |
-| **hyper-teams**（空壳） | `@chrock-studio/dsh-hyper-mode/hyper-teams` | **独立组件**（顶层行，Host 作用域）：对所有会话生效，可在 Plugin Manager 单独启用/禁用。仅塞一个提示词标记，验收后可删 |
-| **tool-catalog**（检视修复） | `@chrock-studio/dsh-hyper-mode/tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
-| **hyper-skills**（`/hyper-skill` 命令） | `@chrock-studio/dsh-hyper-mode/hyper-skills`（补丁行用相对路径 `./plugins/hyper-skills/index.js`） | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
-| **hyper-roles**（岗位） | `@chrock-studio/dsh-hyper-mode/hyper-roles`（补丁行用相对路径 `./plugins/hyper-roles/index.js`） | 顶层行 + 会话级「岗位」标签页：可编辑角色卡、会话级绑定、`role` / `role_spawn` / `role_edit`；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
-| **hyper-org**（公司层） | `@chrock-studio/dsh-hyper-mode/hyper-org`（补丁行用相对路径 `./plugins/hyper-org/index.js`） | 顶层行 + 会话级「工单」标签页：在岗位制之上加工单——`org_order`（建单 / 改单 / 签收）、`org_board`（看板）、在制上限与「M/L 无验收标准不能进 active」的门禁；数据在 `~/.dsh/org` 与 `<项目>/.dsh/org` |
-| **hyper-wiki**（Wiki） | `@chrock-studio/dsh-hyper-mode/hyper-wiki`（补丁行用相对路径 `./plugins/hyper-wiki/index.js`） | 顶层行 + 会话级「Wiki」标签页：约定优先的 Markdown 页面、镜像草稿与人工批准、反链、标题/标签检索、全局库自动 git 提交 |
+| **hyper-creator**（增强创造模式） | `@chrock-studio/dsh-hyper-creator` | Creator 能力 + 混合工具执行：既可直呼工具，也可把同一批工具当作 `run_code` 程序里的 SDK 绑定调用；动手前能列出步骤的多次调用优先走 `run_code` 编排 |
+| **tool-catalog**（检视修复） | `@chrock-studio/dsh-tool-catalog` | **独立组件**（顶层行，Host 作用域）：注册 `ToolCatalog` 检视 provider，返回模型真正收到的工具编目，补上 `Tool/listTools` 看不到的 `run_code` 传输 |
+| **hyper-skills**（`/hyper-skill` 命令） | `@chrock-studio/dsh-hyper-skills` | **独立组件**（顶层行，Host 作用域）：注册 `/hyper-skill` 命令，按需把随包 skill 安装进扫描根；所有模式可用 |
+| **hyper-roles**（岗位） | `@chrock-studio/dsh-hyper-roles` | 顶层行 + 会话级「岗位」标签页：可编辑角色卡、会话级绑定、`role` / `role_spawn` / `role_edit`；全局 `~/.dsh/roles`、项目 `<项目>/.dsh/roles` |
+| **hyper-org**（公司层） | `@chrock-studio/dsh-hyper-org` | 顶层行 + 会话级「工单」标签页：在岗位制之上加工单——`org_order`（建单 / 改单 / 签收）、`org_board`（看板）、在制上限与「M/L 无验收标准不能进 active」的门禁；数据在 `~/.dsh/org` 与 `<项目>/.dsh/org` |
+| **hyper-wiki**（Wiki） | `@chrock-studio/dsh-hyper-wiki` | 顶层行 + 会话级「Wiki」标签页：约定优先的 Markdown 页面、镜像草稿与人工批准、反链、标题/标签检索、全局库自动 git 提交 |
+| `shared` | `@chrock-studio/dsh-hyper-shared` | 跨插件共享纯代码，不挂载、不出现补丁里 |
+
+行与包一一对应，所以每行在 Plugin Manager 里都有自己的标题、图标与详情，也能各自启停：
+关掉 `hyper-wiki` 只消失 Wiki 标签页与 `wiki` 工具，岗位与工单照常。
 
 ## 结构
 
 ```
-dsh-hyper-mode/
-├─ package.json          @chrock-studio/dsh-hyper-mode（dsh.bundle.patch → ./cordis.patch.yml）
-├─ cordis.patch.yml      ← 聚合点：每条插件行 + 各 mode 的 preset 声明
-├─ index.js              兜底入口：整包当作单插件挂载时等同 hyper-creator
-├─ locale/               bundle 在插件管理器里的标题/描述（en + zh）
-├─ plugins/
-│  ├─ hyper-creator/     增强创造模式插件（执行器 + 路由策略 + skill + locale + 文档 + 测试）
-│  ├─ hyper-skills/      /hyper-skill 命令插件（按需安装随包 skill）
-│  ├─ hyper-roles/       岗位标签页（角色卡 / 绑定 / 工具 / 面板）
-│  │  └─ package.json    嵌套包：只声明岗位标签页的 dsh.client
-│  ├─ hyper-org/         公司层（工单 / 在制上限 / 验收签字，依赖 hyper-roles）
-│  │  └─ package.json    嵌套包：只声明工单标签页的 dsh.client
-│  ├─ hyper-wiki/        Wiki 标签页（页面 / 草稿 / 链接 / 检索 / git / 工具 / 面板）
-│  │  └─ package.json    嵌套包：只声明 Wiki 标签页的 dsh.client
-│  ├─ tool-catalog/      检视修复插件（ToolCatalog provider）
-│  └─ shared/            跨插件共享代码（shipped 解析器、路径工具）
-├─ scripts/              Host 冒烟检查：smoke-roles.mjs / smoke-wiki.mjs
-├─ docs/NOTES.md         建造笔记：设计取舍与踩过的坑
-├─ docs/HANDOFF.md       交接：现状、已完成的看板 UI 与剩余遗留
-└─ AGENTS.md             本工作区的三条硬规矩
+dsh-hyper-mode/                  pnpm workspace 根（private，无运行时代码）
+├─ pnpm-workspace.yaml           packages/*
+├─ packages/
+│  ├─ bundle/                    元包 @chrock-studio/dsh-hyper-mode
+│  │  ├─ package.json            dsh.bundle.patch + workspace:* 依赖，不声明 dsh.client
+│  │  ├─ cordis.patch.yml        ← 聚合点：每条插件行 + 各 mode 的 preset 声明
+│  │  ├─ locale/                 bundle 在插件管理器里的标题/描述（en + zh）
+│  │  ├─ icon.svg                元包图标
+│  │  └─ docs/DETAIL.md          元包详情页
+│  ├─ hyper-creator/             增强创造模式（执行器 + 路由策略 + skill + 测试）
+│  ├─ hyper-skills/              /hyper-skill 命令
+│  ├─ hyper-roles/               岗位：角色卡 / 绑定 / 工具 / Client 半边 / roles 模板
+│  ├─ hyper-org/                 公司层：工单 / 在制上限 / 验收签字（依赖 hyper-roles）
+│  ├─ hyper-wiki/                Wiki：页面 / 草稿 / 链接 / 检索 / git / Client 半边
+│  ├─ tool-catalog/              检视修复（ToolCatalog provider）
+│  └─ shared/                    纯代码：DSH 状态目录、项目根、路径安全、随包模块加载
+├─ scripts/                      Host 冒烟检查 + 面板静态预览
+├─ examples/                     示例产物（不参与构建）
+├─ docs/NOTES.md                 建造笔记：设计取舍与踩过的坑
+├─ docs/HANDOFF.md               交接：现状、已完成的看板 UI 与剩余遗留
+└─ AGENTS.md                     本工作区的三条硬规矩
 ```
 
-**聚合点是 `cordis.patch.yml`，不是 `index.js`**：DSH 按补丁里的行挂载插件，根目录导出它们并不会自动生效。
+每个插件的布局一致：
+
+```
+packages/<name>/
+├─ package.json    exports: "."（行入口）/ "./client"（有 UI 才有）/ locale / icon / package.json
+├─ src/            index.js（Host 入口），其余按职责分文件；有 UI 时含 client/index.js
+├─ locale/         en.json + zh.json（行级标题与描述）
+├─ icon.svg        行级图标
+└─ test/           bun test
+```
+
+**聚合点是 `packages/bundle/cordis.patch.yml`，不是任何 `index.js`**：DSH 按补丁里的行挂载插件，
+包根导出它们并不会自动生效。
 
 ## 新增一个插件
 
-1. 建 `plugins/<name>/`，写 `index.js`（导出 `apply` / `name` / `inject`，可选 `Config`）；
-2. 在根 `package.json` 的 `exports` 加两条：`./<name>` 与 `./<name>/locale/*.json`（给外部消费者用）；
-3. 在 `cordis.patch.yml` 加一行。**优先用相对路径** `name: ./plugins/<name>/index.js`：补丁方言把插入行的相对路径锚定在补丁文件旁，新增子路径也不用重启。若写成 `@chrock-studio/dsh-hyper-mode/<name>`，Node 对 `package.json` 的 `exports` 有**进程级缓存**，新子路径在重载后仍报 `ERR_PACKAGE_PATH_NOT_EXPORTED`（加载器只记一条 `never started`），必须重启一次；
-4. 重新启用 bundle（禁用→启用）即可，**Host 行不需要重启 DSH**：重载会比对已加载模块与磁盘、淘汰旧缓存再重新求值。**Preset 行例外**（`unmanaged-plugin`）：它被预设组合引用，重载返回 `restart-required`，要重启 DSH；与进程实例强绑定的实现（原生插件、进程级单例、改变链接目标目录）同样需要重启。
+1. 建 `packages/<name>/src/index.js`，导出 `apply` / `name` / `inject`（可选 `Config`）；
+2. 写 `packages/<name>/package.json`：`"exports"` 至少含 `"."`、`"./locale/*.json"`、`"./icon"`、
+   `"./package.json"`；有 UI 时再加 `"./client"` 与 `dsh.client`；
+3. 在 `packages/bundle/package.json` 的 `dependencies` 加 `"@chrock-studio/dsh-<name>": "workspace:*"`；
+4. 在 `packages/bundle/cordis.patch.yml` 加一行，`name` 写**裸包根** `@chrock-studio/dsh-<name>`；
+5. 回仓库根跑 `pnpm install`（建立 workspace 链接）与 `pnpm test`。
+
+**不要再用相对路径行。** 以前为了绕开 Node 对 `exports` 的进程级缓存，行名写成
+`./plugins/<name>/index.js`；代价是 `readPluginMeta` 认不出它，那一行在插件管理器里没有标题、
+图标和详情，而且同一个包的多个行会让 client-modules 撞上「一个包只能有一个活跃 Client 来源」。
+现在每个插件是真实包，行名用裸包根，三套身份同源。
+
+新增行之后 Host 侧不需重启 DSH：重载会比对已加载模块与磁盘、淘汰旧缓存再重新求值。
+**Preset 行例外**（`unmanaged-plugin`）：它被预设组合引用，重载返回 `restart-required`，要重启 DSH。
 
 ## 安装
 
 ```bash
-plugin_manager action=install_bundle target=<本仓库绝对路径>
+plugin_manager action=install_bundle target=<本仓库>/packages/bundle
 ```
 
-装完新建会话，模式选「增强创造模式」：会话标题下方会多出「岗位」「Wiki」「工单」三个标签页。它们都是会话级的——没有会话就不显示，项目作用域直接取当前会话的工作目录。
+注意安装目标从仓库根变成了 **`packages/bundle`**：元包在那里。装完新建会话，模式选「增强创造模式」：
+会话标题下方会多出「岗位」「Wiki」「工单」三个标签页。它们都是会话级的——没有会话就不显示，
+项目作用域直接取当前会话的工作目录。
 
 回滚：`plugin_manager action=remove_bundle target=@chrock-studio/dsh-hyper-mode`
 
@@ -79,7 +110,7 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 |---|---|---|
 | 全局 | `${DSH_HOME:-~/.dsh}/roles/` | 所有会话 |
 | 项目 | `<项目根>/.dsh/roles/` | 仅该项目；同名岗位覆盖全局 |
-| 随包 | `plugins/hyper-roles/roles/` | 只读模板；面板里显示「复制到本项目 / 全局」，是否复制由用户决定 |
+| 随包 | `packages/hyper-roles/roles/` | 只读模板；面板里显示「复制到本项目 / 全局」，是否复制由用户决定 |
 
 每个岗位是三个文件：`<id>.md`（角色卡）、`<id>.notes.md`（经验，追加式）、`<id>.guide.md`（岗位指导）。写入都会追加一行到同目录的 `CHANGELOG.md`，归档进 `.archive/`，不删除。
 
@@ -159,7 +190,7 @@ can: edit-roles
 
 ### 培训员
 
-`plugins/hyper-roles/roles/trainer.md` 是随包岗位，`skills/role-training/SKILL.md` 是同一套 playbook 的 skill 版。它以**根会话**运行（默认委派深度为 1，子代理拉不起同级），流程是：定框架 → 并行 `role_spawn` → 三栏对照 → `send_message` 交叉回灌 → 各岗位写经验 → 报告落成 wiki 草稿。
+`packages/hyper-roles/roles/trainer.md` 是随包岗位，`skills/role-training/SKILL.md` 是同一套 playbook 的 skill 版。它以**根会话**运行（默认委派深度为 1，子代理拉不起同级），流程是：定框架 → 并行 `role_spawn` → 三栏对照 → `send_message` 交叉回灌 → 各岗位写经验 → 报告落成 wiki 草稿。
 
 ### 可调项
 
@@ -170,11 +201,14 @@ can: edit-roles
   "selfSectionMaxChars": 1200, "rosterSection": true, "notesShown": 3 }
 ```
 
-### 为什么面板的客户端是嵌套包
+### 为什么面板的客户端就挂在这个包上
 
-`dsh-client-modules` 对**同一个包出现多个活跃 Loader 来源**会直接报错。本 bundle 已有四行来自同一个包，所以面板的 `dsh.client` 必须挂在独立清单上：`plugins/hyper-roles/package.json`（包名 `@chrock-studio/dsh-hyper-roles`）。`locatePkgJson` 会从行模块向上取最近的 `package.json`，因此只有 `hyper-roles` 这一行认领它。
+`dsh-client-modules` 对**同一个包出现多个活跃 Loader 来源**会直接报错，而且一个包只能有一个
+Client 入口。以前整个 bundle 是一个包、补丁行有四行指向它，所以面板只能挂到「嵌套伪包」上，
+靠 `locatePkgJson` 从行模块向上找最近的 `package.json`。现在每个面板是独立包、独立行，
+`dsh.client` 就写在自己的 `package.json` 里，一行一个 Client，不再需要伪包。
 
-验收步骤见 `plugins/hyper-roles/VERIFY.md`。
+验收步骤见 `packages/hyper-roles/VERIFY.md`。
 
 ## 公司层（hyper-org）
 
@@ -217,7 +251,7 @@ can: edit-roles
 - **数据不动**：`schemaVersion` 仍为 1，`.dsh/org` 是唯一数据源，面板不建第二份存储、不改写老文件。
 - **窄屏**：<1240px 时检查器可折叠（默认展开，按钮收起），看板横向滚动，不遮挡主操作。
 
-路由前缀 `/hyper-org/api`（跟 `hyper-roles` 一致）；面板客户端在独立嵌套包 `plugins/hyper-org/package.json`（`@chrock-studio/dsh-hyper-org`），标签页 `order: 70` 排在岗位（50）、Wiki（60）右侧。
+路由前缀 `/hyper-org/api`（跟 `hyper-roles` 一致）；面板客户端挂在本包的 `dsh.client` 上，标签页 `order: 70` 排在岗位（50）、Wiki（60）右侧。
 
 ### 配置
 
@@ -244,7 +278,7 @@ can: edit-roles
 | 历史 | 仅全局库：首次使用时 `git init`，批准/删除/重命名后自动提交；项目库不碰 git |
 | 面板 | 会话里的「Wiki」标签页：页面树 + 源码编辑 + 纯文本预览 + 反链 + 草稿 diff + 待审角标 |
 
-工具只有一个 `wiki`，动作为 `list` / `search` / `read` / `draft` / `status` / `backlinks`，**没有批准权限**。完整说明见 `plugins/hyper-wiki/README.md`。
+工具只有一个 `wiki`，动作为 `list` / `search` / `read` / `draft` / `status` / `backlinks`，**没有批准权限**。完整说明见 `packages/hyper-wiki/README.md`。
 
 ## 验证
 
@@ -256,11 +290,11 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki�
 
 界面自查（不改 app、不点按钮）：`bun scripts/preview.mjs roles` / `wiki` / `orders` 会把**真实组件**渲染成 `docs/demo/preview-*.html`，用无头 Chrome 截图即可看到 1200/1440 下的实际样子。它复刻了 `conversation.view` 的 flex 容器，所以布局塌缩这类问题会在这里暴露。`orders` 页另外挂了空态 / 错误 / 无项目根三个快照，用 `?panel=empty|error|noproject` 切换；交付物按钮带真实 `data-address`，点开时页面里的假 `sidebarRight` 会显示即将交给 DSH 的地址。
 
-端到端验收用例见 `plugins/hyper-creator/VERIFY.md`、`plugins/hyper-roles/VERIFY.md`、`plugins/hyper-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
+端到端验收用例见 `packages/hyper-creator/VERIFY.md`、`packages/hyper-roles/VERIFY.md`、`packages/hyper-wiki/VERIFY.md`；建造过程与踩坑见 `docs/NOTES.md`。
 
 ## 随包发布的技能
 
-`plugins/hyper-creator/skills/` 里的 skill 有两条到达路径：
+`packages/hyper-creator/skills/` 里的 skill 有两条到达路径：
 
 | 路径 | 覆盖范围 | 生效方式 |
 |---|---|---|
@@ -287,7 +321,7 @@ ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-wiki.mjs    # Wiki�
 /hyper-skill remove dsh-preset-authoring             # 删掉本 bundle 的链接
 ```
 
-「安装」= 把 `<bundle>/plugins/<plugin>/skills/<skill>` 链接进一个扫描根。`skill-filesystem` 监听 `<项目根>/.dsh/skills`（rank 100）与 `~/.dsh/skills`（rank 400），加/删链接下一步就反映到编目；卸载 = 删链接。项目根 = 最近含 `.git` 的祖先目录；`--project` 需要能取到会话工作目录。
+「安装」= 把 `<packages>/<package>/skills/<skill>` 链接进一个扫描根。`skill-filesystem` 监听 `<项目根>/.dsh/skills`（rank 100）与 `~/.dsh/skills`（rank 400），加/删链接下一步就反映到编目；卸载 = 删链接。项目根 = 最近含 `.git` 的祖先目录；`--project` 需要能取到会话工作目录。
 
 实测（2026-11-14）：把 `dsh-preset-authoring` 链接进 `./.dsh/skills/`，**下一步编目就出现了它**，`skill` 工具可加载；删除后消失，全程未重启。
 

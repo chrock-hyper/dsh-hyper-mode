@@ -1,8 +1,0 @@
-{
-  "name": "@chrock-studio/dsh-hyper-teams",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "description": "空壳插件：验证 bundle 能通过子路径导出挂载多个插件。可随时删除。",
-  "license": "MIT"
-}

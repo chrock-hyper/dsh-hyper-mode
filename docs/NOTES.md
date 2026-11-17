@@ -2,7 +2,14 @@
 
 这份笔记记录 `dsh-hyper-mode` 从「想合并两种执行器」到「在真实会话里验收通过」的全过程，重点是**踩过的坑**——它们几乎都不是业务逻辑问题，而是 bundle 的加载与解析机制问题。如果你想给 DSH 写插件，这些坑大概率也会遇到。
 
-> 可复用的检查清单见 `plugins/hyper-creator/skills/dsh-bundle-authoring/SKILL.md`（加载与解析），以及 `plugins/hyper-creator/skills/dsh-preset-authoring/SKILL.md`（造预设）。
+> 可复用的检查清单见 `packages/hyper-creator/skills/dsh-bundle-authoring/SKILL.md`（加载与解析），以及 `packages/hyper-creator/skills/dsh-preset-authoring/SKILL.md`（造预设）。
+
+> **阅读提示（2026-11-17 之后）**：仓库已重构成「元包 + 每插件一个真包」，旧路径
+> `plugins/<name>/*` 与根 `index.js` 均已作废，见 [ARCHITECTURE.md](ARCHITECTURE.md)。
+> 本文是建造过程的记录，其中**两处做法已被替换**，正文里标了「已作废」：
+> 相对路径行（坑 5）与嵌套伪包（第 11 节）。坑的成因仍然成立——`exports` 确有进程级
+> 缓存、一个包确实只能有一个活跃 Client 来源——只是解法换成了真包：行名用裸包根，
+> 每个包的 `package.json` 就是它自己的 `exports` 与 `dsh.client` 归属。
 
 ## 1. 动机
 
@@ -205,7 +212,7 @@ env -u DSH_INSTALL_DIR ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" …  # 模�
 
 这也解释了为什么它必须是 Host 行：preset 行的配置冻结在会话组合里，改动走 `unmanaged-plugin` 的重启路径；Host 行重载 bundle 即可生效。
 
-**坑 5：新增子路径导出要重启，相对路径不用。** 第一次实现把这行写成 `@chrock-studio/dsh-hyper-mode/hyper-skills`，`exports` 也加了对应条目，重载后行状态是 `never started`。原因不在加载器：Node 的 ESM 解析器把 `package.json` 的 `exports` 缓存在**进程级**，同一进程里后来添加的子路径仍报 `ERR_PACKAGE_PATH_NOT_EXPORTED`（用一个只改 package.json 的最小复现确认过）。补丁方言支持 `name: ./plugins/<name>/index.js`，插入行的相对路径锚定在补丁文件旁，`loader` 里走的是 `new URL(name, ctx.baseUrl)`——完全绕开 `exports`。所以本 bundle 的新行用相对路径：**新增插件也不用重启**。
+**坑 5（已作废）：新增子路径导出要重启，相对路径不用。** 第一次实现把这行写成 `@chrock-studio/dsh-hyper-mode/hyper-skills`，`exports` 也加了对应条目，重载后行状态是 `never started`。原因不在加载器：Node 的 ESM 解析器把 `package.json` 的 `exports` 缓存在**进程级**，同一进程里后来添加的子路径仍报 `ERR_PACKAGE_PATH_NOT_EXPORTED`（用一个只改 package.json 的最小复现确认过）。补丁方言支持 `name: ./plugins/<name>/index.js`，插入行的相对路径锚定在补丁文件旁，`loader` 里走的是 `new URL(name, ctx.baseUrl)`——完全绕开 `exports`。所以本 bundle 的新行用相对路径：**新增插件也不用重启**。
 
 **一个待查的现象**：当前进程里「增强创造模式」会话并没有看到 `dsh-preset-authoring`（`skill` 报 unknown），而同一个 skill 链接进项目根后立刻出现。可能是进程启动早于 `b23e5cc`、预设组合还是旧的，也可能是 preset 作用域下 `baseUrl` 的锚点与补丁文件不同。命令不依赖这条 preset 行，所以无论哪种原因它都成立。
 
@@ -230,7 +237,7 @@ client-modules: package @chrock-studio/dsh-hyper-mode resolves from multiple act
 
 本 bundle 有四行来自同一个包（hyper-teams / tool-catalog / hyper-skills / preset 里的 hyper-creator），所以根包上永远不能声明 `dsh.client`。
 
-**做法**：把客户端挂到一个嵌套清单 `plugins/hyper-roles/package.json`（包名 `@chrock-studio/dsh-hyper-roles`，只声明 `exports["./client"]` 与 `dsh.client`）。`locatePkgJson → nearestPackage` 会从行模块向上找**最近**的 `package.json`，因此只有 `hyper-roles` 这一行认领这个包，冲突消失。
+**做法（已作废）**：把客户端挂到一个嵌套清单 `plugins/hyper-roles/package.json`（包名 `@chrock-studio/dsh-hyper-roles`，只声明 `exports["./client"]` 与 `dsh.client`）。`locatePkgJson → nearestPackage` 会从行模块向上找**最近**的 `package.json`，因此只有 `hyper-roles` 这一行认领这个包，冲突消失。
 
 顺带确认了三点：
 

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Role orchestration",
+    "description": "Editable role cards, durable identity binding and per-role delegation: the role / role_spawn tools plus the Roles tab."
+  }
+}

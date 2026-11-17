@@ -10,7 +10,7 @@
  *
  *   ELECTRON_RUN_AS_NODE=1 "$DSH_NODE_EXECUTABLE" scripts/smoke-roles.mjs
  *
- * @module @chrock-studio/dsh-hyper-mode/scripts/smoke-roles
+ * @module dsh-hyper-mode-workspace/scripts/smoke-roles
  */
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -48,7 +48,7 @@ const host = {
 }
 
 process.env.DSH_HOME = home
-const { apply } = await import('../plugins/hyper-roles/index.js')
+const { apply } = await import('../packages/hyper-roles/src/index.js')
 await apply(host)
 
 console.log('tools:', tools.map((tool) => tool.name).join(', '))

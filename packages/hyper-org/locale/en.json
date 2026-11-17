@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Work orders",
+    "description": "Company-level work orders: WIP limits, acceptance sign-off, artifacts and the Orders board; reuses role identity when assigning work."
+  }
+}

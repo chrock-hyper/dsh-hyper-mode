@@ -1,8 +1,0 @@
-{
-  "name": "@chrock-studio/dsh-hyper-creator",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "description": "增强创造模式：Creator 能力 + 直呼工具与 run_code 程序调用并存的混合执行器。",
-  "license": "MIT"
-}
