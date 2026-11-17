@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 
-import { normalizeFields, parseList, parseRoleDoc, serializeRoleDoc } from '../src/role-doc.js'
+import { normalizeFields, parseList, parseRoleDoc, serializeRoleDoc } from '../src/role-doc.ts'
 
 const CARD = `---
 id: reviewer

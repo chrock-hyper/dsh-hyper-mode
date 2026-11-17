@@ -15,21 +15,19 @@
  *
  * @module dsh-hyper-mode-workspace/scripts/preview
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requested = process.argv[2]
 const kind = requested === 'wiki' ? 'wiki' : requested === 'orders' ? 'orders' : 'roles'
-const clientFile = kind === 'roles'
-  ? join(root, 'packages/hyper-roles/src/client/index.js')
-  : kind === 'wiki'
-    ? join(root, 'packages/hyper-wiki/src/client/index.js')
-    : join(root, 'packages/hyper-org/src/client/index.js')
-const source = readFileSync(clientFile, 'utf8')
-const styles = /const STYLES = `([\s\S]*?)`\n/.exec(source)?.[1] ?? ''
-if (styles === '') throw new Error('no STYLES block found')
+const pkg = kind === 'roles' ? 'hyper-roles' : kind === 'wiki' ? 'hyper-wiki' : 'hyper-org'
+// The panel is a build artifact now: the module-table entry is `lib/client.js`,
+// and the stylesheet is its own source module (`src/client/styles.ts`).
+const clientFile = join(root, 'packages', pkg, 'lib', 'client.js')
+const { STYLES: styles } = await import(pathToFileURL(join(root, 'packages', pkg, 'src', 'client', 'styles.ts')).href)
+if (typeof styles !== 'string' || styles === '') throw new Error(`no STYLES export in packages/${pkg}/src/client/styles.ts`)
 
 // ------------------------------------------------------------------ React shim
 const sameDeps = (left, right) => Array.isArray(left) && Array.isArray(right)
@@ -273,7 +271,7 @@ const orderDetails = {
   },
   'wo-20261115-2': {
     acceptance: ['规则只有一处实现', '面板与工具同一份 signBlockers', '在制上限建单时生效'],
-    artifacts: [{ path: 'packages/hyper-org/src/rules.js', kind: 'file', bytes: 11403, absolutePath: '/Users/you/src/app/packages/hyper-org/src/rules.js' }],
+    artifacts: [{ path: 'packages/hyper-org/src/rules.ts', kind: 'file', bytes: 11403, absolutePath: '/Users/you/src/app/packages/hyper-org/src/rules.ts' }],
     log: [
       { at: '2026-11-15T09:00:00.000Z', by: 'architect', note: '方案：规则下沉，store 一行不改。' },
       { at: '2026-11-15T10:30:00.000Z', by: 'engineer', note: 'Phase 0 完成，org-flow.test.js 未改动即全绿。' },
@@ -404,7 +402,7 @@ function fixtureFor(url) {
 // ------------------------------------------------------------------- the module
 let registration
 globalThis.window = { __ModuleLoader__: { load: (entry) => { registration = entry } } }
-await import(`${clientFile}?t=${Date.now()}`)
+await import(`${pathToFileURL(clientFile).href}?t=${Date.now()}`)
 
 /** Let pending promises and timers run. */
 async function settle() {
@@ -422,8 +420,23 @@ async function settle() {
 async function renderPanel(options) {
   const hooks = createHooks()
   const React = createReact(hooks)
+  // The bundled client requires both the React runtime and the automatic JSX
+  // runtime; the page's module table answers both, so the shim must too. The
+  // JSX runtime carries children inside props, while this serializer reads
+  // `children`, so unwrap them here.
+  const jsxRuntime = {
+    Fragment: FRAGMENT,
+    jsx: (type, props) => {
+      if (props === null || props === undefined) return React.createElement(type, null)
+      const { children, key: _key, ...rest } = props
+      const list = children === undefined ? [] : Array.isArray(children) ? children : [children]
+      return React.createElement(type, rest, ...list)
+    },
+  }
+  jsxRuntime.jsxs = jsxRuntime.jsx
   const plugin = registration.factory((name) => {
     if (name === 'react') return React
+    if (name === 'react/jsx-runtime') return jsxRuntime
     throw new Error(`unexpected require: ${name}`)
   })
 

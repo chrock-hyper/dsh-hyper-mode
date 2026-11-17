@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 
-import { HYBRID_INSTRUCTION, RUN_CODE_PREFERENCE, withRunCodePreference } from '../src/policy.js'
+import { HYBRID_INSTRUCTION, RUN_CODE_PREFERENCE, withRunCodePreference } from '../src/policy.ts'
 
 describe('routing policy text', () => {
   test('states a threshold instead of a blanket preference', () => {

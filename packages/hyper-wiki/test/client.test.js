@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 
 /**
- * The client half is a plain browser module: it registers a lazy factory with
+ * The client half is a bundled browser module: it registers a lazy factory with
  * `window.__ModuleLoader__` and renders with React from the platform module
  * table. This harness stubs both, so the factory, the slot registrations, and
- * one mount of each component are exercised without a browser or a build step.
+ * one mount of each component are exercised without a browser.
+ *
+ * It loads the build output (`lib/client.js`), which is CJS wrapped in the
+ * module-table registration, so the fake `require` has to answer the two
+ * externals the bundle keeps: `react` and `react/jsx-runtime`.
  */
 
 /** A single-pass hook runtime: enough for a component that mounts once. */
@@ -70,12 +74,33 @@ function createReact(hooks) {
 }
 
 /**
+ * The automatic JSX runtime the bundle destructures with `require`.
+ *
+ * `jsx`/`jsxs` take `(type, props, key)`; mapping `props.children` back onto
+ * the fake `createElement(type, props, ...children)` keeps the recorded tree
+ * identical to what the hand-written `h(...)` calls produced.
+ *
+ * @param React - the fake React runtime to build elements with.
+ * @returns the fake `react/jsx-runtime` module.
+ */
+function createJsxRuntime(React) {
+  const jsx = (type, props, key) => {
+    const { children, ...rest } = props || {}
+    const nextProps = key === undefined ? rest : { ...rest, key }
+    const childList = children === undefined ? [] : (Array.isArray(children) ? children : [children])
+    return React.createElement(type, nextProps, ...childList)
+  }
+  return { jsx, jsxs: jsx, jsxDEV: jsx, Fragment: React.Fragment }
+}
+
+/**
  * Load the client module and return its registration plus a mounted app.
  * @returns the registration, the fake React runtime, and the captured slots.
  */
 function loadClient() {
   const hooks = createHooks()
   const React = createReact(hooks)
+  const jsxRuntime = createJsxRuntime(React)
   let registration
   globalThis.window = {
     __ModuleLoader__: {
@@ -85,10 +110,11 @@ function loadClient() {
     },
   }
   // eslint-disable-next-line no-undef
-  require(new URL('../src/client/index.js', import.meta.url).pathname)
+  require(new URL('../lib/client.js', import.meta.url).pathname)
   if (registration === undefined) throw new Error('client module did not register a factory')
   const app = registration.factory(name => {
     if (name === 'react') return React
+    if (name === 'react/jsx-runtime') return jsxRuntime
     throw new Error(`unexpected require: ${name}`)
   })
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { backlinksOf, extractLinks, resolveLink } from '../src/links.js'
+import { backlinksOf, extractLinks, resolveLink } from '../src/links.ts'
 
 describe('relative link normalization', () => {
   test('resolves sibling, nested, and parent-relative links', () => {

@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { findProjectRoot } from '@chrock-studio/dsh-hyper-shared/paths'
-import { apply, discoverSkills, parseSkillFile, runSkillCommand } from '../src/index.js'
+import { apply, discoverSkills, parseSkillFile, runSkillCommand } from '../src/index.ts'
 
 const temporary = []
 

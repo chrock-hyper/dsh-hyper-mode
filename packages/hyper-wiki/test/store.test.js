@@ -3,8 +3,8 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { parsePage, serializePage } from '../src/page.js'
-import { createScopes } from '../src/scopes.js'
+import { parsePage, serializePage } from '../src/page.ts'
+import { createScopes } from '../src/scopes.ts'
 import { makeEnv, write } from './helpers.js'
 
 /** A simple page document. */

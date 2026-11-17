@@ -6,8 +6,8 @@
   "description": "会话内 Wiki：作用域页面库、草稿流与标签页面板。",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.js",
-    "./client": "./src/client/index.js",
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
     "./package.json": "./package.json"

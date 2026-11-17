@@ -6,7 +6,7 @@
   "description": "增强创造模式：Creator 能力 + 直呼工具与 run_code 程序调用并存的混合执行器。",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./lib/index.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
     "./package.json": "./package.json"

@@ -9,7 +9,7 @@ import {
   serializePage,
   sha1Hex,
   splitFrontmatter,
-} from '../src/page.js'
+} from '../src/page.ts'
 
 describe('page frontmatter', () => {
   test('parses Chinese title, tags, status and updated', () => {

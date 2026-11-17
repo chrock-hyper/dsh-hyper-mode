@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 
-import { authorizeRequest, cwdOfSession } from '../src/index.js'
-import { createWikiApi, isLoopbackAddress, MAX_BODY_BYTES, statusFor } from '../src/api.js'
-import { parsePage, serializePage, sha1Hex } from '../src/page.js'
+import { authorizeRequest, cwdOfSession } from '../src/index.ts'
+import { createWikiApi, isLoopbackAddress, MAX_BODY_BYTES, statusFor } from '../src/api.ts'
+import { parsePage, serializePage, sha1Hex } from '../src/page.ts'
 import { call, makeEnv, quietLogger, write } from './helpers.js'
 
 /** A page document used across the route tests. */

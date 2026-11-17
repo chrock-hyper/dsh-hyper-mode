@@ -6,7 +6,7 @@
   "description": "/hyper-skill 命令插件：按需把随包 skill 安装进扫描根（Host 作用域，所有模式可用）。",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./lib/index.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
     "./package.json": "./package.json"

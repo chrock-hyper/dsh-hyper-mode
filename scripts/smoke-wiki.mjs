@@ -43,7 +43,7 @@ const host = {
   inject: (deps, callback) => callback({ effect: host.effect, get: host.get }),
 }
 
-const { apply } = await import('../packages/hyper-wiki/src/index.js')
+const { apply } = await import('../packages/hyper-wiki/lib/index.js')
 apply(host, { home, git: false })
 
 console.log('tools:', tools.map((tool) => tool.name).join(', '))

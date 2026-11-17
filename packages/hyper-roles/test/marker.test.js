@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 
-import { bindLine, clip, extractRole, paragraphOf, renderBrief, renderCard, renderRoster, renderSelf, scopeLabel } from '../src/marker.js'
+import { bindLine, clip, extractRole, paragraphOf, renderBrief, renderCard, renderRoster, renderSelf, scopeLabel } from '../src/marker.ts'
 
 const card = {
   scope: 'project',

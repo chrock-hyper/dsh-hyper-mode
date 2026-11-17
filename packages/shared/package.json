@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "本 bundle 各插件共用的纯代码：DSH 状态目录定位、项目根判定、路径安全与随包模块加载。",
+  "description": "本 bundle 各插件共用的纯代码：DSH 状态目录定位、项目根判定、路径安全、随包模块加载与 Host 接口类型。",
   "license": "MIT",
   "exports": {
-    "./paths": "./src/paths.js",
-    "./shipped": "./src/shipped.js",
+    "./paths": "./src/paths.ts",
+    "./shipped": "./src/shipped.ts",
+    "./host": "./src/host.ts",
     "./package.json": "./package.json"
   }
 }

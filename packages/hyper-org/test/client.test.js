@@ -1,13 +1,22 @@
 /**
- * The panel is a hand-written browser module with no build step, so the
- * contract worth testing is: the module registers under the nested package
- * name, the tab lands in `conversation.view` beside 岗位 (50) and Wiki (60), the
- * board renders five columns plus a fixed inspector, a deliverable opens
- * through DSH's own sidebar service (never through a Host file read), and a
- * stage move is one request no matter whether a card was dropped or the stage
+ * The panel is a bundled browser module: the build wraps the emitted CJS chunk
+ * in one `window.__ModuleLoader__.load({ id, factory })` registration, and the
+ * factory renders with React from the page's module table. This harness stubs
+ * both, so the contract worth testing is: the module registers under the nested
+ * package name, the tab lands in `conversation.view` beside 岗位 (50) and Wiki
+ * (60), the board renders five columns plus a fixed inspector, a deliverable
+ * opens through DSH's own sidebar service (never through a Host file read), and
+ * a stage move is one request no matter whether a card was dropped or the stage
  * menu was used.
+ *
+ * It loads the build output (`lib/client.js`), not the source, because that file
+ * is what the page actually receives: the module format, the wrapper and the
+ * JSX transform are part of the contract. The fake `require` therefore answers
+ * the two externals the bundle keeps — `react` and `react/jsx-runtime`.
  */
 import { describe, expect, test } from 'bun:test'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 /** A minimal hook runtime that can render, run effects, and render again. */
 function createHooks() {
@@ -58,6 +67,25 @@ function createReact(hooks) {
 /** Let the fetch promises settle. */
 async function settle() {
   for (let index = 0; index < 6; index += 1) await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+/**
+ * The automatic JSX runtime the bundle destructures with `require`.
+ *
+ * `jsx`/`jsxs` take `(type, props, key)`; mapping `props.children` back onto the
+ * fake `createElement(type, props, ...children)` keeps the recorded tree
+ * identical to what the hand-written `h(...)` calls produced.
+ * @param React - the fake React runtime to build elements with.
+ * @returns the fake `react/jsx-runtime` module.
+ */
+function createJsxRuntime(React) {
+  const jsx = (type, props, key) => {
+    const { children, ...rest } = props || {}
+    const nextProps = key === undefined ? rest : { ...rest, key }
+    const childList = children === undefined ? [] : (Array.isArray(children) ? children : [children])
+    return React.createElement(type, nextProps, ...childList)
+  }
+  return { jsx, jsxs: jsx, jsxDEV: jsx, Fragment: React.Fragment }
 }
 
 const boardState = {
@@ -138,15 +166,16 @@ const orderDoc = {
 // closure (and therefore a fresh `t`, fresh services) from the same entry.
 let registration
 globalThis.window = { __ModuleLoader__: { load: (entry) => { registration = entry } } }
-// eslint-disable-next-line no-undef
-require(new URL('../src/client/index.js', import.meta.url).pathname)
+await import(pathToFileURL(join(import.meta.dir, '../lib/client.js')).href)
 
 /** Load the module and register it against a fake client context. */
 function loadClient(options = {}) {
   const hooks = createHooks()
   const React = createReact(hooks)
+  const jsxRuntime = createJsxRuntime(React)
   const app = registration.factory((name) => {
     if (name === 'react') return React
+    if (name === 'react/jsx-runtime') return jsxRuntime
     throw new Error(`unexpected require: ${name}`)
   })
 

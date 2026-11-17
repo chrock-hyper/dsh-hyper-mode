@@ -9,8 +9,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { buildRoleTools } from '../src/tools.js'
-import { createRole, readRole, saveRole } from '../src/store.js'
+import { buildRoleTools } from '../src/tools.ts'
+import { createRole, readRole, saveRole } from '../src/store.ts'
 
 const root = mkdtempSync(join(tmpdir(), 'hyper-roles-tools-'))
 const dirs = {

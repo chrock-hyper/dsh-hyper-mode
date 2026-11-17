@@ -48,7 +48,7 @@ const host = {
 }
 
 process.env.DSH_HOME = home
-const { apply } = await import('../packages/hyper-roles/src/index.js')
+const { apply } = await import('../packages/hyper-roles/lib/index.js')
 await apply(host)
 
 console.log('tools:', tools.map((tool) => tool.name).join(', '))

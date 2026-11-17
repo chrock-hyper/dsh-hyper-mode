@@ -6,9 +6,9 @@
   "description": "岗位制编排：可编辑的角色卡、durable 身份绑定、按岗位委派与岗位面板。",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.js",
-    "./client": "./src/client/index.js",
-    "./internal": "./src/internal.js",
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./internal": "./lib/internal.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
     "./package.json": "./package.json"

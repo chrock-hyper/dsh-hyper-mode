@@ -10,7 +10,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { artifactBase, describeArtifact } from '../src/artifacts.js'
+import { artifactBase, describeArtifact } from '../src/artifacts.ts'
 
 const root = mkdtempSync(join(tmpdir(), 'hyper-org-artifacts-'))
 const base = join(root, 'project')

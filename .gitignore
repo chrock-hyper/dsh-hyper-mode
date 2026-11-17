@@ -1,5 +1,10 @@
 node_modules/
 .pnpm-store/
+
+# Build output, produced by `pnpm build`, never committed.
+lib/
+packages/*/lib/
+
 .DS_Store
 *.log
 .dsh/

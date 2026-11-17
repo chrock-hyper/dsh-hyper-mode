@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { createRole, readRole } from '@chrock-studio/dsh-hyper-roles/internal'
-import { orgDirs } from '../src/store.js'
+import { orgDirs } from '../src/store.ts'
 import {
   classify,
   createWithRules,
@@ -20,7 +20,7 @@ import {
   splitLines,
   splitList,
   updateWithRules,
-} from '../src/rules.js'
+} from '../src/rules.ts'
 
 const roots = []
 

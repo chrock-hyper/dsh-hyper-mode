@@ -19,7 +19,7 @@ import {
   readRoleIn,
   saveRole,
   writeGuide,
-} from '../src/store.js'
+} from '../src/store.ts'
 
 const root = mkdtempSync(join(tmpdir(), 'hyper-roles-store-'))
 const dirs = {

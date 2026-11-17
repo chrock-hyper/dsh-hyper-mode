@@ -57,9 +57,9 @@ mock.module('@chrock-studio/dsh-hyper-shared/shipped', () => ({
   },
 }))
 
-const mod = await import('../src/index.js')
+const mod = await import('../src/index.ts')
 const { HybridToolExecutor } = mod
-const { HYBRID_INSTRUCTION, RUN_CODE_PREFERENCE } = await import('../src/policy.js')
+const { HYBRID_INSTRUCTION, RUN_CODE_PREFERENCE } = await import('../src/policy.ts')
 
 const TOOLS = [
   { name: 'bash', description: 'run shell', output: { schema: { type: 'object' } } },

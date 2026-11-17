@@ -5,8 +5,8 @@
 > **2026-11-17 布局变更（先读这段）**：仓库已重构成 pnpm monorepo，旧路径全部作废。
 > - 元包（含 `cordis.patch.yml`）在 `packages/bundle/`；每个插件是 `packages/<name>/` 下的**真包**。
 > - `plugins/<name>/index.js` → `packages/<name>/src/index.js`；
->   `plugins/<name>/lib/*.js` → `packages/<name>/src/*.js`；
->   `plugins/<name>/client/client.js` → `packages/<name>/src/client/index.js`。
+>   `plugins/<name>/lib/*.js` → `packages/<name>/src/*.ts`；
+>   `plugins/<name>/client/client.js` → `packages/<name>/src/client/*.tsx`（已改为 JSX 多模块 + 构建产物 `lib/client.js`）。
 > - 行的 `name` 现在是裸包根（`@chrock-studio/dsh-hyper-roles`），不再用相对路径或子路径；
 >   面板的 `dsh.client` 就写在插件包自己的 `package.json` 上，嵌套伪包已删除。
 > - 根 `index.js` 兜底与空壳 `hyper-teams` 已删除。安装目标改为 `packages/bundle`。
@@ -44,7 +44,7 @@
 
 1. **`.dsh/` 是运行状态，不是源码。** 岗位与工单都在这里；随包模板在 `packages/hyper-roles/roles/`。改模板要同时考虑项目副本是否覆盖。
 2. **改完插件必须 bundle 重载**：`plugin_manager action=set_bundle enabled=false` 然后 `true`。以返回的 `application` 为准——`changed:false` 表示根本没重算，不算生效；`failed` 时诊断里才有真实原因（链接安装的模块 import 失败不报堆栈）。
-3. **面板客户端是源码直供**（`dsh.client` 指向该包自己的 `./client`），不需要构建，改完刷新页面。但 `dsh-client-modules` **不允许同一个包出现多个活跃 loader 来源**——所以一个带 UI 的组件必须独占一个包。现在每个面板本来就是独立包（`packages/hyper-roles`、`packages/hyper-org`、`packages/hyper-wiki`），这个约束自然满足。
+3. **源码是 TS，运行的是构建产物。** `pnpm build` 之后 `lib/` 才是 DSH 加载的东西；`dsh.client` 指向 `./lib/client.js`。`dsh-client-modules` **不允许同一个包出现多个活跃 loader 来源**——所以一个带 UI 的组件必须独占一个包。现在每个面板本来就是独立包（`packages/hyper-roles`、`packages/hyper-org`、`packages/hyper-wiki`），这个约束自然满足。
 4. **委派深度默认 1**：岗位子代理拉不起同级。跨岗位协作一律经主代理，`send_message` 只能在同一棵树内用。
 
 ## 已完成：工单看板 v2（wo-20261116-1）
@@ -108,7 +108,7 @@
 |---|---|
 | 三件套工具与权限 | `packages/hyper-roles/src/tools/`（`role.js` / `role-spawn.js` / `role-edit.js`，门面 `tools.js`） |
 | 提示词渲染（岗位卡 / 花名册 / brief） | `packages/hyper-roles/src/marker.js`、`src/index.js` |
-| 面板与标签页注册 | `packages/hyper-roles/src/client/index.js` |
+| 面板与标签页注册 | `packages/hyper-roles/src/client/index.tsx` |
 | 岗位库与作用域 | `packages/hyper-roles/src/store/`（`list.js` / `cards.js` / `builtins.js` …） |
 | 跨包契约（给 hyper-org 用） | `packages/hyper-roles/src/internal.js` |
 | 工单存储与三条门禁 | `packages/hyper-org/src/store.js` |
@@ -117,7 +117,7 @@
 | 规则（note / 自签 / DRI / 解释 / 分类） | `packages/hyper-org/src/rules.js` |
 | 面板路由与错误映射 | `packages/hyper-org/src/api/routes.js`（门面 `api.js`） |
 | 交付物状态与 `absolutePath`（DSH 预览地址的来源） | `packages/hyper-org/src/artifacts.js` |
-| 工单面板（标签页） | `packages/hyper-org/src/client/index.js`、`packages/hyper-org/package.json` |
+| 工单面板（标签页） | `packages/hyper-org/src/client/index.tsx`、`packages/hyper-org/package.json` |
 | Wiki 存储 / 工具 / 路由 | `packages/hyper-wiki/src/store/`、`tools/`、`api/`（各自保留门面） |
 | 行与包的组合 | `packages/bundle/cordis.patch.yml`、`packages/bundle/package.json` |
 | 第一单产物 | `examples/flying-chess/`（含 `order.json` 快照） |

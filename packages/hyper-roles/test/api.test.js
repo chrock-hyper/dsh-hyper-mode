@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { createApiHandler } from '../src/api.js'
+import { createApiHandler } from '../src/api.ts'
 
 const home = mkdtempSync(join(tmpdir(), 'hyper-roles-api-'))
 const project = join(home, 'project')

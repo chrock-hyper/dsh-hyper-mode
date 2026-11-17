@@ -9,8 +9,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { createRole, resolveDirs } from '@chrock-studio/dsh-hyper-roles/internal'
-import { createApiHandler } from '../src/api.js'
-import { createOrder, orgDirs, saveOrder, signOrder } from '../src/store.js'
+import { createApiHandler } from '../src/api.ts'
+import { createOrder, orgDirs, saveOrder, signOrder } from '../src/store.ts'
 
 /** Every sandbox root created here, removed once at the end. */
 const roots = []

@@ -102,9 +102,25 @@ packages/shared/        纯代码库，不是 Loader 行
 - link 能验「组合」（行挂上、Client 加载、config 生效），**不一定能验「实例共享」**：
   只 link 元包时插件包的真实路径在元包之外，静态 import 会落到 workspace 副本。
 
-## 七、这一轮没做的事
+## 七、构建层：为什么运行的是 `lib/`
 
-- **没有构建步骤。** 源码直接是 `src/*.js`，`exports` 指向源码；模板里的 tsdown + `lib/` 产物
-  留给下一步的 TypeScript 迁移。Client 半边的拆分也依赖那一步。
+源码是 TypeScript（Host 的 `.ts` + Client 的 `.tsx`），运行的是 tsdown 产出的 `lib/`。
+
+这不是为了「顺手加个构建」，而是两条硬约束的解法：
+
+1. **Client 半边必须拆得开。** 前端代码单文件上千行不可维护，但浏览器模块表是惰性 CJS 表，
+   `factory(require)` 只认 `react`、`react/jsx-runtime` 这类基线，没有相对路径解析——手写就只能是
+   单文件。有了打包，源码拆成多个 `.tsx`，产物仍然是那一个 `lib/client.js`，两件事同时成立。
+2. **Host 半边需要类型。** `strict` + `noUncheckedIndexedAccess` 把「从模型输出、面板输入、JSON
+   文件里读出来的东西」逼成显式窄化。随包模块用 `loadShipped<T>` 在调用点声明形状，`any` 不作为退路。
+
+两半的产物形状不同：Host 是 ESM（Node 直接 import），Client 是 CJS 加 `window.__ModuleLoader__.load`
+包装（页面当脚本抓取）。
+
+`lib/` 是 gitignored 的产物：**新 checkout 必须先构建**，否则 `exports` 指向的文件不存在。
+
+## 八、还没做的事
+
 - **包保持 `private: true`，只做本地 link。** 没有 `files` 白名单、`engines.dsh` 与 `pack:check`；
   要发布时再按模板补。
+- **没有契约检查脚本。** 逐行校验 patch、config、Client 注册 id 仍是靠测试与人工。

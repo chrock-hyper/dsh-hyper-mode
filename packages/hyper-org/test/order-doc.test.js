@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 
-import { acceptanceGate, occupiesSlot, parseOrder, serializeOrder } from '../src/order-doc.js'
+import { acceptanceGate, occupiesSlot, parseOrder, serializeOrder } from '../src/order-doc.ts'
 
 const ORDER = {
   schemaVersion: 1,

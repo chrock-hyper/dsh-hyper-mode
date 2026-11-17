@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 
-import { callerName, normalizeConfig, readBundledSkill, workingDirectoryOf } from '../src/index.js'
-import { CONFIG_DEFAULTS } from '../src/index.js'
-import { wikiFacts, wikiPromptText, WIKI_SECTION_ORDER } from '../src/prompt.js'
-import { serializePage } from '../src/page.js'
+import { callerName, normalizeConfig, readBundledSkill, workingDirectoryOf } from '../src/index.ts'
+import { CONFIG_DEFAULTS } from '../src/index.ts'
+import { wikiFacts, wikiPromptText, WIKI_SECTION_ORDER } from '../src/prompt.ts'
+import { serializePage } from '../src/page.ts'
 import { makeEnv, write } from './helpers.js'
 
 /** A page document used where only presence matters. */

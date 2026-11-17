@@ -15,7 +15,7 @@ mock.module('@chrock-studio/dsh-hyper-shared/shipped', () => ({
   },
 }))
 
-const mod = await import('../src/index.js')
+const mod = await import('../src/index.ts')
 const { apply, name, inject } = mod
 
 const TOOLS = [

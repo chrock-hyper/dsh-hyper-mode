@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-import { parsePage } from '../src/page.js'
-import { DEFAULT_LIMIT, SEARCH_WEIGHTS, scorePage, searchPages } from '../src/search.js'
+import { parsePage } from '../src/page.ts'
+import { DEFAULT_LIMIT, SEARCH_WEIGHTS, scorePage, searchPages } from '../src/search.ts'
 
 /**
  * Build one parsed page row.

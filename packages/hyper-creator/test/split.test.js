@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { groupConsecutive, mergeBatch } from '../src/split.js'
+import { groupConsecutive, mergeBatch } from '../src/split.ts'
 
 const isProgram = (call) => call.name === 'run_code'
 const call = (id, name) => ({ id, name, input: {} })

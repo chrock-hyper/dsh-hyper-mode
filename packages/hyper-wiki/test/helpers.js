@@ -9,9 +9,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 
-import { createGit } from '../src/git.js'
-import { createScopes } from '../src/scopes.js'
-import { createWikiStore } from '../src/store.js'
+import { createGit } from '../src/git.ts'
+import { createScopes } from '../src/scopes.ts'
+import { createWikiStore } from '../src/store.ts'
 
 /** Every temporary tree this run created, removed when the test process exits. */
 const temporaryTrees = []

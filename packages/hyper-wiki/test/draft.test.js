@@ -10,8 +10,8 @@ import {
   pagePathOfDraft,
   parseDraft,
   serializeDraft,
-} from '../src/draft.js'
-import { parsePage, serializePage, sha1Hex } from '../src/page.js'
+} from '../src/draft.ts'
+import { parsePage, serializePage, sha1Hex } from '../src/page.ts'
 import { makeEnv, write } from './helpers.js'
 
 /** A page as a human would have written it. */

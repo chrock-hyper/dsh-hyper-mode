@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { serializePage } from '../src/page.js'
-import { createWikiTool, runWikiAction, WIKI_ACTIONS } from '../src/tools.js'
+import { serializePage } from '../src/page.ts'
+import { createWikiTool, runWikiAction, WIKI_ACTIONS } from '../src/tools.ts'
 import { makeEnv, write } from './helpers.js'
 
 /** A page document used across the tool tests. */

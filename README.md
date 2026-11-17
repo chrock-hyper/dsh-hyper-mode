@@ -61,12 +61,38 @@ dsh-hyper-mode/                  pnpm workspace 根（private，无运行时代�
 
 ```
 packages/<name>/
-├─ package.json    exports: "."（行入口）/ "./client"（有 UI 才有）/ locale / icon / package.json
-├─ src/            index.js（Host 入口），其余按职责分文件；有 UI 时含 client/index.js
+├─ package.json    exports: "."（行入口，指向 lib/）/ "./client"（有 UI 才有）/ locale / icon
+├─ src/            index.ts（Host 入口）与按职责拆分的 .ts；有 UI 时含 client/*.tsx
+├─ lib/            构建产物（gitignored）：index.js / client.js / *.d.ts
 ├─ locale/         en.json + zh.json（行级标题与描述）
 ├─ icon.svg        行级图标
-└─ test/           bun test
+└─ test/           bun test（client 测试加载 lib/client.js）
 ```
+
+## 构建
+
+源码是 TypeScript，**运行的是 `lib/` 里的构建产物**——改完源码必须构建，否则 DSH 加载的仍是旧文件。
+
+```sh
+pnpm build          # 全部包；或 bun scripts/build.ts <包名> 只建一个
+pnpm typecheck      # tsc --noEmit（strict + noUncheckedIndexedAccess）
+pnpm test           # 先 build，再跑全部包的 bun test
+```
+
+两半的产物形状不同，这是浏览器的约束不是风格选择：
+
+| 半边 | 格式 | 消费方 | 产物 |
+|---|---|---|---|
+| Host | ESM | Node 直接 import | `lib/index.js` + `lib/index.d.ts` |
+| Client | CJS，外面包 `window.__ModuleLoader__.load(...)` | 页面当脚本抓取执行 | 单个 `lib/client.js` |
+
+Client 的**源码**可以拆成多个 `.tsx`（JSX 由 tsdown 编译），但**产物**必须是单个文件：浏览器模块表
+是惰性 CJS 表，`factory(require)` 只认 `react` / `react/jsx-runtime` 这类基线，没有相对路径解析。
+构建时 `react` 与 `react/jsx-runtime` 保持外部，其余全部内联。
+
+`@deepseek-ai/*` 永远不进产物：随包装载走 `loadShipped`，而 profile resolver 把裸请求路由到安装副本，
+内联会造出第二个 Cordis 实例。`@chrock-studio/dsh-hyper-shared` 相反——它没有自己的构建，
+由各插件在打包时内联。
 
 **聚合点是 `packages/bundle/cordis.patch.yml`，不是任何 `index.js`**：DSH 按补丁里的行挂载插件，
 包根导出它们并不会自动生效。

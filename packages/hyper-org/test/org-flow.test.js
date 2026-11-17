@@ -8,8 +8,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { createRole } from '@chrock-studio/dsh-hyper-roles/internal'
-import { orgDirs, createOrder, listOrders, saveOrder, signOrder } from '../src/store.js'
-import { buildOrgTools, splitLines } from '../src/tools.js'
+import { orgDirs, createOrder, listOrders, saveOrder, signOrder } from '../src/store.ts'
+import { buildOrgTools, splitLines } from '../src/tools.ts'
 
 const root = mkdtempSync(join(tmpdir(), 'hyper-org-'))
 const home = join(root, 'home')
@@ -174,6 +174,23 @@ describe('acceptance parsing', () => {
       'Canvas 绘制，适配 DPR',
     ])
     expect(splitLines('')).toEqual([])
+  })
+
+  test('the read card names the DRI role title, not just its id', async () => {
+    ensureRole('reviewer', '验收评审员')
+    const tools = toolsFor()
+    const created = await tools.org_order.execute({
+      action: 'create',
+      title: '带 DRI 的单',
+      size: 'S',
+      dri: 'reviewer',
+      acceptance: '可判定',
+    }, execAs(lead))
+    const id = /wo-\d{8}-\d+/.exec(textOf(created))[0]
+    const read = await tools.org_order.execute({ action: 'read', id }, execAs(lead))
+    // The card lives under `fields`; reading a root-level `title` silently
+    // dropped the label while the panel showed it.
+    expect(textOf(read)).toContain('领取人 reviewer（验收评审员）')
   })
 
   test('a comma-heavy criterion survives a round trip through the tool', async () => {

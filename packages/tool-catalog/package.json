@@ -6,7 +6,7 @@
   "description": "Host 检视 provider：报告模型真正收到的工具编目，补上 Tool/listTools 看不到的 run_code 传输。",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./lib/index.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
     "./package.json": "./package.json"

@@ -4,8 +4,8 @@
  */
 import { describe, expect, test } from 'bun:test'
 
-import { boundRoleOf, roleBindingDefinition } from '../src/binding.js'
-import { messageText } from '../src/marker.js'
+import { boundRoleOf, roleBindingDefinition } from '../src/binding.ts'
+import { messageText } from '../src/marker.ts'
 
 const { apply, init, stateSchema } = roleBindingDefinition
 
